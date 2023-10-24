@@ -133,7 +133,7 @@ pub enum Method {
 
 impl Default for Method {
     fn default() -> Self {
-        SampleBuilder::builder().build()
+        SampleBuilder::new().build()
     }
 }
 use Method::*;

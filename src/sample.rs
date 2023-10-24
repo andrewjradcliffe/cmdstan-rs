@@ -1,7 +1,10 @@
 use crate::method::Method;
 use std::fmt::Write;
 
-#[derive(Debug)]
+/// Options builder for `Method::Sample`.
+/// For any option left unspecified, the default value indicated
+/// on `Method::Sample` will be supplied.
+#[derive(Debug, PartialEq, Clone)]
 pub struct SampleBuilder {
     num_samples: Option<i32>,
     num_warmup: Option<i32>,
@@ -21,7 +24,8 @@ macro_rules! insert_field {
     };
 }
 impl SampleBuilder {
-    pub fn builder() -> Self {
+    /// Return a builder with all options unspecified.
+    pub fn new() -> Self {
         Self {
             num_samples: None,
             num_warmup: None,
@@ -39,6 +43,7 @@ impl SampleBuilder {
     insert_field!(adapt, SampleAdapt);
     insert_field!(algorithm, SampleAlgorithm);
     insert_field!(num_chains, i32);
+    /// Build the `Method::Sample` instance.
     pub fn build(self) -> Method {
         let num_samples = self.num_samples.unwrap_or(1000);
         let num_warmup = self.num_warmup.unwrap_or(1000);
@@ -60,46 +65,46 @@ impl SampleBuilder {
 }
 
 /// Warmup Adaptation
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct SampleAdapt {
     /// Adaptation engaged?
     /// Valid values: [0, 1]
     /// Defaults to 1
-    engaged: bool,
+    pub engaged: bool,
     /// Adaptation regularization scale
     /// Valid values: 0 < gamma
     /// Defaults to 0.05
-    gamma: f64,
+    pub gamma: f64,
     /// Adaptation target acceptance statistic
     /// Valid values: 0 < delta < 1
     /// Defaults to 0.8
-    delta: f64,
+    pub delta: f64,
     /// Adaptation relaxation exponent
     /// Valid values: 0 < kappa
     /// Defaults to 0.75
-    kappa: f64,
+    pub kappa: f64,
     /// Adaptation iteration offset
     /// Valid values: 0 < t0
     /// Defaults to 10
-    t0: f64,
+    pub t0: f64,
     /// Width of initial fast adaptation interval
     /// Valid values: All
     /// Defaults to 75
-    init_buffer: u32,
+    pub init_buffer: u32,
     /// Width of final fast adaptation interval
     /// Valid values: All
     /// Defaults to 50
-    term_buffer: u32,
+    pub term_buffer: u32,
     /// Initial width of slow adaptation interval
     /// Valid values: All
     /// Defaults to 25
-    window: u32,
+    pub window: u32,
 }
 impl Default for SampleAdapt {
     // Rather than define the defaults in two places, the `build` method of SampleAdaptBuilder,
     // called on an all-None builder, should serve as the single source of truth.
     fn default() -> Self {
-        SampleAdaptBuilder::builder().build()
+        SampleAdaptBuilder::new().build()
     }
 }
 
@@ -116,12 +121,16 @@ impl SampleAdapt {
         write!(&mut s, " window={}", self.window).unwrap();
         s
     }
+    /// Return a builder with all options unspecified.
     pub fn builder() -> SampleAdaptBuilder {
-        SampleAdaptBuilder::builder()
+        SampleAdaptBuilder::new()
     }
 }
 
-#[derive(Debug)]
+/// Options builder for `SampleAdapt`.
+/// For any option left unspecified, the default value indicated
+/// on `SampleAdapt` will be supplied.
+#[derive(Debug, PartialEq, Clone)]
 pub struct SampleAdaptBuilder {
     engaged: Option<bool>,
     gamma: Option<f64>,
@@ -133,7 +142,8 @@ pub struct SampleAdaptBuilder {
     window: Option<u32>,
 }
 impl SampleAdaptBuilder {
-    pub fn builder() -> Self {
+    /// Return a builder with all options unspecified.
+    pub fn new() -> Self {
         Self {
             engaged: None,
             gamma: None,
@@ -153,6 +163,7 @@ impl SampleAdaptBuilder {
     insert_field!(init_buffer, u32);
     insert_field!(term_buffer, u32);
     insert_field!(window, u32);
+    /// Build the `SampleAdapt` instance.
     pub fn build(self) -> SampleAdapt {
         let engaged = self.engaged.unwrap_or(true);
         let gamma = self.gamma.unwrap_or(0.05);
@@ -175,6 +186,9 @@ impl SampleAdaptBuilder {
     }
 }
 
+/// Options builder for `SampleAlgorithm::Hmc`.
+/// For any option left unspecified, the default value indicated
+/// on `SampleAlgorithm::Hmc` will be supplied.
 pub struct HmcBuilder {
     engine: Option<Engine>,
     metric: Option<Metric>,
@@ -184,7 +198,8 @@ pub struct HmcBuilder {
 }
 
 impl HmcBuilder {
-    pub fn builder() -> Self {
+    /// Return a builder with all options unspecified.
+    pub fn new() -> Self {
         Self {
             engine: None,
             metric: None,
@@ -199,7 +214,7 @@ impl HmcBuilder {
     insert_field!(metric_file, String);
     insert_field!(stepsize, f64);
     insert_field!(stepsize_jitter, f64);
-
+    /// Build the `SampleAlgorithm::Hmc` instance.
     pub fn build(self) -> SampleAlgorithm {
         let engine = self.engine.unwrap_or_default();
         let metric = self.metric.unwrap_or_default();
@@ -219,7 +234,7 @@ impl HmcBuilder {
 /// Sampling algorithm
 /// Valid values: hmc, fixed_param
 /// Defaults to hmc
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum SampleAlgorithm {
     /// Hamiltonian Monte Carlo
     Hmc {
@@ -250,7 +265,7 @@ pub enum SampleAlgorithm {
 
 impl Default for SampleAlgorithm {
     fn default() -> Self {
-        Self::from(HmcBuilder::builder())
+        Self::from(HmcBuilder::new())
     }
 }
 
@@ -288,7 +303,7 @@ impl From<HmcBuilder> for SampleAlgorithm {
 /// Engine for Hamiltonian Monte Carlo
 /// Valid values: static, nuts
 /// Defaults to nuts
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Engine {
     /// Static integration time
     Static {
@@ -307,7 +322,7 @@ pub enum Engine {
 }
 impl Default for Engine {
     fn default() -> Self {
-        Self::from(NutsBuilder::builder())
+        Self::from(NutsBuilder::new())
     }
 }
 
@@ -334,32 +349,40 @@ impl From<NutsBuilder> for Engine {
     }
 }
 
-/// Static integration time
-#[derive(Debug, PartialEq)]
+/// Options builder for `Engine::Static`.
+/// For any option left unspecified, the default value indicated
+/// on `Engine::Static` will be supplied.
+#[derive(Debug, PartialEq, Clone)]
 pub struct StaticBuilder {
     int_time: Option<f64>,
 }
 impl StaticBuilder {
-    pub fn builder() -> StaticBuilder {
+    /// Return a builder with all options unspecified.
+    pub fn new() -> StaticBuilder {
         StaticBuilder { int_time: None }
     }
     insert_field!(int_time, f64);
+    /// Build the `Engine::Static` instance.
     pub fn build(self) -> Engine {
         let int_time = self.int_time.unwrap_or(std::f64::consts::TAU);
         Engine::Static { int_time }
     }
 }
 
-/// The No-U-Turn Sampler
-#[derive(Debug, PartialEq)]
+/// Options builder for `Engine::Nuts`.
+/// For any option left unspecified, the default value indicated
+/// on `Engine::Nuts` will be supplied.
+#[derive(Debug, PartialEq, Clone)]
 pub struct NutsBuilder {
     max_depth: Option<i32>,
 }
 impl NutsBuilder {
-    pub fn builder() -> NutsBuilder {
+    /// Return a builder with all options unspecified.
+    pub fn new() -> NutsBuilder {
         NutsBuilder { max_depth: None }
     }
     insert_field!(max_depth, i32);
+    /// Build the `Engine::Nuts` instance.
     pub fn build(self) -> Engine {
         let max_depth = self.max_depth.unwrap_or(10);
         Engine::Nuts { max_depth }
@@ -369,7 +392,7 @@ impl NutsBuilder {
 /// Geometry of base manifold
 /// Valid values: unit_e, diag_e, dense_e
 /// Defaults to diag_e
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Clone)]
 pub enum Metric {
     /// Euclidean manifold with unit metric
     UnitE,
@@ -401,20 +424,20 @@ mod tests {
 
         #[test]
         fn builder() {
-            let x = SampleBuilder::builder();
+            let x = SampleBuilder::new();
             let y = x.num_samples(2);
             let z = y.num_warmup(2);
             assert_eq!(z.num_samples, Some(2));
             assert_eq!(z.num_warmup, Some(2));
 
-            let z = SampleBuilder::builder()
+            let z = SampleBuilder::new()
                 .num_samples(2)
                 .num_warmup(2)
                 .num_samples(10);
             assert_eq!(z.num_samples, Some(10));
             assert_eq!(z.num_warmup, Some(2));
 
-            let x = SampleBuilder::builder()
+            let x = SampleBuilder::new()
                 .num_samples(2)
                 .num_warmup(2)
                 .save_warmup(true)
@@ -422,13 +445,13 @@ mod tests {
             assert_eq!(x.save_warmup, Some(true));
             assert_eq!(x.thin, Some(5));
 
-            let x = SampleBuilder::builder()
+            let x = SampleBuilder::new()
                 .algorithm(SampleAlgorithm::default())
                 .adapt(SampleAdapt::default());
             assert_eq!(x.adapt, Some(SampleAdapt::default()));
             assert_eq!(x.algorithm, Some(SampleAlgorithm::default()));
 
-            let x = SampleBuilder::builder()
+            let x = SampleBuilder::new()
                 .num_samples(1)
                 .num_warmup(2)
                 .save_warmup(true)
@@ -522,7 +545,7 @@ mod tests {
 
         #[test]
         fn default() {
-            let x = StaticBuilder::builder().build();
+            let x = StaticBuilder::new().build();
             assert_eq!(
                 x,
                 Engine::Static {
@@ -550,10 +573,10 @@ mod tests {
 
         #[test]
         fn from() {
-            let x = Engine::from(StaticBuilder::builder());
+            let x = Engine::from(StaticBuilder::new());
             assert!(matches!(x, Engine::Static { int_time: _ }));
 
-            let x = Engine::from(NutsBuilder::builder().max_depth(5));
+            let x = Engine::from(NutsBuilder::new().max_depth(5));
             assert!(matches!(x, Engine::Nuts { max_depth: 5 }));
         }
     }
