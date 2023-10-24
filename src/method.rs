@@ -166,6 +166,24 @@ impl Method {
                 write!(&mut s, " num_chains={}", num_chains).unwrap();
                 s
             }
+            Optimize {
+                algorithm,
+                jacobian,
+                iter,
+                save_iterations,
+            } => {
+                let mut s = String::from("method=optimize");
+                write!(&mut s, " {}", algorithm.command_fragment()).unwrap();
+                write!(&mut s, " jacobian={}", *jacobian as u8).unwrap();
+                write!(&mut s, " iter={}", iter).unwrap();
+                write!(&mut s, " save_iterations={}", *save_iterations as u8).unwrap();
+                s
+            }
+            Diagnose { test } => {
+                let mut s = String::from("method=diagnose");
+                write!(&mut s, " {}", test.command_fragment()).unwrap();
+                s
+            }
             _ => String::new(),
         }
     }

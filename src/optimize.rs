@@ -1,7 +1,9 @@
+use std::fmt::Write;
+
 /// Optimization algorithm
 /// Valid values: bfgs, lbfgs, newton
 /// Defaults to lbfgs
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum OptimizationAlgorithm {
     /// BFGS with linesearch
     Bfgs {
@@ -76,5 +78,78 @@ impl Default for OptimizationAlgorithm {
             tol_param: 1e-8,
             history_size: 5,
         }
+    }
+}
+use OptimizationAlgorithm::*;
+
+impl OptimizationAlgorithm {
+    pub fn command_fragment(&self) -> String {
+        match &self {
+            Bfgs {
+                init_alpha,
+                tol_obj,
+                tol_rel_obj,
+                tol_grad,
+                tol_rel_grad,
+                tol_param,
+            } => {
+                let mut s = String::from("algorithm=bfgs");
+                write!(&mut s, " init_alpha={}", init_alpha).unwrap();
+                write!(&mut s, " tol_obj={}", tol_obj).unwrap();
+                write!(&mut s, " tol_rel_obj={}", tol_rel_obj).unwrap();
+                write!(&mut s, " tol_grad={}", tol_grad).unwrap();
+                write!(&mut s, " tol_rel_grad={}", tol_rel_grad).unwrap();
+                write!(&mut s, " tol_param={}", tol_param).unwrap();
+                s
+            }
+            Lbfgs {
+                init_alpha,
+                tol_obj,
+                tol_rel_obj,
+                tol_grad,
+                tol_rel_grad,
+                tol_param,
+                history_size,
+            } => {
+                let mut s = String::from("algorithm=lbfgs");
+                write!(&mut s, " init_alpha={}", init_alpha).unwrap();
+                write!(&mut s, " tol_obj={}", tol_obj).unwrap();
+                write!(&mut s, " tol_rel_obj={}", tol_rel_obj).unwrap();
+                write!(&mut s, " tol_grad={}", tol_grad).unwrap();
+                write!(&mut s, " tol_rel_grad={}", tol_rel_grad).unwrap();
+                write!(&mut s, " tol_param={}", tol_param).unwrap();
+                write!(&mut s, " history_size={}", history_size).unwrap();
+                s
+            }
+            Newton => "algorithm=newton".to_string(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_works() {
+        let x = OptimizationAlgorithm::default();
+        assert_eq!(
+            x,
+            OptimizationAlgorithm::Lbfgs {
+                init_alpha: 0.001,
+                tol_obj: 9.9999999999999998e-13,
+                tol_rel_obj: 10000.0,
+                tol_grad: 1e-8,
+                tol_rel_grad: 10_000_000.0,
+                tol_param: 1e-8,
+                history_size: 5,
+            }
+        );
+    }
+
+    #[test]
+    fn command_fragment_works() {
+        let x = OptimizationAlgorithm::default();
+        assert_eq!(x.command_fragment(), "algorithm=lbfgs init_alpha=0.001 tol_obj=0.000000000001 tol_rel_obj=10000 tol_grad=0.00000001 tol_rel_grad=10000000 tol_param=0.00000001 history_size=5");
     }
 }
