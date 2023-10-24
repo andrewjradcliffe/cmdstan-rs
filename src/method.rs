@@ -179,12 +179,68 @@ impl Method {
                 write!(&mut s, " save_iterations={}", *save_iterations as u8).unwrap();
                 s
             }
+            Variational {
+                algorithm,
+                iter,
+                grad_samples,
+                elbo_samples,
+                eta,
+                adapt,
+                tol_rel_obj,
+                eval_elbo,
+                output_samples,
+            } => {
+                let mut s = String::from("method=variational");
+                write!(&mut s, " {}", algorithm.command_fragment()).unwrap();
+                write!(&mut s, " iter={}", iter).unwrap();
+                write!(&mut s, " grad_samples={}", grad_samples).unwrap();
+                write!(&mut s, " elbo_samples={}", elbo_samples).unwrap();
+                write!(&mut s, " eta={}", eta).unwrap();
+                write!(&mut s, " {}", adapt.command_fragment()).unwrap();
+                write!(&mut s, " tol_rel_obj={}", tol_rel_obj).unwrap();
+                write!(&mut s, " eval_elbo={}", eval_elbo).unwrap();
+                write!(&mut s, " output_samples={}", output_samples).unwrap();
+                s
+            }
             Diagnose { test } => {
                 let mut s = String::from("method=diagnose");
                 write!(&mut s, " {}", test.command_fragment()).unwrap();
                 s
             }
-            _ => String::new(),
+            GenerateQuantities { fitted_params } => {
+                format!("method=generate_quantities fitted_params={}", fitted_params)
+            }
+            LogProb {
+                unconstrained_params,
+                constrained_params,
+                jacobian,
+            } => {
+                let mut s = String::from("method=log_prob");
+                match unconstrained_params.as_ref() {
+                    "" => (),
+                    x => write!(&mut s, " unconstrained_params={}", x).unwrap(),
+                };
+                match constrained_params.as_ref() {
+                    "" => (),
+                    x => write!(&mut s, " constrained_params={}", x).unwrap(),
+                };
+                write!(&mut s, " jacobian={}", *jacobian as u8).unwrap();
+                s
+            }
+            Laplace {
+                mode,
+                jacobian,
+                draws,
+            } => {
+                let mut s = String::from("method=laplace");
+                match mode.as_ref() {
+                    "" => (),
+                    x => write!(&mut s, " mode={}", x).unwrap(),
+                };
+                write!(&mut s, " jacobian={}", *jacobian as u8).unwrap();
+                write!(&mut s, " draws={}", draws).unwrap();
+                s
+            }
         }
     }
 }
