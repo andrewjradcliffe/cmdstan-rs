@@ -1,61 +1,8 @@
+use crate::method::Method;
 use std::fmt::Write;
 
-/// Bayesian inference using Markov Chain Monte Carlo
-#[derive(Debug, PartialEq)]
-struct Sample {
-    /// Number of warmup iterations
-    /// Valid values: 0 <= num_samples
-    /// Defaults to 1000
-    num_samples: i32,
-    /// Number of warmup iterations
-    /// Valid values: 0 <= warmup
-    /// Defaults to 1000
-    num_warmup: i32,
-    /// Stream warmup samples to output?
-    /// Valid values: [0, 1]
-    /// Defaults to 0
-    save_warmup: bool,
-    /// Period between saved samples
-    /// Valid values: 0 < thin
-    /// Defaults to 1
-    thin: i32,
-    /// Warmup Adaptation
-    adapt: SampleAdapt,
-    /// Sampling algorithm
-    algorithm: SampleAlgorithm,
-    /// Number of chains
-    /// Valid values: num_chains > 0
-    /// Defaults to 1
-    num_chains: i32,
-}
-
-impl Default for Sample {
-    // Rather than define the defaults in two places, the `build` method of SampleBuilder,
-    // called on an all-None builder, should serve as the single source of truth.
-    fn default() -> Self {
-        SampleBuilder::builder().build()
-    }
-}
-impl Sample {
-    pub fn builder() -> SampleBuilder {
-        SampleBuilder::builder()
-    }
-
-    pub fn command_fragment(&self) -> String {
-        let mut s = String::from("sample");
-        write!(&mut s, " num_samples={}", self.num_samples).unwrap();
-        write!(&mut s, " num_warmup={}", self.num_warmup).unwrap();
-        write!(&mut s, " save_warmup={}", self.save_warmup as u8).unwrap();
-        write!(&mut s, " thin={}", self.thin).unwrap();
-        write!(&mut s, " {}", self.adapt.command_fragment()).unwrap();
-        write!(&mut s, " {}", self.algorithm.command_fragment()).unwrap();
-        write!(&mut s, " num_chains={}", self.num_chains).unwrap();
-        s
-    }
-}
-
 #[derive(Debug)]
-struct SampleBuilder {
+pub struct SampleBuilder {
     num_samples: Option<i32>,
     num_warmup: Option<i32>,
     save_warmup: Option<bool>,
@@ -92,7 +39,7 @@ impl SampleBuilder {
     insert_field!(adapt, SampleAdapt);
     insert_field!(algorithm, SampleAlgorithm);
     insert_field!(num_chains, i32);
-    pub fn build(self) -> Sample {
+    pub fn build(self) -> Method {
         let num_samples = self.num_samples.unwrap_or(1000);
         let num_warmup = self.num_warmup.unwrap_or(1000);
         let save_warmup = self.save_warmup.unwrap_or(false);
@@ -100,7 +47,7 @@ impl SampleBuilder {
         let adapt = self.adapt.unwrap_or_default();
         let algorithm = self.algorithm.unwrap_or_default();
         let num_chains = self.num_chains.unwrap_or(1);
-        Sample {
+        Method::Sample {
             num_samples,
             num_warmup,
             save_warmup,
@@ -254,7 +201,18 @@ impl HmcBuilder {
     insert_field!(stepsize_jitter, f64);
 
     pub fn build(self) -> SampleAlgorithm {
-        SampleAlgorithm::from(self)
+        let engine = self.engine.unwrap_or_default();
+        let metric = self.metric.unwrap_or_default();
+        let metric_file = self.metric_file.unwrap_or_else(|| "".to_string());
+        let stepsize = self.stepsize.unwrap_or(1.0);
+        let stepsize_jitter = self.stepsize_jitter.unwrap_or(0.0);
+        SampleAlgorithm::Hmc {
+            engine,
+            metric,
+            metric_file,
+            stepsize,
+            stepsize_jitter,
+        }
     }
 }
 
@@ -323,18 +281,7 @@ impl SampleAlgorithm {
 }
 impl From<HmcBuilder> for SampleAlgorithm {
     fn from(hmc: HmcBuilder) -> SampleAlgorithm {
-        let engine = hmc.engine.unwrap_or_default();
-        let metric = hmc.metric.unwrap_or_default();
-        let metric_file = hmc.metric_file.unwrap_or_else(|| "".to_string());
-        let stepsize = hmc.stepsize.unwrap_or(1.0);
-        let stepsize_jitter = hmc.stepsize_jitter.unwrap_or(0.0);
-        SampleAlgorithm::Hmc {
-            engine,
-            metric,
-            metric_file,
-            stepsize,
-            stepsize_jitter,
-        }
+        hmc.build()
     }
 }
 
@@ -378,14 +325,12 @@ impl Engine {
 }
 impl From<StaticBuilder> for Engine {
     fn from(x: StaticBuilder) -> Self {
-        let int_time = x.int_time.unwrap_or(std::f64::consts::TAU);
-        Engine::Static { int_time }
+        x.build()
     }
 }
 impl From<NutsBuilder> for Engine {
     fn from(x: NutsBuilder) -> Self {
-        let max_depth = x.max_depth.unwrap_or(10);
-        Engine::Nuts { max_depth }
+        x.build()
     }
 }
 
@@ -400,7 +345,8 @@ impl StaticBuilder {
     }
     insert_field!(int_time, f64);
     pub fn build(self) -> Engine {
-        Engine::from(self)
+        let int_time = self.int_time.unwrap_or(std::f64::consts::TAU);
+        Engine::Static { int_time }
     }
 }
 
@@ -415,7 +361,8 @@ impl NutsBuilder {
     }
     insert_field!(max_depth, i32);
     pub fn build(self) -> Engine {
-        Engine::from(self)
+        let max_depth = self.max_depth.unwrap_or(10);
+        Engine::Nuts { max_depth }
     }
 }
 
@@ -451,6 +398,7 @@ mod tests {
     #[cfg(test)]
     mod sample {
         use super::*;
+
         #[test]
         fn builder() {
             let x = SampleBuilder::builder();
@@ -466,14 +414,27 @@ mod tests {
             assert_eq!(z.num_samples, Some(10));
             assert_eq!(z.num_warmup, Some(2));
 
-            let x = Sample::builder()
+            let x = SampleBuilder::builder()
                 .num_samples(2)
                 .num_warmup(2)
                 .save_warmup(true)
+                .thin(5);
+            assert_eq!(x.save_warmup, Some(true));
+            assert_eq!(x.thin, Some(5));
+
+            let x = SampleBuilder::builder()
+                .algorithm(SampleAlgorithm::default())
+                .adapt(SampleAdapt::default());
+            assert_eq!(x.adapt, Some(SampleAdapt::default()));
+            assert_eq!(x.algorithm, Some(SampleAlgorithm::default()));
+
+            let x = SampleBuilder::builder()
+                .num_samples(1)
+                .num_warmup(2)
+                .save_warmup(true)
                 .thin(5)
-                .build();
-            assert_eq!(x.save_warmup, true);
-            assert_eq!(x.thin, 5);
+                .num_chains(10);
+            assert_eq!(x.num_chains, Some(10));
         }
     }
 
@@ -497,6 +458,28 @@ mod tests {
                     window: 25,
                 }
             );
+        }
+
+        #[test]
+        fn builder() {
+            let x = SampleAdapt::builder()
+                .engaged(false)
+                .gamma(0.1)
+                .delta(0.2)
+                .kappa(0.3)
+                .t0(0.4)
+                .init_buffer(1)
+                .term_buffer(2)
+                .window(3)
+                .build();
+            assert_eq!(x.engaged, false);
+            assert_eq!(x.gamma, 0.1);
+            assert_eq!(x.delta, 0.2);
+            assert_eq!(x.kappa, 0.3);
+            assert_eq!(x.t0, 0.4);
+            assert_eq!(x.init_buffer, 1);
+            assert_eq!(x.term_buffer, 2);
+            assert_eq!(x.window, 3);
         }
 
         #[test]

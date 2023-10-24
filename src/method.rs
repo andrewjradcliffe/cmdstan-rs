@@ -133,18 +133,16 @@ pub enum Method {
 
 impl Default for Method {
     fn default() -> Self {
-        Sample {
-            num_samples: 1000,
-            num_warmup: 1000,
-            save_warmup: false,
-            thin: 1,
-            adapt: SampleAdapt::default(),
-            algorithm: SampleAlgorithm::default(),
-            num_chains: 1,
-        }
+        SampleBuilder::builder().build()
     }
 }
 use Method::*;
+
+impl From<SampleBuilder> for Method {
+    fn from(x: SampleBuilder) -> Self {
+        x.build()
+    }
+}
 
 impl Method {
     pub fn command_fragment(&self) -> String {
