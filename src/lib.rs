@@ -1,5 +1,8 @@
 use std::fmt::Write;
 
+#[macro_use]
+mod internal_macros;
+
 pub mod diagnose;
 pub mod method;
 pub mod optimize;
