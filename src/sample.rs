@@ -228,98 +228,6 @@ impl SampleAdaptBuilder {
     }
 }
 
-/*
-Discussion
-
-Advantages:
-
-Disadvantages:
-- `Hmc` exists as struct and enum variant
-- fields and their docstrings not publicly visible
-*/
-/// Sampling algorithm
-/// Valid values: hmc, fixed_param
-/// Defaults to hmc
-#[derive(Debug, PartialEq)]
-pub enum SampleAlgorithm {
-    /// Hamiltonian Monte Carlo
-    Hmc(Hmc),
-    /// Fixed Parameter Sampler
-    FixedParam,
-}
-
-impl Default for SampleAlgorithm {
-    fn default() -> Self {
-        SampleAlgorithm::Hmc(Hmc::default())
-    }
-}
-
-impl SampleAlgorithm {
-    pub fn command_fragment(&self) -> String {
-        match &self {
-            Self::Hmc(Hmc {
-                engine,
-                metric,
-                metric_file,
-                stepsize,
-                stepsize_jitter,
-            }) => {
-                let mut s = String::from("algorithm=hmc");
-                write!(&mut s, " {}", engine.command_fragment()).unwrap();
-                write!(&mut s, " {}", metric.command_fragment()).unwrap();
-                match metric_file.as_ref() {
-                    "" => (),
-                    x => write!(&mut s, " metric_file={}", x).unwrap(),
-                }
-                write!(&mut s, " stepsize={}", stepsize).unwrap();
-                write!(&mut s, " stepsize_jitter={}", stepsize_jitter).unwrap();
-                s
-            }
-            Self::FixedParam => "algorithm=fixed_param".to_string(),
-        }
-    }
-}
-
-/// Hamiltonian Monte Carlo
-#[derive(Debug, PartialEq)]
-pub struct Hmc {
-    /// Engine for Hamiltonian Monte Carlo
-    /// Valid values: static, nuts
-    /// Defaults to nuts
-    engine: Engine,
-    /// Geometry of base manifold
-    /// Valid values: unit_e, diag_e, dense_e
-    /// Defaults to diag_e
-    metric: Metric,
-    /// Input file with precomputed Euclidean metric
-    /// Valid values: Path to existing file
-    /// Defaults to ""
-    metric_file: String,
-    /// Step size for discrete evolution
-    /// Valid values: 0 < stepsize
-    /// Defaults to 1
-    stepsize: f64,
-    /// Uniformly random jitter of the stepsize, in percent
-    /// Valid values: 0 <= stepsize_jitter <= 1
-    /// Defaults to 0
-    stepsize_jitter: f64,
-}
-impl Hmc {
-    pub fn builder() -> HmcBuilder {
-        HmcBuilder::builder()
-    }
-}
-impl Default for Hmc {
-    fn default() -> Self {
-        Hmc::builder().build()
-    }
-}
-impl From<Hmc> for SampleAlgorithm {
-    fn from(hmc: Hmc) -> SampleAlgorithm {
-        SampleAlgorithm::Hmc(hmc)
-    }
-}
-
 pub struct HmcBuilder {
     engine: Option<Engine>,
     metric: Option<Metric>,
@@ -345,40 +253,16 @@ impl HmcBuilder {
     insert_field!(stepsize, f64);
     insert_field!(stepsize_jitter, f64);
 
-    pub fn build(self) -> Hmc {
-        let engine = self.engine.unwrap_or_default();
-        let metric = self.metric.unwrap_or_default();
-        let metric_file = self.metric_file.unwrap_or_else(|| "".to_string());
-        let stepsize = self.stepsize.unwrap_or(1.0);
-        let stepsize_jitter = self.stepsize_jitter.unwrap_or(0.0);
-        Hmc {
-            engine,
-            metric,
-            metric_file,
-            stepsize,
-            stepsize_jitter,
-        }
+    pub fn build(self) -> SampleAlgorithm {
+        SampleAlgorithm::from(self)
     }
 }
 
-/*
-Discussion
-
-Advantages:
-- `Hmc` has a single, unambiguous definition
-- fields and their docstrings are publicly visible
-- Single, unambiguous way to build Hmc
-- avoids proliferation of newtype
-
-Disadvantages:
-- `HmcBuilder` is the only way to construct the `Hmc` variant via `From` trait,
-  or, perhaps via `build` method on `HmcBuilder`?
-*/
 /// Sampling algorithm
 /// Valid values: hmc, fixed_param
 /// Defaults to hmc
 #[derive(Debug, PartialEq)]
-pub enum SampleAlgorithm2 {
+pub enum SampleAlgorithm {
     /// Hamiltonian Monte Carlo
     Hmc {
         /// Engine for Hamiltonian Monte Carlo
@@ -406,13 +290,13 @@ pub enum SampleAlgorithm2 {
     FixedParam,
 }
 
-impl Default for SampleAlgorithm2 {
+impl Default for SampleAlgorithm {
     fn default() -> Self {
-        SampleAlgorithm2::from(HmcBuilder::builder())
+        Self::from(HmcBuilder::builder())
     }
 }
 
-impl SampleAlgorithm2 {
+impl SampleAlgorithm {
     pub fn command_fragment(&self) -> String {
         match &self {
             Self::Hmc {
@@ -437,80 +321,20 @@ impl SampleAlgorithm2 {
         }
     }
 }
-impl From<HmcBuilder> for SampleAlgorithm2 {
-    fn from(hmc: HmcBuilder) -> SampleAlgorithm2 {
+impl From<HmcBuilder> for SampleAlgorithm {
+    fn from(hmc: HmcBuilder) -> SampleAlgorithm {
         let engine = hmc.engine.unwrap_or_default();
         let metric = hmc.metric.unwrap_or_default();
         let metric_file = hmc.metric_file.unwrap_or_else(|| "".to_string());
         let stepsize = hmc.stepsize.unwrap_or(1.0);
         let stepsize_jitter = hmc.stepsize_jitter.unwrap_or(0.0);
-        SampleAlgorithm2::Hmc {
+        SampleAlgorithm::Hmc {
             engine,
             metric,
             metric_file,
             stepsize,
             stepsize_jitter,
         }
-    }
-}
-
-/*
-Discussion
-
-Advantages:
-- fields and their docstrings are publicly visible
-
-Disadvantages:
-- `Hmc` exists as a struct and enum variant
-
-*/
-
-/// Sampling algorithm
-/// Valid values: hmc, fixed_param
-/// Defaults to hmc
-#[derive(Debug, PartialEq)]
-pub enum SampleAlgorithm3 {
-    /// Hamiltonian Monte Carlo
-    Hmc {
-        /// Engine for Hamiltonian Monte Carlo
-        /// Valid values: static, nuts
-        /// Defaults to nuts
-        engine: Engine,
-        /// Geometry of base manifold
-        /// Valid values: unit_e, diag_e, dense_e
-        /// Defaults to diag_e
-        metric: Metric,
-        /// Input file with precomputed Euclidean metric
-        /// Valid values: Path to existing file
-        /// Defaults to ""
-        metric_file: String,
-        /// Step size for discrete evolution
-        /// Valid values: 0 < stepsize
-        /// Defaults to 1
-        stepsize: f64,
-        /// Uniformly random jitter of the stepsize, in percent
-        /// Valid values: 0 <= stepsize_jitter <= 1
-        /// Defaults to 0
-        stepsize_jitter: f64,
-    },
-    /// Fixed Parameter Sampler
-    FixedParam,
-}
-impl From<Hmc> for SampleAlgorithm3 {
-    fn from(hmc: Hmc) -> SampleAlgorithm3 {
-        SampleAlgorithm3::Hmc {
-            engine: hmc.engine,
-            metric: hmc.metric,
-            metric_file: hmc.metric_file,
-            stepsize: hmc.stepsize,
-            stepsize_jitter: hmc.stepsize_jitter,
-        }
-    }
-}
-
-impl Default for SampleAlgorithm3 {
-    fn default() -> Self {
-        SampleAlgorithm3::from(Hmc::default())
     }
 }
 
@@ -682,10 +506,10 @@ mod tests {
                 "algorithm=hmc engine=nuts max_depth=10 metric=diag_e stepsize=1 stepsize_jitter=0"
             );
             match x {
-                SampleAlgorithm::Hmc(Hmc {
+                SampleAlgorithm::Hmc {
                     ref mut metric_file,
                     ..
-                }) => {
+                } => {
                     metric_file.push_str("my_metric.json");
                 }
                 _ => (),
