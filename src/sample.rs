@@ -228,34 +228,21 @@ impl SampleAdaptBuilder {
     }
 }
 
+/*
+Discussion
+
+Advantages:
+
+Disadvantages:
+- `Hmc` exists as struct and enum variant
+- fields and their docstrings not publicly visible
+*/
 /// Sampling algorithm
 /// Valid values: hmc, fixed_param
 /// Defaults to hmc
 #[derive(Debug, PartialEq)]
 pub enum SampleAlgorithm {
     /// Hamiltonian Monte Carlo
-    // Hmc {
-    //     /// Engine for Hamiltonian Monte Carlo
-    //     /// Valid values: static, nuts
-    //     /// Defaults to nuts
-    //     engine: Engine,
-    //     /// Geometry of base manifold
-    //     /// Valid values: unit_e, diag_e, dense_e
-    //     /// Defaults to diag_e
-    //     metric: Metric,
-    //     /// Input file with precomputed Euclidean metric
-    //     /// Valid values: Path to existing file
-    //     /// Defaults to ""
-    //     metric_file: String,
-    //     /// Step size for discrete evolution
-    //     /// Valid values: 0 < stepsize
-    //     /// Defaults to 1
-    //     stepsize: f64,
-    //     /// Uniformly random jitter of the stepsize, in percent
-    //     /// Valid values: 0 <= stepsize_jitter <= 1
-    //     /// Defaults to 0
-    //     stepsize_jitter: f64,
-    // },
     Hmc(Hmc),
     /// Fixed Parameter Sampler
     FixedParam,
@@ -263,13 +250,6 @@ pub enum SampleAlgorithm {
 
 impl Default for SampleAlgorithm {
     fn default() -> Self {
-        // SampleAlgorithm::Hmc {
-        //     engine: Engine::default(),
-        //     metric: Metric::default(),
-        //     metric_file: String::from(""),
-        //     stepsize: 1.0,
-        //     stepsize_jitter: 0.0,
-        // }
         SampleAlgorithm::Hmc(Hmc::default())
     }
 }
@@ -381,6 +361,19 @@ impl HmcBuilder {
     }
 }
 
+/*
+Discussion
+
+Advantages:
+- `Hmc` has a single, unambiguous definition
+- fields and their docstrings are publicly visible
+- Single, unambiguous way to build Hmc
+- avoids proliferation of newtype
+
+Disadvantages:
+- `HmcBuilder` is the only way to construct the `Hmc` variant via `From` trait,
+  or, perhaps via `build` method on `HmcBuilder`?
+*/
 /// Sampling algorithm
 /// Valid values: hmc, fixed_param
 /// Defaults to hmc
@@ -460,6 +453,17 @@ impl From<HmcBuilder> for SampleAlgorithm2 {
         }
     }
 }
+
+/*
+Discussion
+
+Advantages:
+- fields and their docstrings are publicly visible
+
+Disadvantages:
+- `Hmc` exists as a struct and enum variant
+
+*/
 
 /// Sampling algorithm
 /// Valid values: hmc, fixed_param
