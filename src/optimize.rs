@@ -1,10 +1,51 @@
+use crate::method::Method;
 use std::fmt::Write;
+
+/// Options builder for `Method::Optimize`.
+/// For any option left unspecified, the default value indicated
+/// on `Method::Optimize` will be supplied.
+#[derive(Debug, PartialEq, Clone)]
+pub struct OptimizeBuilder {
+    algorithm: Option<OptimizeAlgorithm>,
+    jacobian: Option<bool>,
+    iter: Option<i32>,
+    save_iterations: Option<bool>,
+}
+
+impl OptimizeBuilder {
+    /// Return a builder with all options unspecified.
+    pub fn new() -> Self {
+        Self {
+            algorithm: None,
+            jacobian: None,
+            iter: None,
+            save_iterations: None,
+        }
+    }
+    insert_field!(algorithm, OptimizeAlgorithm);
+    insert_field!(jacobian, bool);
+    insert_field!(iter, i32);
+    insert_field!(save_iterations, bool);
+    /// Build the `Method::Optimize` instance.
+    pub fn build(self) -> Method {
+        let algorithm = self.algorithm.unwrap_or_default();
+        let jacobian = self.jacobian.unwrap_or(false);
+        let iter = self.iter.unwrap_or(2000);
+        let save_iterations = self.save_iterations.unwrap_or(false);
+        Method::Optimize {
+            algorithm,
+            jacobian,
+            iter,
+            save_iterations,
+        }
+    }
+}
 
 /// Optimization algorithm
 /// Valid values: bfgs, lbfgs, newton
 /// Defaults to lbfgs
-#[derive(Debug, PartialEq)]
-pub enum OptimizationAlgorithm {
+#[derive(Debug, PartialEq, Clone)]
+pub enum OptimizeAlgorithm {
     /// BFGS with linesearch
     Bfgs {
         /// Line search step size for first iteration
@@ -67,22 +108,124 @@ pub enum OptimizationAlgorithm {
     Newton,
 }
 
-impl Default for OptimizationAlgorithm {
+impl Default for OptimizeAlgorithm {
     fn default() -> Self {
-        OptimizationAlgorithm::Lbfgs {
-            init_alpha: 0.001,
-            tol_obj: 9.9999999999999998e-13,
-            tol_rel_obj: 10000.0,
-            tol_grad: 1e-8,
-            tol_rel_grad: 10_000_000.0,
-            tol_param: 1e-8,
-            history_size: 5,
+        // OptimizeAlgorithm::Lbfgs {
+        //     init_alpha: 0.001,
+        //     tol_obj: 9.9999999999999998e-13,
+        //     tol_rel_obj: 10000.0,
+        //     tol_grad: 1e-8,
+        //     tol_rel_grad: 10_000_000.0,
+        //     tol_param: 1e-8,
+        //     history_size: 5,
+        // }
+        LbfgsBuilder::new().build()
+    }
+}
+use OptimizeAlgorithm::*;
+
+/// Options builder for `OptimizeAlgorithm::Bfgs`.
+/// For any option left unspecified, the default value indicated
+/// on `OptimizeAlgorithm::Bfgs` will be supplied.
+pub struct BfgsBuilder {
+    init_alpha: Option<f64>,
+    tol_obj: Option<f64>,
+    tol_rel_obj: Option<f64>,
+    tol_grad: Option<f64>,
+    tol_rel_grad: Option<f64>,
+    tol_param: Option<f64>,
+}
+impl BfgsBuilder {
+    /// Return a builder with all options unspecified.
+    pub fn new() -> Self {
+        Self {
+            init_alpha: None,
+            tol_obj: None,
+            tol_rel_obj: None,
+            tol_grad: None,
+            tol_rel_grad: None,
+            tol_param: None,
+        }
+    }
+    insert_field!(init_alpha, f64);
+    insert_field!(tol_obj, f64);
+    insert_field!(tol_rel_obj, f64);
+    insert_field!(tol_grad, f64);
+    insert_field!(tol_rel_grad, f64);
+    insert_field!(tol_param, f64);
+    /// Build the `OptimizeAlgorithm::Bfgs` instance.
+    pub fn build(self) -> OptimizeAlgorithm {
+        let init_alpha = self.init_alpha.unwrap_or(0.001);
+        let tol_obj = self.tol_obj.unwrap_or(9.9999999999999998e-13);
+        let tol_rel_obj = self.tol_rel_obj.unwrap_or(10_000.0);
+        let tol_grad = self.tol_grad.unwrap_or(1e-8);
+        let tol_rel_grad = self.tol_rel_grad.unwrap_or(10_000_000.0);
+        let tol_param = self.tol_param.unwrap_or(1e-8);
+        OptimizeAlgorithm::Bfgs {
+            init_alpha,
+            tol_obj,
+            tol_rel_obj,
+            tol_grad,
+            tol_rel_grad,
+            tol_param,
         }
     }
 }
-use OptimizationAlgorithm::*;
 
-impl OptimizationAlgorithm {
+/// Options builder for `OptimizeAlgorithm::Lbfgs`.
+/// For any option left unspecified, the default value indicated
+/// on `OptimizeAlgorithm::Lbfgs` will be supplied.
+pub struct LbfgsBuilder {
+    init_alpha: Option<f64>,
+    tol_obj: Option<f64>,
+    tol_rel_obj: Option<f64>,
+    tol_grad: Option<f64>,
+    tol_rel_grad: Option<f64>,
+    tol_param: Option<f64>,
+    history_size: Option<i32>,
+}
+impl LbfgsBuilder {
+    /// Return a builder with all options unspecified.
+    pub fn new() -> Self {
+        Self {
+            init_alpha: None,
+            tol_obj: None,
+            tol_rel_obj: None,
+            tol_grad: None,
+            tol_rel_grad: None,
+            tol_param: None,
+            history_size: None,
+        }
+    }
+    insert_field!(init_alpha, f64);
+    insert_field!(tol_obj, f64);
+    insert_field!(tol_rel_obj, f64);
+    insert_field!(tol_grad, f64);
+    insert_field!(tol_rel_grad, f64);
+    insert_field!(tol_param, f64);
+    insert_field!(history_size, i32);
+    /// Build the `OptimizeAlgorithm::Lbfgs` instance.
+    pub fn build(self) -> OptimizeAlgorithm {
+        let init_alpha = self.init_alpha.unwrap_or(0.001);
+        let tol_obj = self.tol_obj.unwrap_or(9.9999999999999998e-13);
+        let tol_rel_obj = self.tol_rel_obj.unwrap_or(10_000.0);
+        let tol_grad = self.tol_grad.unwrap_or(1e-8);
+        let tol_rel_grad = self.tol_rel_grad.unwrap_or(10_000_000.0);
+        let tol_param = self.tol_param.unwrap_or(1e-8);
+        let history_size = self.history_size.unwrap_or(5);
+        OptimizeAlgorithm::Lbfgs {
+            init_alpha,
+            tol_obj,
+            tol_rel_obj,
+            tol_grad,
+            tol_rel_grad,
+            tol_param,
+            history_size,
+        }
+    }
+}
+
+impl OptimizeAlgorithm {
     pub fn command_fragment(&self) -> String {
         match &self {
             Bfgs {
@@ -132,10 +275,10 @@ mod tests {
 
     #[test]
     fn default() {
-        let x = OptimizationAlgorithm::default();
+        let x = OptimizeAlgorithm::default();
         assert_eq!(
             x,
-            OptimizationAlgorithm::Lbfgs {
+            OptimizeAlgorithm::Lbfgs {
                 init_alpha: 0.001,
                 tol_obj: 9.9999999999999998e-13,
                 tol_rel_obj: 10000.0,
@@ -148,8 +291,83 @@ mod tests {
     }
 
     #[test]
+    fn builder() {
+        let x = BfgsBuilder::new()
+            .init_alpha(0.1)
+            .tol_obj(0.2)
+            .tol_rel_obj(0.3)
+            .tol_grad(0.4)
+            .tol_rel_grad(0.5)
+            .tol_param(0.6);
+        assert_eq!(x.init_alpha, Some(0.1));
+        assert_eq!(x.tol_obj, Some(0.2));
+        assert_eq!(x.tol_rel_obj, Some(0.3));
+        assert_eq!(x.tol_grad, Some(0.4));
+        assert_eq!(x.tol_rel_grad, Some(0.5));
+        assert_eq!(x.tol_param, Some(0.6));
+        assert_eq!(
+            x.build(),
+            OptimizeAlgorithm::Bfgs {
+                init_alpha: 0.1,
+                tol_obj: 0.2,
+                tol_rel_obj: 0.3,
+                tol_grad: 0.4,
+                tol_rel_grad: 0.5,
+                tol_param: 0.6,
+            }
+        );
+
+        let x = LbfgsBuilder::new()
+            .init_alpha(0.1)
+            .tol_obj(0.2)
+            .tol_rel_obj(0.3)
+            .tol_grad(0.4)
+            .tol_rel_grad(0.5)
+            .tol_param(0.6)
+            .history_size(100);
+        assert_eq!(x.init_alpha, Some(0.1));
+        assert_eq!(x.tol_obj, Some(0.2));
+        assert_eq!(x.tol_rel_obj, Some(0.3));
+        assert_eq!(x.tol_grad, Some(0.4));
+        assert_eq!(x.tol_rel_grad, Some(0.5));
+        assert_eq!(x.tol_param, Some(0.6));
+        assert_eq!(x.history_size, Some(100));
+        assert_eq!(
+            x.build(),
+            OptimizeAlgorithm::Lbfgs {
+                init_alpha: 0.1,
+                tol_obj: 0.2,
+                tol_rel_obj: 0.3,
+                tol_grad: 0.4,
+                tol_rel_grad: 0.5,
+                tol_param: 0.6,
+                history_size: 100,
+            }
+        );
+
+        let x = OptimizeBuilder::new()
+            .algorithm(OptimizeAlgorithm::default())
+            .jacobian(true)
+            .iter(1)
+            .save_iterations(true);
+        assert_eq!(x.algorithm, Some(OptimizeAlgorithm::default()));
+        assert_eq!(x.jacobian, Some(true));
+        assert_eq!(x.iter, Some(1));
+        assert_eq!(x.save_iterations, Some(true));
+        assert_eq!(
+            x.build(),
+            Method::Optimize {
+                algorithm: OptimizeAlgorithm::default(),
+                jacobian: true,
+                iter: 1,
+                save_iterations: true,
+            }
+        );
+    }
+
+    #[test]
     fn command_fragment() {
-        let x = OptimizationAlgorithm::default();
+        let x = OptimizeAlgorithm::default();
         assert_eq!(x.command_fragment(), "algorithm=lbfgs init_alpha=0.001 tol_obj=0.000000000001 tol_rel_obj=10000 tol_grad=0.00000001 tol_rel_grad=10000000 tol_param=0.00000001 history_size=5");
     }
 }

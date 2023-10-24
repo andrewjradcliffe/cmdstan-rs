@@ -4,7 +4,7 @@ use crate::sample::*;
 use crate::variational::*;
 use std::fmt::Write;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Method {
     /// Bayesian inference using Markov Chain Monte Carlo
     Sample {
@@ -35,7 +35,7 @@ pub enum Method {
     },
     /// Point estimation
     Optimize {
-        algorithm: OptimizationAlgorithm,
+        algorithm: OptimizeAlgorithm,
         /// When true, include change-of-variables adjustment for constraining parameter transforms
         /// Valid values: [0, 1]
         /// Defaults to 0
@@ -140,6 +140,11 @@ use Method::*;
 
 impl From<SampleBuilder> for Method {
     fn from(x: SampleBuilder) -> Self {
+        x.build()
+    }
+}
+impl From<OptimizeBuilder> for Method {
+    fn from(x: OptimizeBuilder) -> Self {
         x.build()
     }
 }
