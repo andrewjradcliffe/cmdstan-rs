@@ -177,7 +177,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn command_string_works() {
+        fn command_string() {
             let x = ArgumentTree::default();
             assert_eq!(x.command_string(), "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=1 id=1 init=2 random seed=-1 output file=output.csv refresh=100 sig_figs=-1 num_threads=1");
         }
@@ -188,7 +188,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn command_fragment_works() {
+        fn command_fragment() {
             let mut x = Data::default();
             assert_eq!(x.command_fragment(), "");
 
@@ -202,7 +202,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn command_fragment_works() {
+        fn command_fragment() {
             let x = Random::default();
             assert_eq!(x.command_fragment(), "random seed=-1");
         }
@@ -212,7 +212,7 @@ mod tests {
     mod output {
         use super::*;
         #[test]
-        fn command_fragment_works() {
+        fn command_fragment() {
             let mut x = Output::default();
             assert_eq!(
                 x.command_fragment(),

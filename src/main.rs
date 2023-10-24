@@ -2,6 +2,9 @@ use cmdstan::*;
 use std::env;
 use std::process::Command;
 
+static STANFILE: &str =
+    "/nfs/orto/proj/tapeout/cit_dev16/aradclif/cmdstan/examples/bernoulli/bernoulli.stan";
+
 fn main() {
     let output = Command::new("echo")
         .arg("Hello world")

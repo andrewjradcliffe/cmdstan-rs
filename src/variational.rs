@@ -61,13 +61,13 @@ mod tests {
         use super::*;
 
         #[test]
-        fn default_works() {
+        fn default() {
             let x = VariationalAlgorithm::default();
             assert_eq!(x, VariationalAlgorithm::MeanField);
         }
 
         #[test]
-        fn command_fragment_works() {
+        fn command_fragment() {
             let x = VariationalAlgorithm::default();
             assert_eq!(x.command_fragment(), "algorithm=meanfield");
             let x = VariationalAlgorithm::FullRank;
@@ -80,7 +80,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn default_works() {
+        fn default() {
             let x = VariationalAdapt::default();
             assert_eq!(
                 x,
@@ -92,7 +92,7 @@ mod tests {
         }
 
         #[test]
-        fn command_fragment_works() {
+        fn command_fragment() {
             let x = VariationalAdapt::default();
             assert_eq!(x.command_fragment(), "adapt engaged=1 iter=50");
         }

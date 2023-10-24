@@ -24,7 +24,9 @@ pub enum Method {
         /// Valid values: 0 < thin
         /// Defaults to 1
         thin: i32,
+        /// Warmup Adaptation
         adapt: SampleAdapt,
+        /// Sampling algorithm
         algorithm: SampleAlgorithm,
         /// Number of chains
         /// Valid values: num_chains > 0
@@ -159,7 +161,7 @@ impl Method {
                 let mut s = String::from("method=sample");
                 write!(&mut s, " num_samples={}", num_samples).unwrap();
                 write!(&mut s, " num_warmup={}", num_warmup).unwrap();
-                write!(&mut s, " save_warmup={}", *save_warmup as u8,).unwrap();
+                write!(&mut s, " save_warmup={}", *save_warmup as u8).unwrap();
                 write!(&mut s, " thin={}", thin).unwrap();
                 write!(&mut s, " {}", adapt.command_fragment()).unwrap();
                 write!(&mut s, " {}", algorithm.command_fragment()).unwrap();
@@ -250,7 +252,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sample_command_fragment_works() {
+    fn sample_command_fragment() {
         let x = Method::default();
         assert_eq!(x.command_fragment(), "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=1");
     }

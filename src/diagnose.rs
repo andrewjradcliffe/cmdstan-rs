@@ -41,7 +41,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_works() {
+    fn default() {
         let x = DiagnosticTest::default();
         let y = DiagnosticTest::Gradient {
             epsilon: 1e-6_f64,
@@ -51,7 +51,7 @@ mod tests {
     }
 
     #[test]
-    fn command_fragment_works() {
+    fn command_fragment() {
         let x = DiagnosticTest::default();
         assert_eq!(
             x.command_fragment(),

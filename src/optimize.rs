@@ -131,7 +131,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_works() {
+    fn default() {
         let x = OptimizationAlgorithm::default();
         assert_eq!(
             x,
@@ -148,7 +148,7 @@ mod tests {
     }
 
     #[test]
-    fn command_fragment_works() {
+    fn command_fragment() {
         let x = OptimizationAlgorithm::default();
         assert_eq!(x.command_fragment(), "algorithm=lbfgs init_alpha=0.001 tol_obj=0.000000000001 tol_rel_obj=10000 tol_grad=0.00000001 tol_rel_grad=10000000 tol_param=0.00000001 history_size=5");
     }
