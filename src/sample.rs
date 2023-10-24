@@ -381,6 +381,86 @@ impl HmcBuilder {
     }
 }
 
+/// Sampling algorithm
+/// Valid values: hmc, fixed_param
+/// Defaults to hmc
+#[derive(Debug, PartialEq)]
+pub enum SampleAlgorithm2 {
+    /// Hamiltonian Monte Carlo
+    Hmc {
+        /// Engine for Hamiltonian Monte Carlo
+        /// Valid values: static, nuts
+        /// Defaults to nuts
+        engine: Engine,
+        /// Geometry of base manifold
+        /// Valid values: unit_e, diag_e, dense_e
+        /// Defaults to diag_e
+        metric: Metric,
+        /// Input file with precomputed Euclidean metric
+        /// Valid values: Path to existing file
+        /// Defaults to ""
+        metric_file: String,
+        /// Step size for discrete evolution
+        /// Valid values: 0 < stepsize
+        /// Defaults to 1
+        stepsize: f64,
+        /// Uniformly random jitter of the stepsize, in percent
+        /// Valid values: 0 <= stepsize_jitter <= 1
+        /// Defaults to 0
+        stepsize_jitter: f64,
+    },
+    /// Fixed Parameter Sampler
+    FixedParam,
+}
+
+impl Default for SampleAlgorithm2 {
+    fn default() -> Self {
+        SampleAlgorithm2::from(HmcBuilder::builder())
+    }
+}
+
+impl SampleAlgorithm2 {
+    pub fn command_fragment(&self) -> String {
+        match &self {
+            Self::Hmc {
+                engine,
+                metric,
+                metric_file,
+                stepsize,
+                stepsize_jitter,
+            } => {
+                let mut s = String::from("algorithm=hmc");
+                write!(&mut s, " {}", engine.command_fragment()).unwrap();
+                write!(&mut s, " {}", metric.command_fragment()).unwrap();
+                match metric_file.as_ref() {
+                    "" => (),
+                    x => write!(&mut s, " metric_file={}", x).unwrap(),
+                }
+                write!(&mut s, " stepsize={}", stepsize).unwrap();
+                write!(&mut s, " stepsize_jitter={}", stepsize_jitter).unwrap();
+                s
+            }
+            Self::FixedParam => "algorithm=fixed_param".to_string(),
+        }
+    }
+}
+impl From<HmcBuilder> for SampleAlgorithm2 {
+    fn from(hmc: HmcBuilder) -> SampleAlgorithm2 {
+        let engine = hmc.engine.unwrap_or_default();
+        let metric = hmc.metric.unwrap_or_default();
+        let metric_file = hmc.metric_file.unwrap_or_else(|| "".to_string());
+        let stepsize = hmc.stepsize.unwrap_or(1.0);
+        let stepsize_jitter = hmc.stepsize_jitter.unwrap_or(0.0);
+        SampleAlgorithm2::Hmc {
+            engine,
+            metric,
+            metric_file,
+            stepsize,
+            stepsize_jitter,
+        }
+    }
+}
+
 /// Engine for Hamiltonian Monte Carlo
 /// Valid values: static, nuts
 /// Defaults to nuts
