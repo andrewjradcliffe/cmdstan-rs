@@ -1,0 +1,183 @@
+use crate::diagnose::*;
+use crate::optimize::*;
+use crate::sample::*;
+use crate::variational::*;
+use std::fmt::Write;
+
+#[derive(Debug)]
+pub enum Method {
+    /// Bayesian inference using Markov Chain Monte Carlo
+    Sample {
+        /// Number of warmup iterations
+        /// Valid values: 0 <= num_samples
+        /// Defaults to 1000
+        num_samples: i32,
+        /// Number of warmup iterations
+        /// Valid values: 0 <= warmup
+        /// Defaults to 1000
+        num_warmup: i32,
+        /// Stream warmup samples to output?
+        /// Valid values: [0, 1]
+        /// Defaults to 0
+        save_warmup: bool,
+        /// Period between saved samples
+        /// Valid values: 0 < thin
+        /// Defaults to 1
+        thin: i32,
+        adapt: SampleAdapt,
+        algorithm: SampleAlgorithm,
+        /// Number of chains
+        /// Valid values: num_chains > 0
+        /// Defaults to 1
+        num_chains: i32,
+    },
+    /// Point estimation
+    Optimize {
+        algorithm: OptimizationAlgorithm,
+        /// When true, include change-of-variables adjustment for constraining parameter transforms
+        /// Valid values: [0, 1]
+        /// Defaults to 0
+        jacobian: bool,
+        /// Total number of iterations
+        /// Valid values: 0 < iter
+        /// Defaults to 2000
+        iter: i32,
+        /// Stream optimization progress to output?
+        /// Valid values: [0, 1]
+        /// Defaults to 0
+        save_iterations: bool,
+    },
+    /// Variational inference
+    Variational {
+        /// Variational inference algorithm
+        /// Valid values: meanfield, fullrank
+        /// Defaults to meanfield
+        algorithm: VariationalAlgorithm,
+        /// Maximum number of ADVI iterations.
+        /// Valid values: 0 < iter
+        /// Defaults to 10000
+        iter: i32,
+        /// Number of Monte Carlo draws for computing the gradient.
+        /// Valid values: 0 < num_samples
+        /// Defaults to 1
+        grad_samples: i32,
+        /// Number of Monte Carlo draws for estimate of ELBO.
+        /// Valid values: 0 < num_samples
+        /// Defaults to 100
+        elbo_samples: i32,
+        /// Stepsize scaling parameter.
+        /// Valid values: 0 < eta
+        /// Defaults to 1
+        eta: f64,
+        adapt: VariationalAdapt,
+        /// Relative tolerance parameter for convergence.
+        /// Valid values: 0 <= tol
+        /// Defaults to 0.01
+        tol_rel_obj: f64,
+        /// Number of iterations between ELBO evaluations
+        /// Valid values: 0 < eval_elbo
+        /// Defaults to 100
+        eval_elbo: i32,
+        /// Number of approximate posterior output draws to save.
+        /// Valid values: 0 < output_samples
+        /// Defaults to 1000
+        output_samples: i32,
+    },
+    /// Model diagnostics
+    Diagnose {
+        /// Diagnostic test
+        /// Valid values: gradient
+        /// Defaults to gradient
+        test: DiagnosticTest,
+    },
+    /// Generate quantities of interest
+    GenerateQuantities {
+        /// Input file of sample of fitted parameter values for model conditioned on data
+        /// Valid values: Path to existing file
+        /// Defaults to ""
+        fitted_params: String,
+    },
+    /// Return the log density up to a constant and its gradients, given supplied parameters
+    LogProb {
+        /// Input file (JSON or R dump) of parameter values on unconstrained scale
+        /// Valid values: Path to existing file
+        /// Defaults to ""
+        unconstrained_params: String,
+        /// Input file (JSON or R dump) of parameter values on constrained scale
+        /// Valid values: Path to existing file
+        /// Defaults to ""
+        constrained_params: String,
+        /// When true, include change-of-variables adjustment for constraining parameter transforms
+        /// Valid values: [0, 1]
+        /// Defaults to 1
+        jacobian: bool,
+    },
+    /// Sample from a Laplace approximation
+    Laplace {
+        /// A specification of a mode on the constrained scale for all model parameters, either in JSON or CSV format.
+        /// Valid values: Path to existing file
+        /// Defaults to ""
+        mode: String,
+        /// When true, include change-of-variables adjustment for constraining parameter transforms
+        /// Valid values: [0, 1]
+        /// Defaults to 1
+        jacobian: bool,
+        /// Number of draws from the laplace approximation
+        /// Valid values: 0 <= draws
+        /// Defaults to 1000
+        draws: i32,
+    },
+}
+
+impl Default for Method {
+    fn default() -> Self {
+        Sample {
+            num_samples: 1000,
+            num_warmup: 1000,
+            save_warmup: false,
+            thin: 1,
+            adapt: SampleAdapt::default(),
+            algorithm: SampleAlgorithm::default(),
+            num_chains: 1,
+        }
+    }
+}
+use Method::*;
+
+impl Method {
+    pub fn command_fragment(&self) -> String {
+        match &self {
+            Sample {
+                num_samples,
+                num_warmup,
+                save_warmup,
+                thin,
+                adapt,
+                algorithm,
+                num_chains,
+            } => {
+                let mut s = String::from("method=sample");
+                write!(&mut s, " num_samples={}", num_samples).unwrap();
+                write!(&mut s, " num_warmup={}", num_warmup).unwrap();
+                write!(&mut s, " save_warmup={}", *save_warmup as u8,).unwrap();
+                write!(&mut s, " thin={}", thin).unwrap();
+                write!(&mut s, " {}", adapt.command_fragment()).unwrap();
+                write!(&mut s, " {}", algorithm.command_fragment()).unwrap();
+                write!(&mut s, " num_chains={}", num_chains).unwrap();
+                s
+            }
+            _ => String::new(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sample_command_fragment_works() {
+        let x = Method::default();
+        assert_eq!(x.command_fragment(), "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=1");
+    }
+}
