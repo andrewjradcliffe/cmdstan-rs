@@ -1,5 +1,117 @@
 use std::fmt::Write;
 
+/// Bayesian inference using Markov Chain Monte Carlo
+#[derive(Debug, PartialEq)]
+struct Sample {
+    /// Number of warmup iterations
+    /// Valid values: 0 <= num_samples
+    /// Defaults to 1000
+    num_samples: i32,
+    /// Number of warmup iterations
+    /// Valid values: 0 <= warmup
+    /// Defaults to 1000
+    num_warmup: i32,
+    /// Stream warmup samples to output?
+    /// Valid values: [0, 1]
+    /// Defaults to 0
+    save_warmup: bool,
+    /// Period between saved samples
+    /// Valid values: 0 < thin
+    /// Defaults to 1
+    thin: i32,
+    /// Warmup Adaptation
+    adapt: SampleAdapt,
+    /// Sampling algorithm
+    algorithm: SampleAlgorithm,
+    /// Number of chains
+    /// Valid values: num_chains > 0
+    /// Defaults to 1
+    num_chains: i32,
+}
+
+impl Default for Sample {
+    // Rather than define the defaults in two places, the `build` method of SampleBuilder,
+    // called on an all-None builder, should serve as the single source of truth.
+    fn default() -> Self {
+        SampleBuilder::builder().build()
+    }
+}
+impl Sample {
+    pub fn builder() -> SampleBuilder {
+        SampleBuilder::builder()
+    }
+
+    pub fn command_fragment(&self) -> String {
+        let mut s = String::from("sample");
+        write!(&mut s, " num_samples={}", self.num_samples).unwrap();
+        write!(&mut s, " num_warmup={}", self.num_warmup).unwrap();
+        write!(&mut s, " save_warmup={}", self.save_warmup as u8).unwrap();
+        write!(&mut s, " thin={}", self.thin).unwrap();
+        write!(&mut s, " {}", self.adapt.command_fragment()).unwrap();
+        write!(&mut s, " {}", self.algorithm.command_fragment()).unwrap();
+        write!(&mut s, " num_chains={}", self.num_chains).unwrap();
+        s
+    }
+}
+
+#[derive(Debug)]
+struct SampleBuilder {
+    num_samples: Option<i32>,
+    num_warmup: Option<i32>,
+    save_warmup: Option<bool>,
+    thin: Option<i32>,
+    adapt: Option<SampleAdapt>,
+    algorithm: Option<SampleAlgorithm>,
+    num_chains: Option<i32>,
+}
+macro_rules! insert_field {
+    ($F:ident, $T:ident) => {
+        pub fn $F(self, $F: $T) -> Self {
+            let mut me = self;
+            let _ = me.$F.insert($F);
+            me
+        }
+    };
+}
+impl SampleBuilder {
+    pub fn builder() -> Self {
+        Self {
+            num_samples: None,
+            num_warmup: None,
+            save_warmup: None,
+            thin: None,
+            adapt: None,
+            algorithm: None,
+            num_chains: None,
+        }
+    }
+    insert_field!(num_samples, i32);
+    insert_field!(num_warmup, i32);
+    insert_field!(save_warmup, bool);
+    insert_field!(thin, i32);
+    insert_field!(adapt, SampleAdapt);
+    insert_field!(algorithm, SampleAlgorithm);
+    insert_field!(num_chains, i32);
+    pub fn build(self) -> Sample {
+        let num_samples = self.num_samples.unwrap_or(1000);
+        let num_warmup = self.num_warmup.unwrap_or(1000);
+        let save_warmup = self.save_warmup.unwrap_or(false);
+        let thin = self.thin.unwrap_or(1);
+        let adapt = self.adapt.unwrap_or_default();
+        let algorithm = self.algorithm.unwrap_or_default();
+        let num_chains = self.num_chains.unwrap_or(1);
+        Sample {
+            num_samples,
+            num_warmup,
+            save_warmup,
+            thin,
+            adapt,
+            algorithm,
+            num_chains,
+        }
+    }
+}
+
 /// Warmup Adaptation
 #[derive(Debug, PartialEq)]
 pub struct SampleAdapt {
@@ -37,17 +149,10 @@ pub struct SampleAdapt {
     window: u32,
 }
 impl Default for SampleAdapt {
+    // Rather than define the defaults in two places, the `build` method of SampleAdaptBuilder,
+    // called on an all-None builder, should serve as the single source of truth.
     fn default() -> Self {
-        Self {
-            engaged: true,
-            gamma: 0.05,
-            delta: 0.8,
-            kappa: 0.75,
-            t0: 10.0,
-            init_buffer: 75,
-            term_buffer: 50,
-            window: 25,
-        }
+        SampleAdaptBuilder::builder().build()
     }
 }
 
@@ -63,6 +168,63 @@ impl SampleAdapt {
         write!(&mut s, " term_buffer={}", self.term_buffer).unwrap();
         write!(&mut s, " window={}", self.window).unwrap();
         s
+    }
+    pub fn builder() -> SampleAdaptBuilder {
+        SampleAdaptBuilder::builder()
+    }
+}
+
+#[derive(Debug)]
+pub struct SampleAdaptBuilder {
+    engaged: Option<bool>,
+    gamma: Option<f64>,
+    delta: Option<f64>,
+    kappa: Option<f64>,
+    t0: Option<f64>,
+    init_buffer: Option<u32>,
+    term_buffer: Option<u32>,
+    window: Option<u32>,
+}
+impl SampleAdaptBuilder {
+    pub fn builder() -> Self {
+        Self {
+            engaged: None,
+            gamma: None,
+            delta: None,
+            kappa: None,
+            t0: None,
+            init_buffer: None,
+            term_buffer: None,
+            window: None,
+        }
+    }
+    insert_field!(engaged, bool);
+    insert_field!(gamma, f64);
+    insert_field!(delta, f64);
+    insert_field!(kappa, f64);
+    insert_field!(t0, f64);
+    insert_field!(init_buffer, u32);
+    insert_field!(term_buffer, u32);
+    insert_field!(window, u32);
+    pub fn build(self) -> SampleAdapt {
+        let engaged = self.engaged.unwrap_or(true);
+        let gamma = self.gamma.unwrap_or(0.05);
+        let delta = self.delta.unwrap_or(0.8);
+        let kappa = self.kappa.unwrap_or(0.75);
+        let t0 = self.t0.unwrap_or(10.0);
+        let init_buffer = self.init_buffer.unwrap_or(75);
+        let term_buffer = self.term_buffer.unwrap_or(50);
+        let window = self.window.unwrap_or(25);
+        SampleAdapt {
+            engaged,
+            gamma,
+            delta,
+            kappa,
+            t0,
+            init_buffer,
+            term_buffer,
+            window,
+        }
     }
 }
 
@@ -136,36 +298,66 @@ impl SampleAlgorithm {
 #[derive(Debug, PartialEq)]
 pub enum Engine {
     /// Static integration time
-    Static {
-        /// Total integration time for Hamiltonian evolution
-        /// Valid values: 0 < int_time
-        /// Defaults to 2 * pi
-        int_time: f64,
-    },
+    Static(Static),
     /// The No-U-Turn Sampler
-    Nuts {
-        /// Maximum tree depth
-        /// Valid values: 0 < max_depth
-        /// Defaults to 10
-        max_depth: i32,
-    },
+    Nuts(Nuts),
 }
 impl Default for Engine {
     fn default() -> Self {
-        Engine::Nuts { max_depth: 10 }
+        Engine::Nuts(Nuts::default())
     }
 }
 
 impl Engine {
     pub fn command_fragment(&self) -> String {
         match &self {
-            Engine::Nuts { max_depth } => {
+            Engine::Nuts(Nuts { max_depth }) => {
                 format!("engine=nuts max_depth={}", max_depth)
             }
-            Engine::Static { int_time } => {
+            Engine::Static(Static { int_time }) => {
                 format!("engine=static int_time={}", int_time)
             }
         }
+    }
+}
+impl From<Static> for Engine {
+    fn from(x: Static) -> Engine {
+        Engine::Static(x)
+    }
+}
+impl From<Nuts> for Engine {
+    fn from(x: Nuts) -> Engine {
+        Engine::Nuts(x)
+    }
+}
+
+/// Static integration time
+#[derive(Debug, PartialEq)]
+pub struct Static {
+    /// Total integration time for Hamiltonian evolution
+    /// Valid values: 0 < int_time
+    /// Defaults to 2 * pi
+    pub int_time: f64,
+}
+impl Default for Static {
+    fn default() -> Self {
+        Self {
+            int_time: std::f64::consts::TAU,
+        }
+    }
+}
+
+/// The No-U-Turn Sampler
+#[derive(Debug, PartialEq)]
+pub struct Nuts {
+    /// Maximum tree depth
+    /// Valid values: 0 < max_depth
+    /// Defaults to 10
+    pub max_depth: i32,
+}
+impl Default for Nuts {
+    fn default() -> Self {
+        Self { max_depth: 10 }
     }
 }
 
@@ -199,11 +391,40 @@ mod tests {
     use super::*;
 
     #[cfg(test)]
+    mod sample {
+        use super::*;
+        #[test]
+        fn builder() {
+            let x = SampleBuilder::builder();
+            let y = x.num_samples(2);
+            let z = y.num_warmup(2);
+            assert_eq!(z.num_samples, Some(2));
+            assert_eq!(z.num_warmup, Some(2));
+
+            let z = SampleBuilder::builder()
+                .num_samples(2)
+                .num_warmup(2)
+                .num_samples(10);
+            assert_eq!(z.num_samples, Some(10));
+            assert_eq!(z.num_warmup, Some(2));
+
+            let x = Sample::builder()
+                .num_samples(2)
+                .num_warmup(2)
+                .save_warmup(true)
+                .thin(5)
+                .build();
+            assert_eq!(x.save_warmup, true);
+            assert_eq!(x.thin, 5);
+        }
+    }
+
+    #[cfg(test)]
     mod adapt {
         use super::*;
 
         #[test]
-        fn default_works() {
+        fn default() {
             let x = SampleAdapt::default();
             assert_eq!(
                 x,
@@ -221,7 +442,7 @@ mod tests {
         }
 
         #[test]
-        fn command_fragment_works() {
+        fn command_fragment() {
             let x = SampleAdapt::default();
             assert_eq!(x.command_fragment(), "adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25");
         }
@@ -232,7 +453,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn command_fragment_works() {
+        fn command_fragment() {
             let mut x = SampleAlgorithm::default();
             assert_eq!(
                 x.command_fragment(),
@@ -259,23 +480,37 @@ mod tests {
         use super::*;
 
         #[test]
-        fn default_works() {
+        fn default() {
+            let x = Static::default();
+            assert_eq!(x.int_time, std::f64::consts::TAU);
+            let x = Nuts::default();
+            assert_eq!(x.max_depth, 10);
+
             let x = Engine::default();
-            assert_eq!(x, Engine::Nuts { max_depth: 10 });
+            assert_eq!(x, Engine::Nuts(Nuts { max_depth: 10 }));
         }
 
         #[test]
-        fn command_fragment_works() {
+        fn command_fragment() {
             let x = Engine::default();
             assert_eq!(x.command_fragment(), "engine=nuts max_depth=10");
 
-            let x = Engine::Static {
+            let x = Engine::Static(Static {
                 int_time: std::f64::consts::TAU,
-            };
+            });
             assert_eq!(
                 x.command_fragment(),
                 format!("engine=static int_time={}", std::f64::consts::TAU)
             );
+        }
+
+        #[test]
+        fn from() {
+            let x = Engine::from(Static { int_time: 2.0 });
+            assert!(matches!(x, Engine::Static(Static { int_time: _ })));
+
+            let x = Engine::from(Nuts { max_depth: 5 });
+            assert!(matches!(x, Engine::Nuts(Nuts { max_depth: 5 })));
         }
     }
 
@@ -284,13 +519,13 @@ mod tests {
         use super::*;
 
         #[test]
-        fn default_works() {
+        fn default() {
             let x = Metric::default();
             assert_eq!(x, Metric::DiagE);
         }
 
         #[test]
-        fn command_fragment_works() {
+        fn command_fragment() {
             let x = Metric::default();
             assert_eq!(x.command_fragment(), "metric=diag_e");
         }
