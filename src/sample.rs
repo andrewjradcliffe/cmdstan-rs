@@ -461,6 +461,55 @@ impl From<HmcBuilder> for SampleAlgorithm2 {
     }
 }
 
+/// Sampling algorithm
+/// Valid values: hmc, fixed_param
+/// Defaults to hmc
+#[derive(Debug, PartialEq)]
+pub enum SampleAlgorithm3 {
+    /// Hamiltonian Monte Carlo
+    Hmc {
+        /// Engine for Hamiltonian Monte Carlo
+        /// Valid values: static, nuts
+        /// Defaults to nuts
+        engine: Engine,
+        /// Geometry of base manifold
+        /// Valid values: unit_e, diag_e, dense_e
+        /// Defaults to diag_e
+        metric: Metric,
+        /// Input file with precomputed Euclidean metric
+        /// Valid values: Path to existing file
+        /// Defaults to ""
+        metric_file: String,
+        /// Step size for discrete evolution
+        /// Valid values: 0 < stepsize
+        /// Defaults to 1
+        stepsize: f64,
+        /// Uniformly random jitter of the stepsize, in percent
+        /// Valid values: 0 <= stepsize_jitter <= 1
+        /// Defaults to 0
+        stepsize_jitter: f64,
+    },
+    /// Fixed Parameter Sampler
+    FixedParam,
+}
+impl From<Hmc> for SampleAlgorithm3 {
+    fn from(hmc: Hmc) -> SampleAlgorithm3 {
+        SampleAlgorithm3::Hmc {
+            engine: hmc.engine,
+            metric: hmc.metric,
+            metric_file: hmc.metric_file,
+            stepsize: hmc.stepsize,
+            stepsize_jitter: hmc.stepsize_jitter,
+        }
+    }
+}
+
+impl Default for SampleAlgorithm3 {
+    fn default() -> Self {
+        SampleAlgorithm3::from(Hmc::default())
+    }
+}
+
 /// Engine for Hamiltonian Monte Carlo
 /// Valid values: static, nuts
 /// Defaults to nuts
