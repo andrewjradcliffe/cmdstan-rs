@@ -344,66 +344,78 @@ impl From<HmcBuilder> for SampleAlgorithm {
 #[derive(Debug, PartialEq)]
 pub enum Engine {
     /// Static integration time
-    Static(Static),
+    Static {
+        /// Total integration time for Hamiltonian evolution
+        /// Valid values: 0 < int_time
+        /// Defaults to 2 * pi
+        int_time: f64,
+    },
     /// The No-U-Turn Sampler
-    Nuts(Nuts),
+    Nuts {
+        /// Maximum tree depth
+        /// Valid values: 0 < max_depth
+        /// Defaults to 10
+        max_depth: i32,
+    },
 }
 impl Default for Engine {
     fn default() -> Self {
-        Engine::Nuts(Nuts::default())
+        Self::from(NutsBuilder::builder())
     }
 }
 
 impl Engine {
     pub fn command_fragment(&self) -> String {
         match &self {
-            Engine::Nuts(Nuts { max_depth }) => {
+            Engine::Nuts { max_depth } => {
                 format!("engine=nuts max_depth={}", max_depth)
             }
-            Engine::Static(Static { int_time }) => {
+            Engine::Static { int_time } => {
                 format!("engine=static int_time={}", int_time)
             }
         }
     }
 }
-impl From<Static> for Engine {
-    fn from(x: Static) -> Engine {
-        Engine::Static(x)
+impl From<StaticBuilder> for Engine {
+    fn from(x: StaticBuilder) -> Self {
+        let int_time = x.int_time.unwrap_or(std::f64::consts::TAU);
+        Engine::Static { int_time }
     }
 }
-impl From<Nuts> for Engine {
-    fn from(x: Nuts) -> Engine {
-        Engine::Nuts(x)
+impl From<NutsBuilder> for Engine {
+    fn from(x: NutsBuilder) -> Self {
+        let max_depth = x.max_depth.unwrap_or(10);
+        Engine::Nuts { max_depth }
     }
 }
 
 /// Static integration time
 #[derive(Debug, PartialEq)]
-pub struct Static {
-    /// Total integration time for Hamiltonian evolution
-    /// Valid values: 0 < int_time
-    /// Defaults to 2 * pi
-    pub int_time: f64,
+pub struct StaticBuilder {
+    int_time: Option<f64>,
 }
-impl Default for Static {
-    fn default() -> Self {
-        Self {
-            int_time: std::f64::consts::TAU,
-        }
+impl StaticBuilder {
+    pub fn builder() -> StaticBuilder {
+        StaticBuilder { int_time: None }
+    }
+    insert_field!(int_time, f64);
+    pub fn build(self) -> Engine {
+        Engine::from(self)
     }
 }
 
 /// The No-U-Turn Sampler
 #[derive(Debug, PartialEq)]
-pub struct Nuts {
-    /// Maximum tree depth
-    /// Valid values: 0 < max_depth
-    /// Defaults to 10
-    pub max_depth: i32,
+pub struct NutsBuilder {
+    max_depth: Option<i32>,
 }
-impl Default for Nuts {
-    fn default() -> Self {
-        Self { max_depth: 10 }
+impl NutsBuilder {
+    pub fn builder() -> NutsBuilder {
+        NutsBuilder { max_depth: None }
+    }
+    insert_field!(max_depth, i32);
+    pub fn build(self) -> Engine {
+        Engine::from(self)
     }
 }
 
@@ -527,13 +539,16 @@ mod tests {
 
         #[test]
         fn default() {
-            let x = Static::default();
-            assert_eq!(x.int_time, std::f64::consts::TAU);
-            let x = Nuts::default();
-            assert_eq!(x.max_depth, 10);
+            let x = StaticBuilder::builder().build();
+            assert_eq!(
+                x,
+                Engine::Static {
+                    int_time: std::f64::consts::TAU
+                }
+            );
 
             let x = Engine::default();
-            assert_eq!(x, Engine::Nuts(Nuts { max_depth: 10 }));
+            assert_eq!(x, Engine::Nuts { max_depth: 10 });
         }
 
         #[test]
@@ -541,9 +556,9 @@ mod tests {
             let x = Engine::default();
             assert_eq!(x.command_fragment(), "engine=nuts max_depth=10");
 
-            let x = Engine::Static(Static {
+            let x = Engine::Static {
                 int_time: std::f64::consts::TAU,
-            });
+            };
             assert_eq!(
                 x.command_fragment(),
                 format!("engine=static int_time={}", std::f64::consts::TAU)
@@ -552,11 +567,11 @@ mod tests {
 
         #[test]
         fn from() {
-            let x = Engine::from(Static { int_time: 2.0 });
-            assert!(matches!(x, Engine::Static(Static { int_time: _ })));
+            let x = Engine::from(StaticBuilder::builder());
+            assert!(matches!(x, Engine::Static { int_time: _ }));
 
-            let x = Engine::from(Nuts { max_depth: 5 });
-            assert!(matches!(x, Engine::Nuts(Nuts { max_depth: 5 })));
+            let x = Engine::from(NutsBuilder::builder().max_depth(5));
+            assert!(matches!(x, Engine::Nuts { max_depth: 5 }));
         }
     }
 
