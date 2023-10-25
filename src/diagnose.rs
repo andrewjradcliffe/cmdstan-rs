@@ -1,4 +1,25 @@
+use crate::method::Method;
 use std::fmt::Write;
+
+/// Options builder for `Method::Diagnose`.
+/// For any option left unspecified, the default value indicated
+/// on `Method::Diagnose` will be supplied.
+#[derive(Debug, PartialEq, Clone)]
+pub struct DiagnoseBuilder {
+    test: Option<DiagnosticTest>,
+}
+impl DiagnoseBuilder {
+    /// Return a builder with all options unspecified.
+    pub fn new() -> Self {
+        Self { test: None }
+    }
+    insert_field!(test, DiagnosticTest);
+    /// Build the `Method::Diagnose` instance.
+    pub fn build(self) -> Method {
+        let test = self.test.unwrap_or_default();
+        Method::Diagnose { test }
+    }
+}
 
 /// Diagnostic test
 /// Valid values: gradient
@@ -42,6 +63,25 @@ impl DiagnosticTest {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn builder() {
+        let x = DiagnoseBuilder::new()
+            .test(DiagnosticTest::Gradient {
+                epsilon: 1e-1,
+                error: 1e-1,
+            })
+            .build();
+        assert_eq!(
+            x,
+            Method::Diagnose {
+                test: DiagnosticTest::Gradient {
+                    epsilon: 1e-1,
+                    error: 1e-1
+                }
+            }
+        );
+    }
 
     #[test]
     fn default() {
