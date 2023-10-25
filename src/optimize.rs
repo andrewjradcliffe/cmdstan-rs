@@ -110,15 +110,6 @@ pub enum OptimizeAlgorithm {
 
 impl Default for OptimizeAlgorithm {
     fn default() -> Self {
-        // OptimizeAlgorithm::Lbfgs {
-        //     init_alpha: 0.001,
-        //     tol_obj: 9.9999999999999998e-13,
-        //     tol_rel_obj: 10000.0,
-        //     tol_grad: 1e-8,
-        //     tol_rel_grad: 10_000_000.0,
-        //     tol_param: 1e-8,
-        //     history_size: 5,
-        // }
         LbfgsBuilder::new().build()
     }
 }
@@ -274,23 +265,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default() {
-        let x = OptimizeAlgorithm::default();
-        assert_eq!(
-            x,
-            OptimizeAlgorithm::Lbfgs {
-                init_alpha: 0.001,
-                tol_obj: 9.9999999999999998e-13,
-                tol_rel_obj: 10000.0,
-                tol_grad: 1e-8,
-                tol_rel_grad: 10_000_000.0,
-                tol_param: 1e-8,
-                history_size: 5,
-            }
-        );
-    }
-
-    #[test]
     fn builder() {
         let x = BfgsBuilder::new()
             .init_alpha(0.1)
@@ -366,8 +340,46 @@ mod tests {
     }
 
     #[test]
+    fn default() {
+        let x = LbfgsBuilder::new().build();
+        assert_eq!(
+            x,
+            OptimizeAlgorithm::Lbfgs {
+                init_alpha: 0.001,
+                tol_obj: 9.9999999999999998e-13,
+                tol_rel_obj: 10000.0,
+                tol_grad: 1e-8,
+                tol_rel_grad: 10_000_000.0,
+                tol_param: 1e-8,
+                history_size: 5,
+            }
+        );
+        let y = OptimizeAlgorithm::default();
+        assert_eq!(x, y);
+
+        let x = BfgsBuilder::new().build();
+        assert_eq!(
+            x,
+            OptimizeAlgorithm::Bfgs {
+                init_alpha: 0.001,
+                tol_obj: 9.9999999999999998e-13,
+                tol_rel_obj: 10000.0,
+                tol_grad: 1e-8,
+                tol_rel_grad: 10_000_000.0,
+                tol_param: 1e-8,
+            }
+        );
+    }
+
+    #[test]
     fn command_fragment() {
-        let x = OptimizeAlgorithm::default();
+        let x = LbfgsBuilder::new().build();
         assert_eq!(x.command_fragment(), "algorithm=lbfgs init_alpha=0.001 tol_obj=0.000000000001 tol_rel_obj=10000 tol_grad=0.00000001 tol_rel_grad=10000000 tol_param=0.00000001 history_size=5");
+
+        let x = BfgsBuilder::new().build();
+        assert_eq!(x.command_fragment(), "algorithm=bfgs init_alpha=0.001 tol_obj=0.000000000001 tol_rel_obj=10000 tol_grad=0.00000001 tol_rel_grad=10000000 tol_param=0.00000001");
+
+        let x = OptimizeAlgorithm::Newton;
+        assert_eq!(x.command_fragment(), "algorithm=newton");
     }
 }
