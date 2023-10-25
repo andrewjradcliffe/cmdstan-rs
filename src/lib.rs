@@ -5,6 +5,7 @@ mod internal_macros;
 
 pub mod diagnose;
 pub mod generate_quantities;
+pub mod laplace;
 pub mod logprob;
 pub mod method;
 pub mod optimize;

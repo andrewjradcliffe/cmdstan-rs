@@ -1,5 +1,6 @@
 use crate::diagnose::*;
 use crate::generate_quantities::*;
+use crate::laplace::*;
 use crate::logprob::*;
 use crate::optimize::*;
 use crate::sample::*;
@@ -157,13 +158,23 @@ impl From<VariationalBuilder> for Method {
         x.build()
     }
 }
-impl From<LogProbBuilder> for Method {
-    fn from(x: LogProbBuilder) -> Self {
+impl From<DiagnoseBuilder> for Method {
+    fn from(x: DiagnoseBuilder) -> Self {
         x.build()
     }
 }
 impl From<GenerateQuantitiesBuilder> for Method {
     fn from(x: GenerateQuantitiesBuilder) -> Self {
+        x.build()
+    }
+}
+impl From<LogProbBuilder> for Method {
+    fn from(x: LogProbBuilder) -> Self {
+        x.build()
+    }
+}
+impl From<LaplaceBuilder> for Method {
+    fn from(x: LaplaceBuilder) -> Self {
         x.build()
     }
 }
