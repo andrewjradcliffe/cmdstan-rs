@@ -4,6 +4,7 @@ use std::fmt::Write;
 mod internal_macros;
 
 pub mod diagnose;
+pub mod logprob;
 pub mod method;
 pub mod optimize;
 pub mod sample;

@@ -1,4 +1,5 @@
 use crate::diagnose::*;
+use crate::logprob::*;
 use crate::optimize::*;
 use crate::sample::*;
 use crate::variational::*;
@@ -152,6 +153,11 @@ impl From<OptimizeBuilder> for Method {
 }
 impl From<VariationalBuilder> for Method {
     fn from(x: VariationalBuilder) -> Self {
+        x.build()
+    }
+}
+impl From<LogProbBuilder> for Method {
+    fn from(x: LogProbBuilder) -> Self {
         x.build()
     }
 }
