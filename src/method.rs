@@ -71,6 +71,8 @@ pub enum Method {
         /// Valid values: 0 < eta
         /// Defaults to 1
         eta: f64,
+        /// Eta Adaptation for Variational Inference
+        /// Valid subarguments: engaged, iter
         adapt: VariationalAdapt,
         /// Relative tolerance parameter for convergence.
         /// Valid values: 0 <= tol
@@ -145,6 +147,11 @@ impl From<SampleBuilder> for Method {
 }
 impl From<OptimizeBuilder> for Method {
     fn from(x: OptimizeBuilder) -> Self {
+        x.build()
+    }
+}
+impl From<VariationalBuilder> for Method {
+    fn from(x: VariationalBuilder) -> Self {
         x.build()
     }
 }
