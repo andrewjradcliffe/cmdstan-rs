@@ -41,9 +41,15 @@ impl OptimizeBuilder {
     }
 }
 
-/// Optimization algorithm
-/// Valid values: bfgs, lbfgs, newton
-/// Defaults to lbfgs
+// Common defaults.
+static INIT_ALPHA: f64 = 0.001;
+static TOL_OBJ: f64 = 9.9999999999999998e-13;
+static TOL_REL_OBJ: f64 = 10_000.0;
+static TOL_GRAD: f64 = 1e-8;
+static TOL_REL_GRAD: f64 = 10_000_000.0;
+static TOL_PARAM: f64 = 1e-8;
+
+/// Optimization algorithm. Defaults to `Lbfgs`.
 #[derive(Debug, PartialEq, Clone)]
 pub enum OptimizeAlgorithm {
     /// BFGS with linesearch
@@ -146,12 +152,12 @@ impl BfgsBuilder {
     insert_field!(tol_param, f64);
     /// Build the `OptimizeAlgorithm::Bfgs` instance.
     pub fn build(self) -> OptimizeAlgorithm {
-        let init_alpha = self.init_alpha.unwrap_or(0.001);
-        let tol_obj = self.tol_obj.unwrap_or(9.9999999999999998e-13);
-        let tol_rel_obj = self.tol_rel_obj.unwrap_or(10_000.0);
-        let tol_grad = self.tol_grad.unwrap_or(1e-8);
-        let tol_rel_grad = self.tol_rel_grad.unwrap_or(10_000_000.0);
-        let tol_param = self.tol_param.unwrap_or(1e-8);
+        let init_alpha = self.init_alpha.unwrap_or(INIT_ALPHA);
+        let tol_obj = self.tol_obj.unwrap_or(TOL_OBJ);
+        let tol_rel_obj = self.tol_rel_obj.unwrap_or(TOL_REL_OBJ);
+        let tol_grad = self.tol_grad.unwrap_or(TOL_GRAD);
+        let tol_rel_grad = self.tol_rel_grad.unwrap_or(TOL_REL_GRAD);
+        let tol_param = self.tol_param.unwrap_or(TOL_PARAM);
         OptimizeAlgorithm::Bfgs {
             init_alpha,
             tol_obj,
@@ -197,12 +203,12 @@ impl LbfgsBuilder {
     insert_field!(history_size, i32);
     /// Build the `OptimizeAlgorithm::Lbfgs` instance.
     pub fn build(self) -> OptimizeAlgorithm {
-        let init_alpha = self.init_alpha.unwrap_or(0.001);
-        let tol_obj = self.tol_obj.unwrap_or(9.9999999999999998e-13);
-        let tol_rel_obj = self.tol_rel_obj.unwrap_or(10_000.0);
-        let tol_grad = self.tol_grad.unwrap_or(1e-8);
-        let tol_rel_grad = self.tol_rel_grad.unwrap_or(10_000_000.0);
-        let tol_param = self.tol_param.unwrap_or(1e-8);
+        let init_alpha = self.init_alpha.unwrap_or(INIT_ALPHA);
+        let tol_obj = self.tol_obj.unwrap_or(TOL_OBJ);
+        let tol_rel_obj = self.tol_rel_obj.unwrap_or(TOL_REL_OBJ);
+        let tol_grad = self.tol_grad.unwrap_or(TOL_GRAD);
+        let tol_rel_grad = self.tol_rel_grad.unwrap_or(TOL_REL_GRAD);
+        let tol_param = self.tol_param.unwrap_or(TOL_PARAM);
         let history_size = self.history_size.unwrap_or(5);
         OptimizeAlgorithm::Lbfgs {
             init_alpha,
