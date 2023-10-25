@@ -21,9 +21,7 @@ impl DiagnoseBuilder {
     }
 }
 
-/// Diagnostic test
-/// Valid values: gradient
-/// Defaults to gradient
+/// Diagnostic test. Defaults to `Gradient`.
 #[derive(Debug, PartialEq, Clone)]
 pub enum DiagnosticTest {
     /// Check model gradient against finite differences

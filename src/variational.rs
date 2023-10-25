@@ -65,9 +65,7 @@ impl VariationalBuilder {
     }
 }
 
-/// Variational inference algorithm
-/// Valid values: meanfield, fullrank
-/// Defaults to meanfield
+/// Variational inference algorithm. Defaults to `MeanField`.
 #[derive(Debug, Default, PartialEq, Clone)]
 pub enum VariationalAlgorithm {
     /// mean-field approximation
@@ -87,7 +85,6 @@ impl VariationalAlgorithm {
 }
 
 /// Eta Adaptation for Variational Inference
-/// Valid subarguments: engaged, iter
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariationalAdapt {
     /// Boolean flag for eta adaptation.

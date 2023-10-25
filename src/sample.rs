@@ -223,9 +223,7 @@ impl HmcBuilder {
     }
 }
 
-/// Sampling algorithm
-/// Valid values: hmc, fixed_param
-/// Defaults to hmc
+/// Sampling algorithm. Defaults to `Hmc`.
 #[derive(Debug, PartialEq, Clone)]
 pub enum SampleAlgorithm {
     /// Hamiltonian Monte Carlo
@@ -292,9 +290,7 @@ impl From<HmcBuilder> for SampleAlgorithm {
     }
 }
 
-/// Engine for Hamiltonian Monte Carlo
-/// Valid values: static, nuts
-/// Defaults to nuts
+/// Engine for Hamiltonian Monte Carlo. Defaults to `Nuts`.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Engine {
     /// Static integration time
