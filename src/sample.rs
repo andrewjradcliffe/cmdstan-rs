@@ -450,6 +450,21 @@ mod tests {
                 .thin(5)
                 .num_chains(10);
             assert_eq!(x.num_chains, Some(10));
+
+            // Default values
+            let x = SampleBuilder::new().build();
+            assert_eq!(
+                x,
+                Method::Sample {
+                    num_samples: 1000,
+                    num_warmup: 1000,
+                    save_warmup: false,
+                    thin: 1,
+                    adapt: SampleAdapt::default(),
+                    algorithm: SampleAlgorithm::default(),
+                    num_chains: 1,
+                }
+            );
         }
     }
 
@@ -501,6 +516,18 @@ mod tests {
         fn command_fragment() {
             let x = SampleAdapt::default();
             assert_eq!(x.command_fragment(), "adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25");
+
+            let x = SampleAdapt::builder()
+                .engaged(false)
+                .gamma(0.1)
+                .delta(0.2)
+                .kappa(0.3)
+                .t0(0.4)
+                .init_buffer(1)
+                .term_buffer(2)
+                .window(3)
+                .build();
+            assert_eq!(x.command_fragment(), "adapt engaged=0 gamma=0.1 delta=0.2 kappa=0.3 t0=0.4 init_buffer=1 term_buffer=2 window=3");
         }
     }
 
@@ -509,31 +536,87 @@ mod tests {
         use super::*;
 
         #[test]
+        fn builder() {
+            let x = HmcBuilder::new()
+                .engine(Engine::Static { int_time: 2.5 })
+                .metric(Metric::DenseE)
+                .metric_file("big.txt".to_string())
+                .stepsize(10.0)
+                .stepsize_jitter(0.5)
+                .build();
+            let SampleAlgorithm::Hmc {
+                engine,
+                metric,
+                metric_file,
+                stepsize,
+                stepsize_jitter,
+            } = x
+            else {
+                unreachable!();
+            };
+            assert_eq!(engine, Engine::Static { int_time: 2.5 });
+            assert_eq!(metric, Metric::DenseE);
+            assert_eq!(metric_file, "big.txt");
+            assert_eq!(stepsize, 10.0);
+            assert_eq!(stepsize_jitter, 0.5);
+        }
+
+        #[test]
+        fn from() {
+            let x = HmcBuilder::new();
+            assert_eq!(SampleAlgorithm::from(x), HmcBuilder::new().build());
+        }
+
+        #[test]
         fn command_fragment() {
-            let mut x = SampleAlgorithm::default();
+            let mut x = HmcBuilder::new().build();
             assert_eq!(
                 x.command_fragment(),
                 "algorithm=hmc engine=nuts max_depth=10 metric=diag_e stepsize=1 stepsize_jitter=0"
             );
-            match x {
-                SampleAlgorithm::Hmc {
-                    ref mut metric_file,
-                    ..
-                } => {
-                    metric_file.push_str("my_metric.json");
-                }
-                _ => (),
+            let SampleAlgorithm::Hmc {
+                ref mut metric_file,
+                ..
+            } = x
+            else {
+                unreachable!()
             };
+            metric_file.push_str("my_metric.json");
+
             assert_eq!(
                 x.command_fragment(),
                 "algorithm=hmc engine=nuts max_depth=10 metric=diag_e metric_file=my_metric.json stepsize=1 stepsize_jitter=0"
             );
+
+            let x = HmcBuilder::new()
+                .engine(Engine::Static { int_time: 2.5 })
+                .metric(Metric::DenseE)
+                .metric_file("big.txt".to_string())
+                .stepsize(10.0)
+                .stepsize_jitter(0.5)
+                .build();
+            assert_eq!(
+                x.command_fragment(),
+                "algorithm=hmc engine=static int_time=2.5 metric=dense_e metric_file=big.txt stepsize=10 stepsize_jitter=0.5"
+            );
+
+            let x = SampleAlgorithm::FixedParam;
+            assert_eq!(x.command_fragment(), "algorithm=fixed_param");
         }
     }
 
     #[cfg(test)]
     mod engine {
         use super::*;
+
+        #[test]
+        fn builder() {
+            let x = StaticBuilder::new().int_time(2.5).build();
+            assert_eq!(x, Engine::Static { int_time: 2.5 });
+
+            let x = NutsBuilder::new().max_depth(100).build();
+            assert_eq!(x, Engine::Nuts { max_depth: 100 });
+        }
 
         #[test]
         fn default() {
@@ -544,9 +627,17 @@ mod tests {
                     int_time: std::f64::consts::TAU
                 }
             );
-
             let x = Engine::default();
             assert_eq!(x, Engine::Nuts { max_depth: 10 });
+        }
+
+        #[test]
+        fn from() {
+            let x = Engine::from(StaticBuilder::new().int_time(2.5));
+            assert_eq!(x, Engine::Static { int_time: 2.5 });
+
+            let x = Engine::from(NutsBuilder::new().max_depth(5));
+            assert_eq!(x, Engine::Nuts { max_depth: 5 });
         }
 
         #[test]
@@ -562,15 +653,6 @@ mod tests {
                 format!("engine=static int_time={}", std::f64::consts::TAU)
             );
         }
-
-        #[test]
-        fn from() {
-            let x = Engine::from(StaticBuilder::new());
-            assert!(matches!(x, Engine::Static { int_time: _ }));
-
-            let x = Engine::from(NutsBuilder::new().max_depth(5));
-            assert!(matches!(x, Engine::Nuts { max_depth: 5 }));
-        }
     }
 
     #[cfg(test)]
@@ -585,8 +667,12 @@ mod tests {
 
         #[test]
         fn command_fragment() {
-            let x = Metric::default();
+            let x = Metric::UnitE;
+            assert_eq!(x.command_fragment(), "metric=unit_e");
+            let x = Metric::DiagE;
             assert_eq!(x.command_fragment(), "metric=diag_e");
+            let x = Metric::DenseE;
+            assert_eq!(x.command_fragment(), "metric=dense_e");
         }
     }
 }
