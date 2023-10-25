@@ -7,7 +7,7 @@ use crate::sample::*;
 use crate::variational::*;
 use std::fmt::Write;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Method {
     /// Bayesian inference using Markov Chain Monte Carlo
     Sample {
