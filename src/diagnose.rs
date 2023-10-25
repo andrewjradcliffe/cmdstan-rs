@@ -1,6 +1,9 @@
 use std::fmt::Write;
 
-#[derive(Debug, PartialEq)]
+/// Diagnostic test
+/// Valid values: gradient
+/// Defaults to gradient
+#[derive(Debug, PartialEq, Clone)]
 pub enum DiagnosticTest {
     /// Check model gradient against finite differences
     Gradient {
