@@ -76,7 +76,12 @@ impl ArgumentTreeBuilder {
             num_threads: None,
         }
     }
-    insert_field!(method, Method);
+    // insert_field!(method, Method);
+    pub fn method<T: Into<Method>>(self, method: T) -> Self {
+        let mut me = self;
+        let _ = me.method.insert(method.into());
+        me
+    }
     insert_field!(id, i32);
     insert_field!(data, Data);
     insert_field!(init, String);
@@ -338,11 +343,7 @@ mod tests {
             let method = SampleBuilder::new()
                 .num_chains(10)
                 .num_samples(10_000)
-                .algorithm(
-                    HmcBuilder::new()
-                        .engine(NutsBuilder::new().max_depth(100).build())
-                        .build(),
-                )
+                .algorithm(HmcBuilder::new().engine(NutsBuilder::new().max_depth(100)))
                 .build();
             let id = 2;
             let data = Data {
@@ -368,6 +369,36 @@ mod tests {
                 num_threads,
             };
             assert_eq!(x.command_string(), "method=sample num_samples=10000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=100 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=10 id=2 data file=bernoulli.json init=5 random seed=12345 output file=hello.csv diagnostic_file=world.txt refresh=1 sig_figs=18 profile_file=foo.txt num_threads=48");
+
+            let method = SampleBuilder::new()
+                .num_chains(10)
+                .num_samples(10_000)
+                .algorithm(HmcBuilder::new().engine(StaticBuilder::new().int_time(2.5)))
+                .build();
+            let id = 2;
+            let data = Data {
+                file: "bernoulli.json".to_string(),
+            };
+            let init = "5".to_string();
+            let random = Random { seed: 12345 };
+            let output = Output {
+                file: "hello.csv".to_string(),
+                diagnostic_file: "world.txt".to_string(),
+                refresh: 1,
+                sig_figs: 18,
+                profile_file: "foo.txt".to_string(),
+            };
+            let num_threads = 48;
+            let x = ArgumentTree {
+                method,
+                id,
+                data,
+                init,
+                random,
+                output,
+                num_threads,
+            };
+            assert_eq!(x.command_string(), "method=sample num_samples=10000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=static int_time=2.5 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=10 id=2 data file=bernoulli.json init=5 random seed=12345 output file=hello.csv diagnostic_file=world.txt refresh=1 sig_figs=18 profile_file=foo.txt num_threads=48");
         }
     }
 
