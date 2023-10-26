@@ -33,13 +33,13 @@ impl SampleBuilder {
     insert_field!(save_warmup, bool);
     insert_field!(thin, i32);
     insert_field!(adapt, SampleAdapt);
-    // insert_field!(algorithm, SampleAlgorithm);
+    insert_field!(algorithm, SampleAlgorithm);
     insert_field!(num_chains, i32);
-    pub fn algorithm<T: Into<SampleAlgorithm>>(self, algorithm: T) -> Self {
-        let mut me = self;
-        let _ = me.algorithm.insert(algorithm.into());
-        me
-    }
+    // pub fn algorithm<T: Into<SampleAlgorithm>>(self, algorithm: T) -> Self {
+    //     let mut me = self;
+    //     let _ = me.algorithm.insert(algorithm.into());
+    //     me
+    // }
     /// Build the `Method::Sample` instance.
     pub fn build(self) -> Method {
         let num_samples = self.num_samples.unwrap_or(1000);
@@ -206,16 +206,16 @@ impl HmcBuilder {
         }
     }
 
-    // insert_field!(engine, Engine);
+    insert_field!(engine, Engine);
     insert_field!(metric, Metric);
     insert_field!(metric_file, String);
     insert_field!(stepsize, f64);
     insert_field!(stepsize_jitter, f64);
-    pub fn engine<T: Into<Engine>>(self, engine: T) -> Self {
-        let mut me = self;
-        let _ = me.engine.insert(engine.into());
-        me
-    }
+    // pub fn engine<T: Into<Engine>>(self, engine: T) -> Self {
+    //     let mut me = self;
+    //     let _ = me.engine.insert(engine.into());
+    //     me
+    // }
     /// Build the `SampleAlgorithm::Hmc` instance.
     pub fn build(self) -> SampleAlgorithm {
         let engine = self.engine.unwrap_or_default();
@@ -567,7 +567,7 @@ mod tests {
             assert_eq!(stepsize_jitter, 0.5);
 
             let x = HmcBuilder::new()
-                .engine(NutsBuilder::new().max_depth(100))
+                .engine(NutsBuilder::new().max_depth(100).build())
                 .build();
             let SampleAlgorithm::Hmc { engine, .. } = x else {
                 unreachable!();

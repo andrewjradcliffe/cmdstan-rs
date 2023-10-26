@@ -76,12 +76,11 @@ impl ArgumentTreeBuilder {
             num_threads: None,
         }
     }
-    // insert_field!(method, Method);
-    pub fn method<T: Into<Method>>(self, method: T) -> Self {
-        let mut me = self;
-        let _ = me.method.insert(method.into());
-        me
-    }
+    insert_field!(method, Method);
+    // pub fn method<T: Into<Method>>(self, method: T) -> Self {
+    //     let mut me = self;
+    //     let _ = me.method.insert(method.into());
+    // }
     insert_field!(id, i32);
     insert_field!(data, Data);
     insert_field!(init, String);
@@ -343,7 +342,11 @@ mod tests {
             let method = SampleBuilder::new()
                 .num_chains(10)
                 .num_samples(10_000)
-                .algorithm(HmcBuilder::new().engine(NutsBuilder::new().max_depth(100)))
+                .algorithm(
+                    HmcBuilder::new()
+                        .engine(NutsBuilder::new().max_depth(100).build())
+                        .build(),
+                )
                 .build();
             let id = 2;
             let data = Data {
@@ -373,7 +376,11 @@ mod tests {
             let method = SampleBuilder::new()
                 .num_chains(10)
                 .num_samples(10_000)
-                .algorithm(HmcBuilder::new().engine(StaticBuilder::new().int_time(2.5)))
+                .algorithm(
+                    HmcBuilder::new()
+                        .engine(StaticBuilder::new().int_time(2.5).build())
+                        .build(),
+                )
                 .build();
             let id = 2;
             let data = Data {
