@@ -8,6 +8,7 @@ pub mod laplace;
 pub mod logprob;
 pub mod method;
 pub mod optimize;
+pub mod pathfinder;
 pub mod sample;
 pub mod variational;
 

@@ -3,10 +3,12 @@ use crate::generate_quantities::*;
 use crate::laplace::*;
 use crate::logprob::*;
 use crate::optimize::*;
+use crate::pathfinder::*;
 use crate::sample::*;
 use crate::variational::*;
 use std::fmt::Write;
 
+/// Analysis method. Defaults to `Sample`.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Method {
     /// Bayesian inference using Markov Chain Monte Carlo
@@ -104,6 +106,61 @@ pub enum Method {
         /// Defaults to ""
         fitted_params: String,
     },
+    /// Pathfinder algorithm
+    Pathfinder {
+        /// Line search step size for first iteration
+        /// Valid values: 0 < init_alpha
+        /// Defaults to 0.001
+        init_alpha: f64,
+        /// Convergence tolerance on absolute changes in objective function value
+        /// Valid values: 0 <= tol
+        /// Defaults to 9.9999999999999998e-13
+        tol_obj: f64,
+        /// Convergence tolerance on relative changes in objective function value
+        /// Valid values: 0 <= tol
+        /// Defaults to 10000
+        tol_rel_obj: f64,
+        /// Convergence tolerance on the norm of the gradient
+        /// Valid values: 0 <= tol
+        /// Defaults to 1e-08
+        tol_grad: f64,
+        /// Convergence tolerance on the relative norm of the gradient
+        /// Valid values: 0 <= tol
+        /// Defaults to 10000000
+        tol_rel_grad: f64,
+        /// Convergence tolerance on changes in parameter value
+        /// Valid values: 0 <= tol
+        /// Defaults to 1e-08
+        tol_param: f64,
+        /// Amount of history to keep for L-BFGS
+        /// Valid values: 0 < history_size
+        /// Defaults to 5
+        history_size: i32,
+        /// Number of draws from PSIS sample
+        /// Valid values: 0 < num_psis_draws
+        /// Defaults to 1000
+        num_psis_draws: i32,
+        /// Number of single pathfinders
+        /// Valid values: 0 < num_paths
+        /// Defaults to 4
+        num_paths: i32,
+        /// Output single-path pathfinder draws as CSV
+        /// Valid values: [0, 1]
+        /// Defaults to 0
+        save_single_paths: bool,
+        /// Maximum number of LBFGS iterations
+        /// Valid values: 0 < max_lbfgs_iters
+        /// Defaults to 1000
+        max_lbfgs_iters: i32,
+        /// Number of approximate posterior draws
+        /// Valid values: 0 < num_draws
+        /// Defaults to 1000
+        num_draws: i32,
+        /// Number of Monte Carlo draws to evaluate ELBO
+        /// Valid values: 0 < num_elbo_draws
+        /// Defaults to 25
+        num_elbo_draws: i32,
+    },
     /// Return the log density up to a constant and its gradients, given supplied parameters
     LogProb {
         /// Input file (JSON or R dump) of parameter values on unconstrained scale
@@ -142,42 +199,23 @@ impl Default for Method {
     }
 }
 use Method::*;
-
-impl From<SampleBuilder> for Method {
-    fn from(x: SampleBuilder) -> Self {
-        x.build()
-    }
+macro_rules! from_impl {
+    ($T:ident) => {
+        impl From<$T> for Method {
+            fn from(x: $T) -> Self {
+                x.build()
+            }
+        }
+    };
 }
-impl From<OptimizeBuilder> for Method {
-    fn from(x: OptimizeBuilder) -> Self {
-        x.build()
-    }
-}
-impl From<VariationalBuilder> for Method {
-    fn from(x: VariationalBuilder) -> Self {
-        x.build()
-    }
-}
-impl From<DiagnoseBuilder> for Method {
-    fn from(x: DiagnoseBuilder) -> Self {
-        x.build()
-    }
-}
-impl From<GenerateQuantitiesBuilder> for Method {
-    fn from(x: GenerateQuantitiesBuilder) -> Self {
-        x.build()
-    }
-}
-impl From<LogProbBuilder> for Method {
-    fn from(x: LogProbBuilder) -> Self {
-        x.build()
-    }
-}
-impl From<LaplaceBuilder> for Method {
-    fn from(x: LaplaceBuilder) -> Self {
-        x.build()
-    }
-}
+from_impl!(SampleBuilder);
+from_impl!(OptimizeBuilder);
+from_impl!(VariationalBuilder);
+from_impl!(DiagnoseBuilder);
+from_impl!(GenerateQuantitiesBuilder);
+from_impl!(PathfinderBuilder);
+from_impl!(LogProbBuilder);
+from_impl!(LaplaceBuilder);
 
 impl Method {
     pub fn command_fragment(&self) -> String {
@@ -240,6 +278,37 @@ impl Method {
             Diagnose { test } => {
                 let mut s = String::from("method=diagnose");
                 write!(&mut s, " {}", test.command_fragment()).unwrap();
+                s
+            }
+            Pathfinder {
+                init_alpha,
+                tol_obj,
+                tol_rel_obj,
+                tol_grad,
+                tol_rel_grad,
+                tol_param,
+                history_size,
+                num_psis_draws,
+                num_paths,
+                save_single_paths,
+                max_lbfgs_iters,
+                num_draws,
+                num_elbo_draws,
+            } => {
+                let mut s = String::from("method=pathfinder");
+                write!(&mut s, " init_alpha={}", init_alpha).unwrap();
+                write!(&mut s, " tol_obj={}", tol_obj).unwrap();
+                write!(&mut s, " tol_rel_obj={}", tol_rel_obj).unwrap();
+                write!(&mut s, " tol_grad={}", tol_grad).unwrap();
+                write!(&mut s, " tol_rel_grad={}", tol_rel_grad).unwrap();
+                write!(&mut s, " tol_param={}", tol_param).unwrap();
+                write!(&mut s, " history_size={}", history_size).unwrap();
+                write!(&mut s, " num_psis_draws={}", num_psis_draws).unwrap();
+                write!(&mut s, " num_paths={}", num_paths).unwrap();
+                write!(&mut s, " save_single_paths={}", *save_single_paths as u8).unwrap();
+                write!(&mut s, " max_lbfgs_iters={}", max_lbfgs_iters).unwrap();
+                write!(&mut s, " num_draws={}", num_draws).unwrap();
+                write!(&mut s, " num_elbo_draws={}", num_elbo_draws).unwrap();
                 s
             }
             GenerateQuantities { fitted_params } => {
