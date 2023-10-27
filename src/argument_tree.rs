@@ -84,6 +84,7 @@ impl ArgumentTreeBuilder {
     insert_field!(id, i32);
     insert_field!(data, Data);
     insert_field!(init, String);
+    // insert_string_field!(init);
     insert_field!(random, Random);
     insert_field!(output, Output);
     insert_field!(num_threads, i32);
@@ -234,6 +235,7 @@ impl OutputBuilder {
     }
     insert_field!(file, String);
     insert_field!(diagnostic_file, String);
+    // insert_string_field!(diagnostic_file);
     insert_field!(refresh, i32);
     insert_field!(sig_figs, i32);
     insert_field!(profile_file, String);
