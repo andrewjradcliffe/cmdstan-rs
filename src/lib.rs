@@ -1,11 +1,5 @@
-use std::env;
-use std::ffi;
-use std::io;
-use std::process::Command;
-use std::str;
-// use std::process::ExitStatus;
-use std::process;
-use std::str::FromStr;
+use std::process::{self, Command};
+use std::{env, ffi, fs, io, path::Path, str};
 use thiserror::Error;
 
 #[macro_use]
@@ -36,28 +30,6 @@ pub struct Control {
     // workspace: &str,
     model: String,
 }
-// This shouldn't be implemented
-impl FromStr for Control {
-    type Err = env::VarError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let model = s.to_string();
-        // let workspace = model.as_str().rsplit_once('/').unwrap().0;
-        let cmdstan_home = env::var("CMDSTAN_HOME")?;
-        Ok(Self {
-            cmdstan_home,
-            model,
-        })
-    }
-}
-
-impl From<(&str, &str)> for Control {
-    fn from((model, cmdstan_home): (&str, &str)) -> Self {
-        Self {
-            model: model.to_string(),
-            cmdstan_home: cmdstan_home.to_string(),
-        }
-    }
-}
 
 #[derive(Error, Debug)]
 pub enum CompilationError {
@@ -69,31 +41,16 @@ pub enum CompilationError {
     MakeError(String),
     #[error("Compilation problem: {0:?}")]
     StanCompilerError(process::Output),
+    #[error("Pre-existing binary artifacts cannot be removed")]
+    DirtyWorkspaceError(io::Error),
 }
 use CompilationError::*;
 
 impl Control {
-    /// Attempt to compile the Stan model. If successful,
-    /// the output is returned (it may be useful for logging),
-    /// otherwise, the error is coarsely categorized and returned.
-    pub fn compile(&self) -> Result<process::Output, CompilationError> {
-        match env::set_current_dir(&self.cmdstan_home) {
-            Ok(()) => (),
-            Err(e) => return Err(ChangeDirectoryError(e)),
-        }
-
-        self.check_cmdstan_dir()?;
-        let attempt = self.make::<[_; 0], &str>([]);
-        match attempt {
-            Ok(val) => Ok(val),
-            Err(StanCompilerError(e)) => {
-                let attempt2 = self.make::<[_; 0], &str>([]);
-                match attempt2 {
-                    Ok(_) => Ok(e),
-                    Err(_) => Err(StanCompilerError(e)),
-                }
-            }
-            Err(e) => Err(e),
+    pub fn new(cmdstan_home: &str, model: &str) -> Self {
+        Self {
+            cmdstan_home: cmdstan_home.to_string(),
+            model: model.to_string(),
         }
     }
 
@@ -103,14 +60,11 @@ impl Control {
         Ok(stdout.contains("Bayesian inference with Markov Chain Monte Carlo"))
     }
 
-    pub fn compile2(&self) -> Result<process::Output, CompilationError> {
-        match env::set_current_dir(&self.cmdstan_home) {
-            Ok(()) => (),
-            Err(e) => return Err(ChangeDirectoryError(e)),
-        }
-
-        self.check_cmdstan_dir()?;
-        self.make2::<[_; 0], &str>([])
+    /// Attempt to compile the Stan model. If successful,
+    /// the output is returned (it may be useful for logging),
+    /// otherwise, the error is coarsely categorized and returned.
+    pub fn compile(&self) -> Result<process::Output, CompilationError> {
+        self.compile_with_args::<[_; 0], &str>([])
     }
 
     /// Attempt to compile the Stan model, passing the given `args` on to
@@ -121,34 +75,37 @@ impl Control {
         I: IntoIterator<Item = S>,
         S: AsRef<ffi::OsStr>,
     {
+        if self.is_workspace_dirty() {
+            self.try_remove_executable()?;
+        }
         match env::set_current_dir(&self.cmdstan_home) {
             Ok(()) => (),
             Err(e) => return Err(ChangeDirectoryError(e)),
         }
 
         self.check_cmdstan_dir()?;
-        self.make2(args)
+        self.make(args)
     }
 
-    fn make<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<ffi::OsStr>,
-    {
-        match Command::new("make").args(args).arg(&self.model).output() {
-            Ok(output) => {
-                let stdout = str::from_utf8(&output.stdout[..]).unwrap();
-                if stdout.contains("is up to date.\n") {
-                    Ok(output)
-                } else {
-                    Err(StanCompilerError(output))
-                }
-            }
-            Err(e) => Err(ProcessError(e)),
+    fn is_workspace_dirty(&self) -> bool {
+        let path: &Path = self.model.as_ref();
+        path.exists()
+    }
+    fn try_remove_executable(&self) -> Result<(), CompilationError> {
+        match fs::remove_file(&self.model) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(DirtyWorkspaceError(e)),
+        }
+    }
+    fn try_clean_workspace(&self) -> Result<(), CompilationError> {
+        if self.is_workspace_dirty() {
+            self.try_remove_executable()
+        } else {
+            Ok(())
         }
     }
 
-    fn make2<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
+    fn make<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<ffi::OsStr>,
