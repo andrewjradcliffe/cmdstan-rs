@@ -1,3 +1,4 @@
+use argument_tree::ArgumentTree;
 use std::process::{self, Command};
 use std::{env, ffi, fs, io, path::Path, str};
 use thiserror::Error;
@@ -18,15 +19,9 @@ pub mod variational;
 
 pub use crate::method::*;
 
-// pub struct Model {
-//     stan_file: String,
-//     outdir: String,
-// }
-
 #[derive(Debug, PartialEq)]
 pub struct Control {
     cmdstan_home: String,
-    // executable: String,
     // workspace: &str,
     model: String,
 }
@@ -97,13 +92,13 @@ impl Control {
             Err(e) => Err(DirtyWorkspaceError(e)),
         }
     }
-    fn try_clean_workspace(&self) -> Result<(), CompilationError> {
-        if self.is_workspace_dirty() {
-            self.try_remove_executable()
-        } else {
-            Ok(())
-        }
-    }
+    // fn try_clean_workspace(&self) -> Result<(), CompilationError> {
+    //     if self.is_workspace_dirty() {
+    //         self.try_remove_executable()
+    //     } else {
+    //         Ok(())
+    //     }
+    // }
 
     fn make<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
     where
@@ -137,5 +132,12 @@ impl Control {
             }
             Err(e) => Err(ProcessError(e)),
         }
+    }
+
+    pub fn call_executable(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
+        env::set_current_dir(&self.model.rsplit_once('/').unwrap().0)?;
+        Command::new(&self.model)
+            .args(arg_tree.command_string().split_whitespace())
+            .output()
     }
 }
