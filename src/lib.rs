@@ -135,49 +135,22 @@ impl Control {
         }
     }
 
+    /// Call the executable with the arguments given by `arg_tree`.
     pub fn call_executable(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
-        env::set_current_dir(&self.model.rsplit_once('/').unwrap().0)?;
+        let path: &Path = self.model.as_ref();
+        env::set_current_dir(path.parent().unwrap())?;
         Command::new(&self.model)
             .args(arg_tree.command_string().split_whitespace())
             .output()
     }
-}
 
-#[derive(Debug, PartialEq)]
-pub struct ToolControl {
-    cmdstan_home: String,
-    workspace: String,
-}
-impl ToolControl {
-    pub fn new(cmdstan_home: &str, workspace: &str) -> Self {
-        Self {
-            cmdstan_home: cmdstan_home.to_string(),
-            workspace: workspace.to_string(),
-        }
-    }
-    // pub fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
-    //     let files: Vec<PathBuf> = arg_tree
-    //         .output_files()
-    //         .into_iter()
-    //         .map(|file_name| {
-    //             let mut path = PathBuf::from(&self.workspace);
-    //             path.push(file_name);
-    //             path
-    //         })
-    //         .collect();
-    //     let mut path = PathBuf::from(&self.cmdstan_home);
-    //     path.push("bin");
-    //     path.push("diagnose");
-    //     Command::new(path).args(files.into_iter()).output()
-    // }
-
-    // Alternate option focused on workspace
     /// Read in and analyze the output of one or more Markov chains to
     /// check for potential problems.  See
     /// https://mc-stan.org/docs/cmdstan-guide/diagnose.html for more
     /// information.
     pub fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
-        env::set_current_dir(&self.workspace)?;
+        let path: &Path = self.model.as_ref();
+        env::set_current_dir(path.parent().unwrap())?;
         let files = arg_tree.output_files();
         let mut path = PathBuf::from(&self.cmdstan_home);
         path.push("bin");
@@ -194,7 +167,8 @@ impl ToolControl {
         arg_tree: &ArgumentTree,
         opts: Option<StanSummaryOptions>,
     ) -> Result<process::Output, io::Error> {
-        env::set_current_dir(&self.workspace)?;
+        let path: &Path = self.model.as_ref();
+        env::set_current_dir(path.parent().unwrap())?;
         let files = arg_tree.output_files();
         let mut path = PathBuf::from(&self.cmdstan_home);
         path.push("bin");
@@ -208,6 +182,37 @@ impl ToolControl {
         }
     }
 }
+
+// #[derive(Debug, PartialEq)]
+// pub struct ToolControl {
+//     cmdstan_home: String,
+//     workspace: String,
+// }
+// impl ToolControl {
+//     pub fn new(cmdstan_home: &str, workspace: &str) -> Self {
+//         Self {
+//             cmdstan_home: cmdstan_home.to_string(),
+//             workspace: workspace.to_string(),
+//         }
+//     }
+//     // pub fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
+//     //     let files: Vec<PathBuf> = arg_tree
+//     //         .output_files()
+//     //         .into_iter()
+//     //         .map(|file_name| {
+//     //             let mut path = PathBuf::from(&self.workspace);
+//     //             path.push(file_name);
+//     //             path
+//     //         })
+//     //         .collect();
+//     //     let mut path = PathBuf::from(&self.cmdstan_home);
+//     //     path.push("bin");
+//     //     path.push("diagnose");
+//     //     Command::new(path).args(files.into_iter()).output()
+//     // }
+
+//     // Alternate option focused on workspace
+// }
 
 /// Options for the `stansummary` tool. See
 /// https://mc-stan.org/docs/cmdstan-guide/stansummary.html for more
