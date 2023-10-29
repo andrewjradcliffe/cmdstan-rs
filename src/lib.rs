@@ -173,7 +173,7 @@ impl ToolControl {
 
     // Alternate option focused on workspace
     /// Read in and analyze the output of one or more Markov chains to
-    /// check for the following potential problems.  See
+    /// check for potential problems.  See
     /// https://mc-stan.org/docs/cmdstan-guide/diagnose.html for more
     /// information.
     pub fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
@@ -239,7 +239,7 @@ impl StanSummaryOptions {
     // insert_field!(csv_filename, String);
     // insert_field!(percentiles, Vec<u8>);
     // insert_field!(sig_figs, u8);
-    pub fn command_fragment(&self) -> String {
+    fn command_fragment(&self) -> String {
         let mut s = String::new();
         let mut state = false;
         match &self.autocorr {
