@@ -48,6 +48,31 @@ impl ArgumentTree {
     pub fn builder() -> ArgumentTreeBuilder {
         ArgumentTreeBuilder::new()
     }
+
+    pub fn output_files(&self) -> Vec<String> {
+        let mut files: Vec<String> = Vec::new();
+        let output_file = &self.output.file;
+        let prefix = match output_file.rsplit_once(".csv") {
+            Some((prefix, _)) => prefix,
+            None => output_file,
+        };
+        match &self.method {
+            Method::Sample { num_chains, .. } => {
+                if *num_chains != 1 {
+                    let id = self.id.clone();
+                    (id..id + num_chains).for_each(|id| {
+                        files.push(format!("{prefix}_{id}.csv"));
+                    });
+                } else {
+                    files.push(format!("{prefix}.csv"));
+                }
+            }
+            _ => {
+                files.push(format!("{prefix}.csv"));
+            }
+        }
+        files
+    }
 }
 
 /// Options builder for `ArgumentTree`.
