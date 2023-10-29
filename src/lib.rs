@@ -1,6 +1,7 @@
 use argument_tree::ArgumentTree;
+use std::fmt::Write;
 use std::process::{self, Command};
-use std::{env, ffi, fs, io, path::Path, str};
+use std::{env, ffi, fs, io, path::Path, path::PathBuf, str};
 use thiserror::Error;
 
 #[macro_use]
@@ -139,5 +140,154 @@ impl Control {
         Command::new(&self.model)
             .args(arg_tree.command_string().split_whitespace())
             .output()
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ToolControl {
+    cmdstan_home: String,
+    workspace: String,
+}
+impl ToolControl {
+    pub fn new(cmdstan_home: &str, workspace: &str) -> Self {
+        Self {
+            cmdstan_home: cmdstan_home.to_string(),
+            workspace: workspace.to_string(),
+        }
+    }
+    // pub fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
+    //     let files: Vec<PathBuf> = arg_tree
+    //         .output_files()
+    //         .into_iter()
+    //         .map(|file_name| {
+    //             let mut path = PathBuf::from(&self.workspace);
+    //             path.push(file_name);
+    //             path
+    //         })
+    //         .collect();
+    //     let mut path = PathBuf::from(&self.cmdstan_home);
+    //     path.push("bin");
+    //     path.push("diagnose");
+    //     Command::new(path).args(files.into_iter()).output()
+    // }
+
+    // Alternate option focused on workspace
+    /// Read in and analyze the output of one or more Markov chains to
+    /// check for the following potential problems.  See
+    /// https://mc-stan.org/docs/cmdstan-guide/diagnose.html for more
+    /// information.
+    pub fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
+        env::set_current_dir(&self.workspace)?;
+        let files = arg_tree.output_files();
+        let mut path = PathBuf::from(&self.cmdstan_home);
+        path.push("bin");
+        path.push("diagnose");
+        Command::new(path).args(files.into_iter()).output()
+    }
+
+    /// Report statistics for one or more Stan csv files from a HMC
+    /// sampler run.  See
+    /// https://mc-stan.org/docs/cmdstan-guide/stansummary.html for
+    /// more information.
+    pub fn stansummary(
+        &self,
+        arg_tree: &ArgumentTree,
+        opts: Option<StanSummaryOptions>,
+    ) -> Result<process::Output, io::Error> {
+        env::set_current_dir(&self.workspace)?;
+        let files = arg_tree.output_files();
+        let mut path = PathBuf::from(&self.cmdstan_home);
+        path.push("bin");
+        path.push("stansummary");
+        match opts {
+            Some(opts) => Command::new(path)
+                .args(files.into_iter())
+                .args(opts.command_fragment().split_whitespace())
+                .output(),
+            None => Command::new(path).args(files.into_iter()).output(),
+        }
+    }
+}
+
+/// Options for the `stansummary` tool. See
+/// https://mc-stan.org/docs/cmdstan-guide/stansummary.html for more
+/// information.
+#[derive(Debug, PartialEq, Clone)]
+pub struct StanSummaryOptions {
+    /// Display the chain autocorrelation for the n-th input file, in
+    /// addition to statistics.
+    pub autocorr: Option<i32>,
+    /// Write statistics to a csv file.
+    pub csv_filename: Option<String>,
+    /// Percentiles to report as ordered set of comma-separated
+    /// integers from (1,99), inclusive. Default is 5,50,95.
+    pub percentiles: Option<Vec<u8>>,
+    /// Significant figures reported. Default is 2. Must be an integer
+    /// from (1, 18), inclusive.
+    pub sig_figs: Option<u8>,
+}
+impl StanSummaryOptions {
+    pub fn new() -> Self {
+        Self {
+            autocorr: None,
+            csv_filename: None,
+            percentiles: None,
+            sig_figs: None,
+        }
+    }
+    // insert_field!(autocorr, i32);
+    // insert_field!(csv_filename, String);
+    // insert_field!(percentiles, Vec<u8>);
+    // insert_field!(sig_figs, u8);
+    pub fn command_fragment(&self) -> String {
+        let mut s = String::new();
+        let mut state = false;
+        match &self.autocorr {
+            Some(n) => {
+                state = true;
+                write!(&mut s, "--autocorr {}", n).unwrap();
+            }
+            None => (),
+        }
+        match &self.csv_filename {
+            Some(file) => {
+                if state {
+                    write!(&mut s, " --csv_filename {}", file).unwrap();
+                } else {
+                    state = true;
+                    write!(&mut s, "--csv_filename {}", file).unwrap();
+                }
+            }
+            None => (),
+        }
+        match &self.percentiles {
+            Some(values) => {
+                if state {
+                    write!(&mut s, " --percentiles ").unwrap();
+                } else {
+                    state = true;
+                    write!(&mut s, "--percentiles ").unwrap();
+                }
+                let mut values = values.iter();
+                if let Some(val) = values.next() {
+                    write!(&mut s, "{}", val).unwrap();
+                }
+                while let Some(val) = values.next() {
+                    write!(&mut s, ",{}", val).unwrap();
+                }
+            }
+            None => (),
+        }
+        match &self.sig_figs {
+            Some(n) => {
+                if state {
+                    write!(&mut s, " --sig_figs {}", n).unwrap();
+                } else {
+                    write!(&mut s, "--sig_figs {}", n).unwrap();
+                }
+            }
+            None => (),
+        }
+        s
     }
 }
