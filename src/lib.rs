@@ -56,14 +56,14 @@ impl Control {
     }
 
     /// Attempt to compile the Stan model. If successful,
-    /// the output is returned (it may be useful for logging),
+    /// the output (which may be useful for logging) is returned,
     /// otherwise, the error is coarsely categorized and returned.
     pub fn compile(&self) -> Result<process::Output, CompilationError> {
         self.compile_with_args::<[_; 0], &str>([])
     }
 
     /// Attempt to compile the Stan model, passing the given `args` on to
-    /// `make`. If successful, the output is returned (it may be useful for logging),
+    /// `make`. If successful, the output (which may be useful for logging) is returned,
     /// otherwise, the error is coarsely categorized and returned.
     pub fn compile_with_args<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
     where
