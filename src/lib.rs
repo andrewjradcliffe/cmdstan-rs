@@ -48,15 +48,15 @@ impl From<String> for StanProgram {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Model {
+pub struct Workspace {
     pub model_name: String,
-    pub workspace: String,
+    pub directory: String,
     pub stan_program: StanProgram,
 }
-impl Model {
+impl Workspace {
     pub fn setup(&self) -> io::Result<()> {
-        fs::create_dir_all(&self.workspace)?;
-        let mut path = PathBuf::from(&self.workspace);
+        fs::create_dir_all(&self.directory)?;
+        let mut path = PathBuf::from(&self.directory);
         path.push(&self.model_name);
         path.set_extension("stan");
         match &self.stan_program {
@@ -71,7 +71,7 @@ impl Model {
         Ok(())
     }
     pub fn model(&self) -> String {
-        let mut path = PathBuf::from(&self.workspace);
+        let mut path = PathBuf::from(&self.directory);
         path.push(&self.model_name);
         path.to_string_lossy().to_string()
     }
