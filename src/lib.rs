@@ -20,10 +20,113 @@ pub mod variational;
 
 pub use crate::method::*;
 
-#[derive(Debug, PartialEq)]
+/// Stan programs may be provided using either a string containing the
+/// Stan code, or a path to a file. Rather than pun on a string to
+/// handle both cases, this enum serves as a gatekeeper so that inputs
+/// are well-formed and unambiguous.  `From` implementations provide
+/// nearly the same ergonomics as would be achieved by punning on a
+/// string, but without sacrificing clarity of intent.
+#[derive(Debug, PartialEq, Clone)]
+pub enum StanProgram {
+    Code(String),
+    File(PathBuf),
+}
+impl From<&str> for StanProgram {
+    fn from(code: &str) -> Self {
+        StanProgram::Code(code.to_string())
+    }
+}
+impl From<&Path> for StanProgram {
+    fn from(path: &Path) -> Self {
+        StanProgram::File(path.to_path_buf())
+    }
+}
+impl From<String> for StanProgram {
+    fn from(code: String) -> Self {
+        StanProgram::Code(code)
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Model {
+    pub model_name: String,
+    pub workspace: String,
+    pub stan_program: StanProgram,
+}
+impl Model {
+    pub fn setup(&self) -> io::Result<()> {
+        fs::create_dir_all(&self.workspace)?;
+        let mut path = PathBuf::from(&self.workspace);
+        path.push(&self.model_name);
+        path.set_extension("stan");
+        match &self.stan_program {
+            StanProgram::Code(code) => {
+                fs::write(path, code)?;
+            }
+            StanProgram::File(file) => {
+                let code = fs::read_to_string(file)?;
+                fs::write(path, code)?;
+            }
+        }
+        Ok(())
+    }
+    pub fn model(&self) -> String {
+        let mut path = PathBuf::from(&self.workspace);
+        path.push(&self.model_name);
+        path.to_string_lossy().to_string()
+    }
+}
+
+// Relying on environment variable is not desirable.
+// impl TryFrom<Model> for Control {
+//     type Error = env::VarError;
+//     fn try_from(model: Model) -> Result<Self, Self::Error> {
+//         let cmdstan_home = env::var("CMDSTAN_HOME")?;
+//         let model = model.model();
+//         Ok(Self {
+//             cmdstan_home,
+//             model,
+//         })
+//     }
+// }
+
+// #[derive(Debug, PartialEq, Clone)]
+// pub struct ModelBuilder {
+//     model_name: Option<String>,
+//     workspace: Option<String>,
+//     stan_program: Option<String>,
+// }
+// impl ModelBuilder {
+//     pub fn new() -> Self {
+//         Self {
+//             model_name: None,
+//             workspace: None,
+//             stan_program: None,
+//         }
+//     }
+//     insert_field!(model_name, String);
+//     insert_field!(workspace, String);
+//     insert_field!(stan_program, String);
+//     pub fn build(self) -> Model {
+//         let model_name = self.model_name.unwrap_or_else(|| "model".to_string());
+//         let workspace = self
+//             .workspace
+//             .unwrap_or_else(|| env::current_dir().unwrap().to_str().unwrap().to_string());
+//         let stan_program = self.stan_program.unwrap_or_else(|| "".to_string());
+//         Model {
+//             model_name,
+//             workspace,
+//             stan_program,
+//         }
+//     }
+// }
+
+/// Structure to direct compilation and execution of a Stan model.
+/// Computation of diagnostics and summaries for said model are
+/// facilitated through the same interface.
+#[derive(Debug, PartialEq, Clone)]
 pub struct Control {
     cmdstan_home: String,
-    // workspace: &str,
     model: String,
 }
 
