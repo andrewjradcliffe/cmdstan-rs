@@ -28,15 +28,15 @@ pub struct Control {
 
 #[derive(Error, Debug)]
 pub enum CompilationError {
-    #[error("Change directory failed")]
-    ChangeDirectoryError(#[from] io::Error),
-    #[error("Something happened to the process")]
+    #[error("Change directory failed: {0:?}")]
+    ChangeDirectoryError(io::Error),
+    #[error("Something happened to the process: {0:?}")]
     ProcessError(io::Error),
-    #[error("Make problem")]
+    #[error("Make problem: {0}")]
     MakeError(String),
     #[error("Compilation problem: {0:?}")]
     StanCompilerError(process::Output),
-    #[error("Pre-existing binary artifacts cannot be removed")]
+    #[error("Pre-existing binary artifacts cannot be removed: {0:?}")]
     DirtyWorkspaceError(io::Error),
 }
 use CompilationError::*;
