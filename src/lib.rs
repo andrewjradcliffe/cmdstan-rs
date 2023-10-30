@@ -47,13 +47,20 @@ impl From<String> for StanProgram {
     }
 }
 
+/// Information to build a workspace for use with `CmdStan`.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Workspace {
+    /// Name of the model.
     pub model_name: String,
+    /// Directory in which executable may be built.
     pub directory: String,
+    /// The Stan program which will be compiled to C++, then to an
+    /// executable; will be written to a file in `directory` for
+    /// posterity.
     pub stan_program: StanProgram,
 }
 impl Workspace {
+    /// Set up the workspace.
     pub fn setup(&self) -> io::Result<()> {
         fs::create_dir_all(&self.directory)?;
         let mut path = PathBuf::from(&self.directory);
@@ -70,6 +77,8 @@ impl Workspace {
         }
         Ok(())
     }
+    /// Return the model target; this may serve as the input to
+    /// `Control::new`.
     pub fn model(&self) -> String {
         let mut path = PathBuf::from(&self.directory);
         path.push(&self.model_name);
@@ -146,6 +155,8 @@ pub enum CompilationError {
 use CompilationError::*;
 
 impl Control {
+    /// Construct a new instance from a path (`cmdstan_home`) to a `CmdStan`
+    /// installation and a path (`model`) to a Stan program.
     pub fn new(cmdstan_home: &str, model: &str) -> Self {
         Self {
             cmdstan_home: cmdstan_home.to_string(),
@@ -153,6 +164,7 @@ impl Control {
         }
     }
 
+    /// Check whether the compiled executable works.
     pub fn executable_works(&self) -> Result<bool, io::Error> {
         let output = Command::new(&self.model).arg("help").output()?;
         let stdout = str::from_utf8(&output.stdout[..]).unwrap();
