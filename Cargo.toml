@@ -2,8 +2,10 @@
 name = "cmdstan"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Andrew Radcliffe <andrewjradcliffe@gmail.com>"]
+description = "Rust interface for CmdStan"
+repository = "https://github.com/andrewjradcliffe/cmdstan-rs/"
+license = "BSD 3-Clause"
 
 [dependencies]
 thiserror = "1.0.50"
