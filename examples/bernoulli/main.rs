@@ -4,6 +4,10 @@ use cmdstan::*;
 use std::path::PathBuf;
 
 fn main() {
+    // Typically, one would not use the current working directory;
+    // this example utilizes the current working directory so that it
+    // may be run from within the repository using `cargo run
+    // --example bernoulli`
     let mut path = PathBuf::from(std::env::current_dir().unwrap());
     path.push("examples");
     path.push("bernoulli");
@@ -23,6 +27,8 @@ fn main() {
     };
     println!("{:#?}", workspace.setup());
 
+    // These options are mostly nonsense, but the point is that
+    // one can conveniently specify them.
     let tree = ArgumentTreeBuilder::new()
         .method(
             SampleBuilder::new()
@@ -49,12 +55,19 @@ fn main() {
         .num_threads(48)
         .build();
 
+    // Of course, one need not rely on an environment variable, but
+    // this makes the example as portable as can be.
     let cmdstan_home =
         std::env::var("CMDSTAN_HOME").expect("CMDSTAN_HOME environment variable not set!");
     let control = Control::new(&cmdstan_home, &workspace.model());
+    // If a binary already exists, calling compile is somewhat strange, thus,
+    // we check if there is a working rather than re-compiling by default.
     if !control.executable_works().unwrap_or(false) {
         println!("{:#?}", control.compile());
     }
+    // This will print both stdout and stderr from the method call;
+    // typically, one may wish to log this. This crate may provide a
+    // logging flag in the future.
     println!("{:#?}", control.call_executable(&tree));
 
     println!("{:#?}", control.diagnose(&tree));
