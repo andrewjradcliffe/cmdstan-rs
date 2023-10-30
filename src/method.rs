@@ -11,7 +11,7 @@ use std::fmt::Write;
 /// Analysis method. Defaults to `Sample`.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Method {
-    /// Bayesian inference using Markov Chain Monte Carlo
+    /// Bayesian inference with Markov Chain Monte Carlo
     Sample {
         /// Number of warmup iterations
         /// Valid values: 0 <= num_samples
