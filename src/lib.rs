@@ -46,6 +46,11 @@ impl From<String> for StanProgram {
         StanProgram::Code(code)
     }
 }
+impl From<PathBuf> for StanProgram {
+    fn from(pathbuf: PathBuf) -> Self {
+        StanProgram::File(pathbuf)
+    }
+}
 
 /// Information to build a workspace for use with `CmdStan`.
 #[derive(Debug, PartialEq, Clone)]
