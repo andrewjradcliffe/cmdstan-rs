@@ -22,3 +22,6 @@ See the examples for illustration.
   scope of this crate, albeit, to be strongly typed and handle
   arbitrary Stan data types, we will likely need force the user to
   provide a type which implements `Deserialize`.
+
+## Disclaimer
+This crate is not affiliated with the Stan project.
