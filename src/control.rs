@@ -243,3 +243,57 @@ impl StanSummaryOptions {
         s
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(test)]
+    mod stansummary_options {
+        use super::*;
+
+        #[test]
+        fn command_fragment() {
+            let x = StanSummaryOptions {
+                autocorr: None,
+                csv_filename: Some("stansummary.csv".to_string()),
+                percentiles: Some(vec![5, 25, 50, 75, 95]),
+                sig_figs: Some(6),
+            };
+            assert_eq!(
+                x.command_fragment(),
+                "--csv_filename stansummary.csv --percentiles 5,25,50,75,95 --sig_figs 6"
+            );
+
+            let x = StanSummaryOptions {
+                autocorr: Some(1),
+                csv_filename: None,
+                percentiles: Some(vec![50, 75]),
+                sig_figs: None,
+            };
+            assert_eq!(x.command_fragment(), "--autocorr 1 --percentiles 50,75");
+
+            let x = StanSummaryOptions {
+                autocorr: Some(1),
+                csv_filename: Some("hello.csv".to_string()),
+                percentiles: Some(vec![50]),
+                sig_figs: None,
+            };
+            assert_eq!(
+                x.command_fragment(),
+                "--autocorr 1 --csv_filename hello.csv --percentiles 50"
+            );
+
+            let x = StanSummaryOptions {
+                autocorr: None,
+                csv_filename: Some("hello.csv".to_string()),
+                percentiles: Some(vec![50]),
+                sig_figs: Some(3),
+            };
+            assert_eq!(
+                x.command_fragment(),
+                "--csv_filename hello.csv --percentiles 50 --sig_figs 3"
+            );
+        }
+    }
+}
