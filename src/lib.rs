@@ -91,50 +91,6 @@ impl Workspace {
     }
 }
 
-// Relying on environment variable is not desirable.
-// impl TryFrom<Model> for Control {
-//     type Error = env::VarError;
-//     fn try_from(model: Model) -> Result<Self, Self::Error> {
-//         let cmdstan_home = env::var("CMDSTAN_HOME")?;
-//         let model = model.model();
-//         Ok(Self {
-//             cmdstan_home,
-//             model,
-//         })
-//     }
-// }
-
-// #[derive(Debug, PartialEq, Clone)]
-// pub struct ModelBuilder {
-//     model_name: Option<String>,
-//     workspace: Option<String>,
-//     stan_program: Option<String>,
-// }
-// impl ModelBuilder {
-//     pub fn new() -> Self {
-//         Self {
-//             model_name: None,
-//             workspace: None,
-//             stan_program: None,
-//         }
-//     }
-//     insert_field!(model_name, String);
-//     insert_field!(workspace, String);
-//     insert_field!(stan_program, String);
-//     pub fn build(self) -> Model {
-//         let model_name = self.model_name.unwrap_or_else(|| "model".to_string());
-//         let workspace = self
-//             .workspace
-//             .unwrap_or_else(|| env::current_dir().unwrap().to_str().unwrap().to_string());
-//         let stan_program = self.stan_program.unwrap_or_else(|| "".to_string());
-//         Model {
-//             model_name,
-//             workspace,
-//             stan_program,
-//         }
-//     }
-// }
-
 /// Structure to direct compilation and execution of a Stan model.
 /// Computation of diagnostics and summaries for said model are
 /// facilitated through the same interface.
@@ -213,13 +169,6 @@ impl Control {
             Err(e) => Err(DirtyWorkspaceError(e)),
         }
     }
-    // fn try_clean_workspace(&self) -> Result<(), CompilationError> {
-    //     if self.is_workspace_dirty() {
-    //         self.try_remove_executable()
-    //     } else {
-    //         Ok(())
-    //     }
-    // }
 
     fn make<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
     where
@@ -303,37 +252,6 @@ impl Control {
     }
 }
 
-// #[derive(Debug, PartialEq)]
-// pub struct ToolControl {
-//     cmdstan_home: String,
-//     workspace: String,
-// }
-// impl ToolControl {
-//     pub fn new(cmdstan_home: &str, workspace: &str) -> Self {
-//         Self {
-//             cmdstan_home: cmdstan_home.to_string(),
-//             workspace: workspace.to_string(),
-//         }
-//     }
-//     // pub fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
-//     //     let files: Vec<PathBuf> = arg_tree
-//     //         .output_files()
-//     //         .into_iter()
-//     //         .map(|file_name| {
-//     //             let mut path = PathBuf::from(&self.workspace);
-//     //             path.push(file_name);
-//     //             path
-//     //         })
-//     //         .collect();
-//     //     let mut path = PathBuf::from(&self.cmdstan_home);
-//     //     path.push("bin");
-//     //     path.push("diagnose");
-//     //     Command::new(path).args(files.into_iter()).output()
-//     // }
-
-//     // Alternate option focused on workspace
-// }
-
 /// Options for the `stansummary` tool. See
 /// https://mc-stan.org/docs/cmdstan-guide/stansummary.html for more
 /// information.
@@ -360,10 +278,6 @@ impl StanSummaryOptions {
             sig_figs: None,
         }
     }
-    // insert_field!(autocorr, i32);
-    // insert_field!(csv_filename, String);
-    // insert_field!(percentiles, Vec<u8>);
-    // insert_field!(sig_figs, u8);
     fn command_fragment(&self) -> String {
         let mut s = String::new();
         let mut state = false;
