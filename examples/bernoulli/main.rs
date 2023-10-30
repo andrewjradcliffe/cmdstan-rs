@@ -1,4 +1,5 @@
 use cmdstan::argument_tree::{ArgumentTreeBuilder, Data, OutputBuilder, Random};
+use cmdstan::control::*;
 use cmdstan::sample::{HmcBuilder, Metric, NutsBuilder, SampleBuilder};
 use cmdstan::*;
 use std::path::PathBuf;
