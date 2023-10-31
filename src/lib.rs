@@ -1,4 +1,6 @@
-use std::{fs, io, path::Path, path::PathBuf};
+use std::io::Write;
+use std::process::{self, Command};
+use std::{env, ffi, fs::File, io, path::Path, path::PathBuf};
 
 #[macro_use]
 mod internal_macros;
@@ -17,73 +19,177 @@ pub mod variational;
 
 pub use crate::method::*;
 
-/// Stan programs may be provided using either a string containing the
-/// Stan code, or a path to a file. Rather than pun on a string to
-/// handle both cases, this enum serves as a gatekeeper so that inputs
-/// are well-formed and unambiguous.  `From` implementations provide
-/// nearly the same ergonomics as would be achieved by punning on a
-/// string, but without sacrificing clarity of intent.
-#[derive(Debug, PartialEq, Clone)]
-pub enum StanProgram {
-    Code(String),
-    File(PathBuf),
+use crate::argument_tree::ArgumentTree;
+use crate::control::Control;
+pub use crate::control::{CompilationError, StanSummaryOptions};
+
+/// A high level interface to construct a model
+pub struct CmdStanModel {
+    control: Control,
 }
-impl From<&str> for StanProgram {
-    fn from(code: &str) -> Self {
-        StanProgram::Code(code.to_string())
+impl CmdStanModel {
+    /// Construct a new instance from a path (`cmdstan`) to a `CmdStan`
+    /// installation and a path to a Stan program.
+    pub fn new<P1, P2>(cmdstan: P1, stan_file: P2) -> Self
+    where
+        P1: AsRef<Path>,
+        P2: AsRef<Path>,
+    {
+        let cmdstan: &Path = cmdstan.as_ref();
+        let stan_file: &Path = stan_file.as_ref();
+        if stan_file.extension().is_some_and(|ext| ext == "stan") {
+            Self {
+                control: Control::new(cmdstan, stan_file.with_extension("").as_ref()),
+            }
+        } else {
+            Self {
+                control: Control::new(cmdstan, stan_file),
+            }
+        }
     }
-}
-impl From<&Path> for StanProgram {
-    fn from(path: &Path) -> Self {
-        StanProgram::File(path.to_path_buf())
+
+    /// Call the executable with the arguments given by `arg_tree`.
+    /// On success, returns a snapshot which contains a full record of
+    /// the `CmdStan` call.
+    pub fn call_executable(&self, arg_tree: &ArgumentTree) -> io::Result<CmdStanOutput> {
+        let cwd_at_call = env::current_dir()?;
+        let output = self.control.call_executable(arg_tree)?;
+        Ok(CmdStanOutput {
+            cwd_at_call,
+            output,
+            argument_tree: arg_tree.clone(),
+            cmdstan: self.control.cmdstan().to_path_buf(),
+        })
     }
-}
-impl From<String> for StanProgram {
-    fn from(code: String) -> Self {
-        StanProgram::Code(code)
+
+    /// Attempt to compile the Stan model. If successful,
+    /// the output (which may be useful for logging) is returned,
+    /// otherwise, the error is coarsely categorized and returned.
+    pub fn compile(&self) -> Result<process::Output, CompilationError> {
+        self.control.compile()
     }
-}
-impl From<PathBuf> for StanProgram {
-    fn from(pathbuf: PathBuf) -> Self {
-        StanProgram::File(pathbuf)
+
+    /// Attempt to compile the Stan model, passing the given `args` on to
+    /// `make`. If successful, the output (which may be useful for logging) is returned,
+    /// otherwise, the error is coarsely categorized and returned.
+    pub fn compile_with_args<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<ffi::OsStr>,
+    {
+        self.control.compile_with_args(args)
+    }
+
+    /// Check whether the compiled executable works.
+    pub fn executable_works(&self) -> io::Result<bool> {
+        self.control.executable_works()
+    }
+
+    /// Call the executable with option "info" and return the result.
+    pub fn executable_info(&self) -> io::Result<process::Output> {
+        self.control.executable_info()
     }
 }
 
-/// Information to build a workspace for use with `CmdStan`.
-#[derive(Debug, PartialEq, Clone)]
-pub struct Workspace {
-    /// Name of the model.
-    pub model_name: String,
-    /// Directory in which executable may be built.
-    pub directory: String,
-    /// The Stan program which will be compiled to C++, then to an
-    /// executable; will be written to a file in `directory` for
-    /// posterity.
-    pub stan_program: StanProgram,
+/// A snapshot produced by performing `call_executable` on
+/// `CmdStanModel`.  This is a self-contained record, the contents of
+/// which include the console output (exit status, stdout and stderr),
+/// the argument tree which with which the call was made, the current
+/// working directory at time the call was made, and the `CmdStan`
+/// installation from the parent `CmdStanModel`.
+pub struct CmdStanOutput {
+    /// Enables methods such as `output_files`, `diagnostic_files`,
+    /// etc. to return absolute paths by introspection of the
+    /// `ArgumentTree` and `cwd_at_call`.  In essence, if the output
+    /// file path is relative, then it should be pushed onto
+    /// `cwd_at_call`.
+    cwd_at_call: PathBuf,
+    output: process::Output,
+    argument_tree: ArgumentTree,
+    cmdstan: PathBuf,
 }
-impl Workspace {
-    /// Set up the workspace.
-    pub fn setup(&self) -> io::Result<()> {
-        fs::create_dir_all(&self.directory)?;
-        let mut path = PathBuf::from(&self.directory);
-        path.push(&self.model_name);
-        path.set_extension("stan");
-        match &self.stan_program {
-            StanProgram::Code(code) => {
-                fs::write(path, code)?;
-            }
-            StanProgram::File(file) => {
-                let code = fs::read_to_string(file)?;
-                fs::write(path, code)?;
-            }
-        }
-        Ok(())
+impl CmdStanOutput {
+    /// Convert files to absolute paths. If the file is already
+    /// absolute, this is a no-op (simple move into `PathBuf`);
+    /// otherwise the current working directory at the time this
+    /// `CmdStanOutput` instance serves as the prefix onto which the
+    /// relative path will be joined.
+    fn files<F>(&self, f: F) -> Vec<PathBuf>
+    where
+        F: Fn(&ArgumentTree) -> Vec<String>,
+    {
+        f(&self.argument_tree)
+            .into_iter()
+            .map(|s| {
+                let file: &Path = s.as_ref();
+                if file.is_relative() {
+                    self.cwd_at_call.join(file)
+                } else {
+                    PathBuf::from(s)
+                }
+                // Equivalent, but wasteful if path is already absolute
+                // as a copy of `s` would occur.
+                // self.cwd_at_call.join(s)
+            })
+            .collect()
     }
-    /// Return the model target; this may serve as the input to
-    /// `Control::new`.
-    pub fn model(&self) -> String {
-        let mut path = PathBuf::from(&self.directory);
-        path.push(&self.model_name);
-        path.to_string_lossy().to_string()
+    /// Return the output files associated with the `CmdStan` call.
+    pub fn output_files(&self) -> Vec<PathBuf> {
+        self.files(|tree| tree.output_files())
+    }
+    /// Return the diagnostic files associated with the `CmdStan` call.
+    pub fn diagnostic_files(&self) -> Vec<PathBuf> {
+        self.files(|tree| tree.diagnostic_files())
+    }
+
+    /// Return a reference to console output associated with the `CmdStan`
+    /// call.
+    pub fn output<'a>(&'a self) -> &'a process::Output {
+        &self.output
+    }
+
+    pub fn write_output(&self) -> io::Result<()> {
+        let path = self.cwd_at_call.join("log.txt");
+        let mut file = File::create(path)?;
+        file.write_all(&self.output.stdout)?;
+        file.write_all(&self.output.stderr)
+    }
+
+    /// Return a reference to the `CmdStan` installation associated the call.
+    pub fn cmdstan<'a>(&'a self) -> &'a Path {
+        &self.cmdstan
+    }
+    /// Return a reference to the current working directory at the
+    /// time of the call.
+    pub fn cwd_at_call<'a>(&'a self) -> &'a Path {
+        &self.cwd_at_call
+    }
+
+    /// Read in and analyze the output of one or more Markov chains to
+    /// check for potential problems.  See
+    /// https://mc-stan.org/docs/cmdstan-guide/diagnose.html for more
+    /// information.
+    pub fn diagnose(&self) -> io::Result<process::Output> {
+        let mut path = PathBuf::from(&self.cmdstan);
+        path.push("bin");
+        path.push("diagnose");
+        Command::new(path).args(self.output_files()).output()
+    }
+    /// Report statistics for one or more Stan csv files from a HMC
+    /// sampler run.  See
+    /// https://mc-stan.org/docs/cmdstan-guide/stansummary.html for
+    /// more information.
+    pub fn stansummary(&self, opts: Option<StanSummaryOptions>) -> io::Result<process::Output> {
+        let mut path = PathBuf::from(&self.cmdstan);
+        path.push("bin");
+        path.push("stansummary");
+        let mut cmd = Command::new(path);
+        cmd.args(self.output_files());
+        match opts {
+            Some(opts) => cmd
+                .args(opts.command_fragment().split_whitespace())
+                .output(),
+            None => cmd.output(),
+        }
     }
 }
