@@ -148,11 +148,30 @@ impl CmdStanOutput {
         &self.output
     }
 
-    pub fn write_output(&self) -> io::Result<()> {
-        let path = self.cwd_at_call.join("log.txt");
-        let mut file = File::create(path)?;
+    /// Write the console output to a file.  The path at which the
+    /// file will be created is determined in the following manner: If
+    /// `file` is `None`, "log.txt" is adjoined on to `cwd_at_call`.
+    /// If `file` is `Some(path)` and `path` is a relative path, then
+    /// `path` is adjoined on to `cwd_at_call`; otherwise, `path` is
+    /// assumed to be an absolute path and is used without
+    /// modification. Upon successful write, the path at which the
+    /// file was created is returned.
+    pub fn write_output<P: AsRef<Path>>(&self, file: Option<P>) -> io::Result<PathBuf> {
+        let path = match file {
+            Some(file) => {
+                let path: &Path = file.as_ref();
+                if path.is_relative() {
+                    self.cwd_at_call.join(path)
+                } else {
+                    path.to_path_buf()
+                }
+            }
+            None => self.cwd_at_call.join("log.txt"),
+        };
+        let mut file = File::create(&path)?;
         file.write_all(&self.output.stdout)?;
-        file.write_all(&self.output.stderr)
+        file.write_all(&self.output.stderr)?;
+        Ok(path)
     }
 
     /// Return a reference to the `CmdStan` installation associated the call.

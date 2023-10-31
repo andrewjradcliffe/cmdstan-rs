@@ -1,14 +1,14 @@
 use cmdstan::argument_tree::{ArgumentTreeBuilder, Data, OutputBuilder, Random};
 use cmdstan::sample::{HmcBuilder, Metric, NutsBuilder, SampleBuilder};
 use cmdstan::*;
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
 fn main() {
     // Typically, one would not use the current working directory;
     // this example utilizes the current working directory so that it
     // may be run from within the repository using `cargo run
     // --example bernoulli` (from crate root)
-    let mut path = PathBuf::from(std::env::current_dir().unwrap());
+    let mut path = PathBuf::from(env::current_dir().unwrap());
     path.push("examples");
     path.push("bernoulli");
 
@@ -51,8 +51,7 @@ fn main() {
 
     // Of course, one need not rely on an environment variable, but
     // this makes the example as portable as can be.
-    let cmdstan =
-        std::env::var("CMDSTAN_HOME").expect("CMDSTAN_HOME environment variable not set!");
+    let cmdstan = env::var("CMDSTAN_HOME").expect("CMDSTAN_HOME environment variable not set!");
     let model = CmdStanModel::new(&cmdstan, &model_file);
     // If a binary already exists, calling compile is somewhat strange, thus,
     // we check if there is a working rather than re-compiling by default.
@@ -65,10 +64,9 @@ fn main() {
     match model.call_executable(&tree) {
         Ok(output) => {
             println!("{:#?}", output.output());
-
             println!("{:#?}", output.diagnose());
             println!("{:#?}", output.stansummary(None));
-            println!("{:#?}", output.write_output());
+            println!("{:#?}", output.write_output(Some(path.join("log.txt"))));
 
             let csv_filename = path.join("stansummary.csv");
             let summary_opts = StanSummaryOptions {
