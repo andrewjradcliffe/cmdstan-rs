@@ -18,3 +18,13 @@ macro_rules! insert_into_string_field {
         }
     };
 }
+
+macro_rules! insert_into_field {
+    ($F:ident, $U:ident) => {
+        /// Configure the named option with the given value.
+        pub fn $F<T: Into<$U>>(mut self, $F: T) -> Self {
+            let _ = self.$F.insert($F.into());
+            self
+        }
+    };
+}

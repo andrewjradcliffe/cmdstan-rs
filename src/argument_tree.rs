@@ -101,16 +101,12 @@ impl ArgumentTreeBuilder {
             num_threads: None,
         }
     }
-    insert_field!(method, Method);
-    // pub fn method<T: Into<Method>>(self, method: T) -> Self {
-    //     let mut me = self;
-    //     let _ = me.method.insert(method.into());
-    // }
+    insert_into_field!(method, Method);
     insert_field!(id, i32);
     insert_field!(data, Data);
     insert_into_string_field!(init);
     insert_field!(random, Random);
-    insert_field!(output, Output);
+    insert_into_field!(output, Output);
     insert_field!(num_threads, i32);
     /// Build the `ArgumentTree` instance.
     pub fn build(self) -> ArgumentTree {
@@ -231,6 +227,12 @@ impl Output {
     /// Return a builder with all options unspecified.
     pub fn builder() -> OutputBuilder {
         OutputBuilder::new()
+    }
+}
+
+impl From<OutputBuilder> for Output {
+    fn from(x: OutputBuilder) -> Self {
+        x.build()
     }
 }
 
