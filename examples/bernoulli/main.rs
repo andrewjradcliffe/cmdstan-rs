@@ -81,9 +81,11 @@ fn main() {
     println!("{:#?}", control.diagnose(&tree));
     println!("{:#?}", control.stansummary(&tree, None));
 
+    let mut csv_filename = path.clone();
+    csv_filename.push("stansummary.csv");
     let summary_opts = StanSummaryOptions {
         autocorr: None,
-        csv_filename: Some("stansummary.csv".to_string()),
+        csv_filename: Some(csv_filename.to_string_lossy().to_string()),
         percentiles: Some(vec![5, 25, 50, 75, 95]),
         sig_figs: Some(6),
     };

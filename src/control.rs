@@ -153,8 +153,6 @@ impl Control {
     /// https://mc-stan.org/docs/cmdstan-guide/diagnose.html for more
     /// information.
     pub fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
-        let path: &Path = self.model.as_ref();
-        env::set_current_dir(path.parent().unwrap())?;
         let files = arg_tree.output_files();
         let mut path = PathBuf::from(&self.cmdstan_home);
         path.push("bin");
@@ -171,8 +169,6 @@ impl Control {
         arg_tree: &ArgumentTree,
         opts: Option<StanSummaryOptions>,
     ) -> Result<process::Output, io::Error> {
-        let path: &Path = self.model.as_ref();
-        env::set_current_dir(path.parent().unwrap())?;
         let files = arg_tree.output_files();
         let mut path = PathBuf::from(&self.cmdstan_home);
         path.push("bin");
