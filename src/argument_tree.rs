@@ -49,12 +49,15 @@ impl ArgumentTree {
         ArgumentTreeBuilder::new()
     }
 
-    pub fn output_files(&self) -> Vec<String> {
+    fn files<F>(&self, f: F) -> Vec<String>
+    where
+        F: Fn(&ArgumentTree) -> &str,
+    {
         let mut files: Vec<String> = Vec::new();
-        let output_file = &self.output.file;
-        let prefix = match output_file.rsplit_once(".csv") {
+        let file = f(&self);
+        let prefix = match file.rsplit_once(".csv") {
             Some((prefix, _)) => prefix,
-            None => output_file,
+            None => file,
         };
         match &self.method {
             Method::Sample { num_chains, .. } => {
@@ -72,6 +75,16 @@ impl ArgumentTree {
             }
         }
         files
+    }
+    /// Return the output file paths, as implied by the configuration of `self`.
+    /// Typically, these will not be literal files on the filesystem.
+    pub fn output_files(&self) -> Vec<String> {
+        self.files(|tree| &tree.output.file)
+    }
+    /// Return the diagnostic file paths, as implied by the configuration of `self`.
+    /// Typically, these will not be literal files on the filesystem.
+    pub fn diagnostic_files(&self) -> Vec<String> {
+        self.files(|tree| &tree.output.diagnostic_file)
     }
 }
 
