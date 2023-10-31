@@ -203,7 +203,7 @@ pub struct Output {
     /// Defaults to -1
     pub sig_figs: i32,
     /// File to store profiling information
-    /// Valid values: Valid path and write acces to the folder
+    /// Valid values: Valid path and write access to the folder
     /// Defaults to ""
     pub profile_file: String,
 }
