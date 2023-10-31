@@ -14,7 +14,7 @@ impl GenerateQuantitiesBuilder {
             fitted_params: None,
         }
     }
-    insert_field!(fitted_params, String);
+    insert_into_string_field!(fitted_params);
     /// Build the `Method::GenerateQuantities` instance.
     pub fn build(self) -> Method {
         let fitted_params = self.fitted_params.unwrap_or_else(|| "".to_string());

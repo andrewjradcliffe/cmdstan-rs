@@ -208,7 +208,7 @@ impl HmcBuilder {
 
     insert_field!(engine, Engine);
     insert_field!(metric, Metric);
-    insert_field!(metric_file, String);
+    insert_into_string_field!(metric_file);
     insert_field!(stepsize, f64);
     insert_field!(stepsize_jitter, f64);
     // pub fn engine<T: Into<Engine>>(self, engine: T) -> Self {

@@ -108,8 +108,7 @@ impl ArgumentTreeBuilder {
     // }
     insert_field!(id, i32);
     insert_field!(data, Data);
-    insert_field!(init, String);
-    // insert_string_field!(init);
+    insert_into_string_field!(init);
     insert_field!(random, Random);
     insert_field!(output, Output);
     insert_field!(num_threads, i32);
@@ -258,12 +257,11 @@ impl OutputBuilder {
             profile_file: None,
         }
     }
-    insert_field!(file, String);
-    insert_field!(diagnostic_file, String);
-    // insert_string_field!(diagnostic_file);
+    insert_into_string_field!(file);
+    insert_into_string_field!(diagnostic_file);
     insert_field!(refresh, i32);
     insert_field!(sig_figs, i32);
-    insert_field!(profile_file, String);
+    insert_into_string_field!(profile_file);
     /// Build the `Output` instance.
     pub fn build(self) -> Output {
         let file = self.file.unwrap_or_else(|| "output.csv".to_string());

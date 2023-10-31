@@ -9,12 +9,12 @@ macro_rules! insert_field {
     };
 }
 
-// macro_rules! insert_string_field {
-//     ($F:ident) => {
-//         /// Configure the named option with the given value.
-//         pub fn $F(mut self, $F: &str) -> Self {
-//             let _ = self.$F.insert($F.to_string());
-//             self
-//         }
-//     };
-// }
+macro_rules! insert_into_string_field {
+    ($F:ident) => {
+        /// Configure the named option with the given value.
+        pub fn $F<T: Into<String>>(mut self, $F: T) -> Self {
+            let _ = self.$F.insert($F.into());
+            self
+        }
+    };
+}

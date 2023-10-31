@@ -18,8 +18,8 @@ impl LogProbBuilder {
             jacobian: None,
         }
     }
-    insert_field!(unconstrained_params, String);
-    insert_field!(constrained_params, String);
+    insert_into_string_field!(unconstrained_params);
+    insert_into_string_field!(constrained_params);
     insert_field!(jacobian, bool);
     /// Build the `Method::LogProb` instance.
     pub fn build(self) -> Method {
