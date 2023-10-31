@@ -8,7 +8,7 @@ fn main() {
     // Typically, one would not use the current working directory;
     // this example utilizes the current working directory so that it
     // may be run from within the repository using `cargo run
-    // --example bernoulli`
+    // --example bernoulli` (from crate root)
     let mut path = PathBuf::from(std::env::current_dir().unwrap());
     path.push("examples");
     path.push("bernoulli");
@@ -18,6 +18,8 @@ fn main() {
 
     let mut data_file = path.clone();
     data_file.push("bernoulli.data.json");
+    let mut output_file = path.clone();
+    output_file.push("output.csv");
 
     let stan_program = StanProgram::from(model_file);
 
@@ -52,7 +54,12 @@ fn main() {
         .id(2)
         .init("1".to_string())
         .random(Random { seed: 12345 })
-        .output(OutputBuilder::new().sig_figs(4).build())
+        .output(
+            OutputBuilder::new()
+                .sig_figs(4)
+                .file(output_file.to_string_lossy().to_string())
+                .build(),
+        )
         .num_threads(48)
         .build();
 
