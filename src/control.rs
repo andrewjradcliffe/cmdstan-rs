@@ -45,6 +45,11 @@ impl Control {
         Ok(stdout.contains("Bayesian inference with Markov Chain Monte Carlo"))
     }
 
+    /// Call the executable with option "info" and return the result.
+    pub fn executable_info(&self) -> Result<process::Output, io::Error> {
+        Command::new(&self.model).arg("info").output()
+    }
+
     /// Attempt to compile the Stan model. If successful,
     /// the output (which may be useful for logging) is returned,
     /// otherwise, the error is coarsely categorized and returned.
@@ -63,26 +68,43 @@ impl Control {
         if self.is_workspace_dirty() {
             self.try_remove_executable()?;
         }
-        match env::set_current_dir(&self.cmdstan_home) {
-            Ok(()) => (),
-            Err(e) => return Err(ChangeDirectoryError(e)),
-        }
+        let current = env::current_dir().map_err(|e| ChangeDirectoryError(e))?;
 
-        self.check_cmdstan_dir()?;
-        self.make(args)
+        self.try_change_dir(&self.cmdstan_home)?;
+
+        match self.check_cmdstan_dir() {
+            Ok(()) => (),
+            Err(e) => {
+                self.try_change_dir(&current)?;
+                return Err(e);
+            }
+        }
+        let output = self.make(args);
+        let _ = self.try_change_dir(&current);
+        output
     }
 
+    /// Try to change directories.
+    fn try_change_dir<P>(&self, path: P) -> Result<(), CompilationError>
+    where
+        P: AsRef<Path>,
+    {
+        env::set_current_dir(path).map_err(|e| ChangeDirectoryError(e))
+    }
+
+    /// Is the workspace dirty? (i.e. is there a pre-existing executable?)
     fn is_workspace_dirty(&self) -> bool {
         let path: &Path = self.model.as_ref();
         path.exists()
     }
+    /// Try to remove the executable file.
     fn try_remove_executable(&self) -> Result<(), CompilationError> {
-        match fs::remove_file(&self.model) {
-            Ok(()) => Ok(()),
-            Err(e) => Err(DirtyWorkspaceError(e)),
-        }
+        fs::remove_file(&self.model).map_err(|e| DirtyWorkspaceError(e))
     }
 
+    /// Assuming that the current working directory of the process is
+    /// that of the CmdStan installation, call make with the supplied
+    /// arguments.  Not intended for public API.
     fn make<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
     where
         I: IntoIterator<Item = S>,
@@ -100,6 +122,8 @@ impl Control {
         }
     }
 
+    /// Is the current working directory of the process a CmdStan
+    /// installation?
     fn check_cmdstan_dir(&self) -> Result<(), CompilationError> {
         match Command::new("make").output() {
             Ok(output) => {
@@ -119,8 +143,6 @@ impl Control {
 
     /// Call the executable with the arguments given by `arg_tree`.
     pub fn call_executable(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
-        let path: &Path = self.model.as_ref();
-        env::set_current_dir(path.parent().unwrap())?;
         Command::new(&self.model)
             .args(arg_tree.command_string().split_whitespace())
             .output()
