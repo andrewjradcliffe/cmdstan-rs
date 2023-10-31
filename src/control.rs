@@ -9,8 +9,8 @@ use thiserror::Error;
 /// facilitated through the same interface.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Control {
-    cmdstan_home: String,
-    model: String,
+    cmdstan: PathBuf,
+    model: PathBuf,
 }
 
 #[derive(Error, Debug)]
@@ -29,12 +29,12 @@ pub enum CompilationError {
 use CompilationError::*;
 
 impl Control {
-    /// Construct a new instance from a path (`cmdstan_home`) to a `CmdStan`
+    /// Construct a new instance from a path (`cmdstan`) to a `CmdStan`
     /// installation and a path (`model`) to a Stan program.
-    pub fn new(cmdstan_home: &str, model: &str) -> Self {
+    pub fn new(cmdstan: &Path, model: &Path) -> Self {
         Self {
-            cmdstan_home: cmdstan_home.to_string(),
-            model: model.to_string(),
+            cmdstan: PathBuf::from(cmdstan),
+            model: PathBuf::from(model),
         }
     }
 
@@ -70,7 +70,7 @@ impl Control {
         }
         let current = env::current_dir().map_err(|e| ChangeDirectoryError(e))?;
 
-        self.try_change_dir(&self.cmdstan_home)?;
+        self.try_change_dir(&self.cmdstan)?;
 
         match self.check_cmdstan_dir() {
             Ok(()) => (),
@@ -130,8 +130,8 @@ impl Control {
                 let stdout = str::from_utf8(&output.stdout[..]).unwrap();
                 if !stdout.contains("Build a Stan program") {
                     Err(MakeError(format!(
-                        "Unexpected behavior of `make` in {}",
-                        &self.cmdstan_home
+                        "Unexpected behavior of `make` in {:?}",
+                        &self.cmdstan
                     )))
                 } else {
                     Ok(())
@@ -154,7 +154,7 @@ impl Control {
     /// information.
     pub fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
         let files = arg_tree.output_files();
-        let mut path = PathBuf::from(&self.cmdstan_home);
+        let mut path = PathBuf::from(&self.cmdstan);
         path.push("bin");
         path.push("diagnose");
         Command::new(path).args(files.into_iter()).output()
@@ -170,7 +170,7 @@ impl Control {
         opts: Option<StanSummaryOptions>,
     ) -> Result<process::Output, io::Error> {
         let files = arg_tree.output_files();
-        let mut path = PathBuf::from(&self.cmdstan_home);
+        let mut path = PathBuf::from(&self.cmdstan);
         path.push("bin");
         path.push("stansummary");
         match opts {
@@ -180,6 +180,10 @@ impl Control {
                 .output(),
             None => Command::new(path).args(files.into_iter()).output(),
         }
+    }
+
+    pub fn cmdstan<'a>(&'a self) -> &'a Path {
+        &self.cmdstan
     }
 }
 
@@ -209,7 +213,7 @@ impl StanSummaryOptions {
             sig_figs: None,
         }
     }
-    fn command_fragment(&self) -> String {
+    pub fn command_fragment(&self) -> String {
         let mut s = String::new();
         let mut state = false;
         match &self.autocorr {
