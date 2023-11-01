@@ -134,6 +134,7 @@ impl CmdStanOutput {
                 // as a copy of `s` would occur.
                 // self.cwd_at_call.join(s)
             })
+            .filter(|path| path.is_file())
             .collect()
     }
     /// Return the output files associated with the `CmdStan` call.
@@ -143,6 +144,10 @@ impl CmdStanOutput {
     /// Return the diagnostic files associated with the `CmdStan` call.
     pub fn diagnostic_files(&self) -> Vec<PathBuf> {
         self.files(|tree| tree.diagnostic_files())
+    }
+    /// Return the profile files associated with the `CmdStan` call.
+    pub fn profile_files(&self) -> Vec<PathBuf> {
+        self.files(|tree| tree.profile_files())
     }
 
     /// Return an immutable reference to console output associated

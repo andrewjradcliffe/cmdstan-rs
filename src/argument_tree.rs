@@ -76,15 +76,28 @@ impl ArgumentTree {
         }
         files
     }
-    /// Return the output file paths, as implied by the configuration of `self`.
+    /// Return the output file path(s), as implied by the configuration of `self`.
     /// Typically, these will not be literal files on the filesystem.
     pub fn output_files(&self) -> Vec<String> {
         self.files(|tree| &tree.output.file)
     }
-    /// Return the diagnostic file paths, as implied by the configuration of `self`.
+    /// Return the diagnostic file path(s), as implied by the configuration of `self`.
     /// Typically, these will not be literal files on the filesystem.
     pub fn diagnostic_files(&self) -> Vec<String> {
-        self.files(|tree| &tree.output.diagnostic_file)
+        if self.output.diagnostic_file == "" {
+            Vec::new()
+        } else {
+            self.files(|tree| &tree.output.diagnostic_file)
+        }
+    }
+    /// Return the profile file path(s), as implied by the configuration of `self`.
+    /// Typically, these will not be literal files on the filesystem.
+    pub fn profile_files(&self) -> Vec<String> {
+        if self.output.profile_file == "" {
+            self.files(|_| "profile")
+        } else {
+            self.files(|tree| &tree.output.profile_file)
+        }
     }
 }
 
