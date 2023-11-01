@@ -193,6 +193,12 @@ impl CmdStanOutput {
         &self.cwd_at_call
     }
 
+    /// Return a reference to the argument tree with which the call
+    /// was made.
+    pub fn argument_tree<'a>(&'a self) -> &'a ArgumentTree {
+        &self.argument_tree
+    }
+
     /// Read in and analyze the output of one or more Markov chains to
     /// check for potential problems.  See
     /// <https://mc-stan.org/docs/cmdstan-guide/diagnose.html> for
