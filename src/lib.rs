@@ -28,8 +28,8 @@ pub struct CmdStanModel {
     control: Control,
 }
 impl CmdStanModel {
-    /// Construct a new instance from a path (`cmdstan`) to a `CmdStan`
-    /// installation and a path to a Stan program.
+    /// Construct a new instance from a path (`cmdstan`) to a
+    /// `CmdStan` installation and a path to a Stan program.
     pub fn new<P1, P2>(cmdstan: P1, stan_file: P2) -> Self
     where
         P1: AsRef<Path>,
@@ -62,16 +62,17 @@ impl CmdStanModel {
         })
     }
 
-    /// Attempt to compile the Stan model. If successful,
-    /// the output (which may be useful for logging) is returned,
-    /// otherwise, the error is coarsely categorized and returned.
+    /// Attempt to compile the Stan model. If successful, the output
+    /// (which may be useful for logging) is returned, otherwise, the
+    /// error is coarsely categorized and returned.
     pub fn compile(&self) -> Result<process::Output, CompilationError> {
         self.control.compile()
     }
 
-    /// Attempt to compile the Stan model, passing the given `args` on to
-    /// `make`. If successful, the output (which may be useful for logging) is returned,
-    /// otherwise, the error is coarsely categorized and returned.
+    /// Attempt to compile the Stan model, passing the given `args` on
+    /// to `make`. If successful, the output (which may be useful for
+    /// logging) is returned, otherwise, the error is coarsely
+    /// categorized and returned.
     pub fn compile_with_args<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
     where
         I: IntoIterator<Item = S>,
@@ -93,16 +94,18 @@ impl CmdStanModel {
 
 /// A snapshot produced by performing `call_executable` on
 /// `CmdStanModel`.  This is a self-contained record, the contents of
-/// which include the console output (exit status, stdout and stderr),
-/// the argument tree which with which the call was made, the current
-/// working directory at time the call was made, and the `CmdStan`
-/// installation from the parent `CmdStanModel`.
+/// which include:
+///
+/// - the console output (exit status, stdout and stderr),
+/// - the argument tree with the call was made
+/// - the current working directory of the process at the time the call was made
+/// - the `CmdStan` installation from the parent `CmdStanModel`
 pub struct CmdStanOutput {
     /// Enables methods such as `output_files`, `diagnostic_files`,
     /// etc. to return absolute paths by introspection of the
-    /// `ArgumentTree` and `cwd_at_call`.  In essence, if the output
-    /// file path is relative, then it should be pushed onto
-    /// `cwd_at_call`.
+    /// `ArgumentTree` and `cwd_at_call`.  In essence, if the
+    /// output/diagnostic/profile file is relative, then it should be
+    /// pushed onto `cwd_at_call`.
     cwd_at_call: PathBuf,
     output: process::Output,
     argument_tree: ArgumentTree,
@@ -112,8 +115,8 @@ impl CmdStanOutput {
     /// Convert files to absolute paths. If the file is already
     /// absolute, this is a no-op (simple move into `PathBuf`);
     /// otherwise the current working directory at the time this
-    /// `CmdStanOutput` instance serves as the prefix onto which the
-    /// relative path will be joined.
+    /// `CmdStanOutput` instance was created serves as the prefix onto
+    /// which the relative path will be joined.
     fn files<F>(&self, f: F) -> Vec<PathBuf>
     where
         F: Fn(&ArgumentTree) -> Vec<String>,
@@ -142,8 +145,8 @@ impl CmdStanOutput {
         self.files(|tree| tree.diagnostic_files())
     }
 
-    /// Return a reference to console output associated with the `CmdStan`
-    /// call.
+    /// Return an immutable reference to console output associated
+    /// with the `CmdStan` call.
     pub fn output<'a>(&'a self) -> &'a process::Output {
         &self.output
     }
@@ -174,7 +177,8 @@ impl CmdStanOutput {
         Ok(path)
     }
 
-    /// Return a reference to the `CmdStan` installation associated the call.
+    /// Return a reference to the `CmdStan` installation associated
+    /// the call.
     pub fn cmdstan<'a>(&'a self) -> &'a Path {
         &self.cmdstan
     }
@@ -186,8 +190,8 @@ impl CmdStanOutput {
 
     /// Read in and analyze the output of one or more Markov chains to
     /// check for potential problems.  See
-    /// https://mc-stan.org/docs/cmdstan-guide/diagnose.html for more
-    /// information.
+    /// <https://mc-stan.org/docs/cmdstan-guide/diagnose.html> for
+    /// more information.
     pub fn diagnose(&self) -> io::Result<process::Output> {
         let mut path = PathBuf::from(&self.cmdstan);
         path.push("bin");
@@ -196,7 +200,7 @@ impl CmdStanOutput {
     }
     /// Report statistics for one or more Stan csv files from a HMC
     /// sampler run.  See
-    /// https://mc-stan.org/docs/cmdstan-guide/stansummary.html for
+    /// <https://mc-stan.org/docs/cmdstan-guide/stansummary.html> for
     /// more information.
     pub fn stansummary(&self, opts: Option<StanSummaryOptions>) -> io::Result<process::Output> {
         let mut path = PathBuf::from(&self.cmdstan);

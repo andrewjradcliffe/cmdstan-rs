@@ -150,8 +150,8 @@ impl Control {
 
     /// Read in and analyze the output of one or more Markov chains to
     /// check for potential problems.  See
-    /// https://mc-stan.org/docs/cmdstan-guide/diagnose.html for more
-    /// information.
+    /// <https://mc-stan.org/docs/cmdstan-guide/diagnose.html> for
+    /// more information.
     pub fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
         let files = arg_tree.output_files();
         let mut path = PathBuf::from(&self.cmdstan);
@@ -162,7 +162,7 @@ impl Control {
 
     /// Report statistics for one or more Stan csv files from a HMC
     /// sampler run.  See
-    /// https://mc-stan.org/docs/cmdstan-guide/stansummary.html for
+    /// <https://mc-stan.org/docs/cmdstan-guide/stansummary.html> for
     /// more information.
     pub fn stansummary(
         &self,
@@ -188,7 +188,7 @@ impl Control {
 }
 
 /// Options for the `stansummary` tool. See
-/// https://mc-stan.org/docs/cmdstan-guide/stansummary.html for more
+/// <https://mc-stan.org/docs/cmdstan-guide/stansummary.html> for more
 /// information.
 #[derive(Debug, PartialEq, Clone)]
 pub struct StanSummaryOptions {
