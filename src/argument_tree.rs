@@ -55,23 +55,23 @@ impl ArgumentTree {
     {
         let mut files: Vec<String> = Vec::new();
         let file = f(&self);
-        let prefix = match file.rsplit_once(".csv") {
-            Some((prefix, _)) => prefix,
-            None => file,
+        let (prefix, suffix) = match file.rsplit_once(".") {
+            Some((prefix, suffix)) => (prefix, suffix),
+            None => (file, "csv"),
         };
         match &self.method {
             Method::Sample { num_chains, .. } => {
                 if *num_chains != 1 {
                     let id = self.id.clone();
                     (id..id + num_chains).for_each(|id| {
-                        files.push(format!("{prefix}_{id}.csv"));
+                        files.push(format!("{prefix}_{id}.{suffix}"));
                     });
                 } else {
-                    files.push(format!("{prefix}.csv"));
+                    files.push(format!("{prefix}.{suffix}"));
                 }
             }
             _ => {
-                files.push(format!("{prefix}.csv"));
+                files.push(format!("{prefix}.{suffix}"));
             }
         }
         files
@@ -459,6 +459,59 @@ mod tests {
                 num_threads,
             };
             assert_eq!(x.command_string(), "method=sample num_samples=10000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=static int_time=2.5 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=10 id=2 data file=bernoulli.json init=5 random seed=12345 output file=hello.csv diagnostic_file=world.txt refresh=1 sig_figs=18 profile_file=foo.txt num_threads=48");
+        }
+
+        #[test]
+        fn files() {
+            let b = ArgumentTree::builder()
+                .method(SampleBuilder::new().num_chains(3))
+                .id(2);
+            let x = b
+                .clone()
+                .output(Output::builder().file("post").diagnostic_file("checks"))
+                .build();
+            assert_eq!(
+                x.output_files(),
+                vec!["post_2.csv", "post_3.csv", "post_4.csv"]
+            );
+            assert_eq!(
+                x.diagnostic_files(),
+                vec!["checks_2.csv", "checks_3.csv", "checks_4.csv"]
+            );
+
+            let x = b
+                .clone()
+                .output(
+                    Output::builder()
+                        .file("world.hello")
+                        .diagnostic_file("goodbye.world"),
+                )
+                .build();
+            assert_eq!(
+                x.output_files(),
+                vec!["world_2.hello", "world_3.hello", "world_4.hello"]
+            );
+            assert_eq!(
+                x.diagnostic_files(),
+                vec!["goodbye_2.world", "goodbye_3.world", "goodbye_4.world"]
+            );
+
+            let x = b
+                .clone()
+                .output(Output::builder().file("a.b.c").diagnostic_file("a...,"))
+                .build();
+            assert_eq!(x.output_files(), vec!["a.b_2.c", "a.b_3.c", "a.b_4.c"]);
+            assert_eq!(x.diagnostic_files(), vec!["a.._2.,", "a.._3.,", "a.._4.,"]);
+
+            let x = b
+                .clone()
+                .output(Output::builder().file("...xyz").diagnostic_file("abc..."))
+                .build();
+            assert_eq!(x.output_files(), vec![".._2.xyz", ".._3.xyz", ".._4.xyz"]);
+            assert_eq!(
+                x.diagnostic_files(),
+                vec!["abc.._2.", "abc.._3.", "abc.._4."]
+            );
         }
     }
 
