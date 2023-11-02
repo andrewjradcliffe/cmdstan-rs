@@ -17,8 +17,7 @@ impl LaplaceBuilder {
             draws: None,
         }
     }
-    // insert_field!(mode, String);
-    insert_into_string_field!(mode);
+    insert_into_field!(mode, String);
     insert_field!(jacobian, bool);
     insert_field!(draws, i32);
     /// Build the `Method::Laplace` instance.

@@ -204,7 +204,7 @@ impl HmcBuilder {
 
     insert_into_field!(engine, Engine);
     insert_field!(metric, Metric);
-    insert_into_string_field!(metric_file);
+    insert_into_field!(metric_file, String);
     insert_field!(stepsize, f64);
     insert_field!(stepsize_jitter, f64);
     /// Build the `SampleAlgorithm::Hmc` instance.

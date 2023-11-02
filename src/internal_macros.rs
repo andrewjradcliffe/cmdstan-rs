@@ -9,16 +9,6 @@ macro_rules! insert_field {
     };
 }
 
-macro_rules! insert_into_string_field {
-    ($F:ident) => {
-        /// Configure the named option with the given value.
-        pub fn $F<T: Into<String>>(mut self, $F: T) -> Self {
-            self.$F = Some($F.into());
-            self
-        }
-    };
-}
-
 macro_rules! insert_into_field {
     ($F:ident, $U:ident) => {
         /// Configure the named option with the given value.
