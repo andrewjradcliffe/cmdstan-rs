@@ -99,6 +99,43 @@ impl ArgumentTree {
             self.files(|tree| &tree.output.profile_file)
         }
     }
+    /// Return the single-path pathfinder file path(s), if
+    /// appropriate, as implied by the configuration of `self`.
+    /// Typically, these will not be literal files on the filesystem.
+    pub fn single_path_pathfinder_files(&self) -> Option<Vec<String>> {
+        match &self.method {
+            Method::Pathfinder {
+                save_single_paths,
+                num_paths,
+                ..
+            } => {
+                let mut files: Vec<String> = Vec::new();
+                if *save_single_paths {
+                    let file = &self.output.file;
+                    // Note that at present, it is easy to confuse `CmdStan` with
+                    // too many '.' interspersed in self.output.file.
+                    // Thus, this may not necessarily reproduce the files
+                    // particularly well.
+                    let prefix = match file.rsplit_once(".") {
+                        Some((prefix, _)) => prefix,
+                        None => file,
+                    };
+                    if *num_paths != 1 {
+                        let id = self.id.clone();
+                        (id..id + num_paths).for_each(|id| {
+                            files.push(format!("{prefix}_path_{id}.csv"));
+                            files.push(format!("{prefix}_path_{id}.json"));
+                        });
+                    } else {
+                        files.push(format!("{prefix}.csv"));
+                        files.push(format!("{prefix}.json"));
+                    }
+                }
+                Some(files)
+            }
+            _ => None,
+        }
+    }
 }
 
 /// Options builder for `ArgumentTree`.
