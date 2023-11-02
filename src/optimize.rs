@@ -22,7 +22,7 @@ impl OptimizeBuilder {
             save_iterations: None,
         }
     }
-    insert_field!(algorithm, OptimizeAlgorithm);
+    insert_into_field!(algorithm, OptimizeAlgorithm);
     insert_field!(jacobian, bool);
     insert_field!(iter, i32);
     insert_field!(save_iterations, bool);
@@ -168,6 +168,11 @@ impl BfgsBuilder {
         }
     }
 }
+impl From<BfgsBuilder> for OptimizeAlgorithm {
+    fn from(x: BfgsBuilder) -> Self {
+        x.build()
+    }
+}
 
 /// Options builder for `OptimizeAlgorithm::Lbfgs`.
 /// For any option left unspecified, the default value indicated
@@ -219,6 +224,12 @@ impl LbfgsBuilder {
             tol_param,
             history_size,
         }
+    }
+}
+
+impl From<LbfgsBuilder> for OptimizeAlgorithm {
+    fn from(x: LbfgsBuilder) -> Self {
+        x.build()
     }
 }
 

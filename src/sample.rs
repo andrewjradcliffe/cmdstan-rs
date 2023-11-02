@@ -32,7 +32,7 @@ impl SampleBuilder {
     insert_field!(num_warmup, i32);
     insert_field!(save_warmup, bool);
     insert_field!(thin, i32);
-    insert_field!(adapt, SampleAdapt);
+    insert_into_field!(adapt, SampleAdapt);
     insert_into_field!(algorithm, SampleAlgorithm);
     insert_field!(num_chains, i32);
 
@@ -117,6 +117,12 @@ impl SampleAdapt {
     /// Return a builder with all options unspecified.
     pub fn builder() -> SampleAdaptBuilder {
         SampleAdaptBuilder::new()
+    }
+}
+
+impl From<SampleAdaptBuilder> for SampleAdapt {
+    fn from(x: SampleAdaptBuilder) -> Self {
+        x.build()
     }
 }
 

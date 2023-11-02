@@ -36,7 +36,7 @@ impl VariationalBuilder {
     insert_field!(grad_samples, i32);
     insert_field!(elbo_samples, i32);
     insert_field!(eta, f64);
-    insert_field!(adapt, VariationalAdapt);
+    insert_into_field!(adapt, VariationalAdapt);
     insert_field!(tol_rel_obj, f64);
     insert_field!(eval_elbo, i32);
     insert_field!(output_samples, i32);
@@ -112,6 +112,11 @@ impl VariationalAdapt {
     /// Return a builder with all options unspecified.
     pub fn builder() -> VariationalAdaptBuilder {
         VariationalAdaptBuilder::new()
+    }
+}
+impl From<VariationalAdaptBuilder> for VariationalAdapt {
+    fn from(x: VariationalAdaptBuilder) -> Self {
+        x.build()
     }
 }
 
