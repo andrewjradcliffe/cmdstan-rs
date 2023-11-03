@@ -93,11 +93,11 @@ impl ArgumentTree {
     /// Return the profile file path(s), as implied by the configuration of `self`.
     /// Typically, these will not be literal files on the filesystem.
     pub fn profile_files(&self) -> Vec<String> {
-        if self.output.profile_file == "" {
-            self.files(|_| "profile")
+        vec![if self.output.profile_file == "" {
+            "profile.csv".to_string()
         } else {
-            self.files(|tree| &tree.output.profile_file)
-        }
+            self.output.profile_file.to_string()
+        }]
     }
     /// Return the single-path pathfinder file path(s), if
     /// appropriate, as implied by the configuration of `self`.
