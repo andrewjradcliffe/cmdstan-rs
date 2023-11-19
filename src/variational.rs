@@ -1,7 +1,7 @@
 use crate::method::Method;
 use std::fmt::Write;
 
-/// Options builder for `Method::Variational`.
+/// Options builder for [`Method::Variational`].
 /// For any option left unspecified, the default value indicated
 /// on `Method::Variational` will be supplied.
 #[derive(Debug, PartialEq, Clone)]
@@ -122,7 +122,7 @@ impl From<VariationalAdaptBuilder> for VariationalAdapt {
     }
 }
 
-/// Options builder for `VariationalAdapt`.
+/// Options builder for [`VariationalAdapt`].
 /// For any option left unspecified, the default value indicated
 /// on `VariationalAdapt` will be supplied.
 #[derive(Debug, PartialEq, Clone)]

@@ -4,7 +4,7 @@ use std::fmt::Write;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ArgumentTree {
-    /// Analysis method. Defaults to `Sample`.
+    /// Analysis method. Defaults to [`Method::Sample`].
     pub method: Method,
     /// Unique process identifier.
     /// Valid values: `id >= 0`.
@@ -140,7 +140,7 @@ impl ArgumentTree {
     }
 }
 
-/// Options builder for `ArgumentTree`.
+/// Options builder for [`ArgumentTree`].
 /// For any option left unspecified, the default value indicated
 /// on `ArgumentTree` will be supplied.
 #[derive(Debug, PartialEq, Clone)]
@@ -304,7 +304,7 @@ impl From<OutputBuilder> for Output {
     }
 }
 
-/// Options builder for `Output`.
+/// Options builder for [`Output`].
 /// For any option left unspecified, the default value indicated
 /// on `Output` will be supplied.
 #[derive(Debug, PartialEq, Clone)]

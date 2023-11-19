@@ -29,7 +29,8 @@ pub struct CmdStanModel {
 }
 impl CmdStanModel {
     /// Construct a new instance from a path (`cmdstan`) to a
-    /// `CmdStan` installation and a path to a Stan program.
+    /// [`CmdStan`](https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html)
+    /// installation and a path to a Stan program.
     pub fn new<P1, P2>(cmdstan: P1, stan_file: P2) -> Self
     where
         P1: AsRef<Path>,
@@ -158,7 +159,7 @@ impl CmdStanOutput {
 
     /// Write the console output to a file.  The path at which the
     /// file will be created is determined in the following manner: If
-    /// `file` is `None`, "log.txt" is adjoined on to `cwd_at_call`.
+    /// `file` is `None`, `"log.txt"` is adjoined on to `cwd_at_call`.
     /// If `file` is `Some(path)` and `path` is a relative path, then
     /// `path` is adjoined on to `cwd_at_call`; otherwise, `path` is
     /// assumed to be an absolute path and is used without

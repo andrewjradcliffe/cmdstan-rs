@@ -1,6 +1,6 @@
 use crate::method::Method;
 
-/// Options builder for `Method::GenerateQuantities`.
+/// Options builder for [`Method::GenerateQuantities`].
 /// For any option left unspecified, the default value indicated
 /// on `Method::GenerateQuantities` will be supplied.
 #[derive(Debug, PartialEq, Clone)]

@@ -1,7 +1,7 @@
 use crate::method::Method;
 use std::fmt::Write;
 
-/// Options builder for `Method::Diagnose`.
+/// Options builder for [`Method::Diagnose`].
 /// For any option left unspecified, the default value indicated
 /// on `Method::Diagnose` will be supplied.
 #[derive(Debug, PartialEq, Clone)]

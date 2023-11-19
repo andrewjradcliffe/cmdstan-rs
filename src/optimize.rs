@@ -1,7 +1,7 @@
 use crate::method::Method;
 use std::fmt::Write;
 
-/// Options builder for `Method::Optimize`.
+/// Options builder for [`Method::Optimize`].
 /// For any option left unspecified, the default value indicated
 /// on `Method::Optimize` will be supplied.
 #[derive(Debug, PartialEq, Clone)]
@@ -60,7 +60,7 @@ pub enum OptimizeAlgorithm {
         /// Defaults to `0.001`.
         init_alpha: f64,
         /// Convergence tolerance on absolute changes in objective function value.
-        /// Valid values: `0 <= tol_obj`
+        /// Valid values: `0 <= tol_obj`.
         /// Defaults to `9.9999999999999998e-13`.
         tol_obj: f64,
         /// Convergence tolerance on relative changes in objective function value.
@@ -83,7 +83,7 @@ pub enum OptimizeAlgorithm {
     /// LBFGS with linesearch
     Lbfgs {
         /// Line search step size for first iteration.
-        /// Valid values: `0 < init_alpha`
+        /// Valid values: `0 < init_alpha`.
         /// Defaults to `0.001`.
         init_alpha: f64,
         /// Convergence tolerance on absolute changes in objective function value.
@@ -122,7 +122,7 @@ impl Default for OptimizeAlgorithm {
 }
 use OptimizeAlgorithm::*;
 
-/// Options builder for `OptimizeAlgorithm::Bfgs`.
+/// Options builder for [`OptimizeAlgorithm::Bfgs`].
 /// For any option left unspecified, the default value indicated
 /// on `OptimizeAlgorithm::Bfgs` will be supplied.
 pub struct BfgsBuilder {
@@ -175,7 +175,7 @@ impl From<BfgsBuilder> for OptimizeAlgorithm {
     }
 }
 
-/// Options builder for `OptimizeAlgorithm::Lbfgs`.
+/// Options builder for [`OptimizeAlgorithm::Lbfgs`].
 /// For any option left unspecified, the default value indicated
 /// on `OptimizeAlgorithm::Lbfgs` will be supplied.
 pub struct LbfgsBuilder {

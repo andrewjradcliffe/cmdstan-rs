@@ -29,7 +29,7 @@ pub enum CompilationError {
 use CompilationError::*;
 
 impl Control {
-    /// Construct a new instance from a path (`cmdstan`) to a `CmdStan`
+    /// Construct a new instance from a path (`cmdstan`) to a [`CmdStan`](https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html)
     /// installation and a path (`model`) to a Stan program.
     pub fn new(cmdstan: &Path, model: &Path) -> Self {
         Self {

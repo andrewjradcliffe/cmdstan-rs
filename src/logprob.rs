@@ -1,6 +1,6 @@
 use crate::method::Method;
 
-/// Options builder for `Method::LogProb`.
+/// Options builder for [`Method::LogProb`].
 /// For any option left unspecified, the default value indicated
 /// on `Method::LogProb` will be supplied.
 #[derive(Debug, PartialEq, Clone)]

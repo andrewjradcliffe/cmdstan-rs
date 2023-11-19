@@ -1,7 +1,7 @@
 use crate::method::Method;
 use crate::optimize;
 
-/// Options builder for `Method::Pathfinder`.
+/// Options builder for [`Method::Pathfinder`].
 /// For any option left unspecified, the default value indicated
 /// on `Method::Pathfinder` will be supplied.
 pub struct PathfinderBuilder {

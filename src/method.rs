@@ -8,10 +8,11 @@ use crate::sample::*;
 use crate::variational::*;
 use std::fmt::Write;
 
-/// Analysis method. Defaults to `Sample`.
+/// Analysis method. Defaults to [`Self::Sample`].
 #[derive(Debug, PartialEq, Clone)]
 pub enum Method {
-    /// Bayesian inference with Markov Chain Monte Carlo
+    /// Bayesian inference with Markov Chain Monte Carlo. Use
+    /// [`SampleBuilder`] for parameterized construction with optional defaults.
     Sample {
         /// Number of warmup iterations.
         /// Valid values: `0 <= num_samples`.
@@ -33,16 +34,17 @@ pub enum Method {
         thin: i32,
         /// Warmup Adaptation
         adapt: SampleAdapt,
-        /// Sampling algorithm. Defaults to `Hmc`.
+        /// Sampling algorithm. Defaults to [`SampleAlgorithm::Hmc`].
         algorithm: SampleAlgorithm,
         /// Number of chains.
         /// Valid values: `num_chains > 0`.
         /// Defaults to `1`.
         num_chains: i32,
     },
-    /// Point estimation
+    /// Point estimation.
+    /// Use [`OptimizeBuilder`] for parameterized construction with optional defaults.
     Optimize {
-        /// Optimization algorithm. Defaults to `Lbfgs`.
+        /// Optimization algorithm. Defaults to [`OptimizeAlgorithm::Lbfgs`].
         algorithm: OptimizeAlgorithm,
         /// When true, include change-of-variables adjustment for
         /// constraining parameter transforms.
@@ -62,10 +64,11 @@ pub enum Method {
         /// with valid values 0 or 1.
         save_iterations: bool,
     },
-    /// Variational inference
+    /// Variational inference. Use [`VariationalBuilder`] for
+    /// parameterized construction with optional defaults.
     Variational {
         /// Variational inference algorithm.
-        /// Defaults to `MeanField`.
+        /// Defaults to [`VariationalAlgorithm::MeanField`].
         algorithm: VariationalAlgorithm,
         /// Maximum number of ADVI iterations.
         /// Valid values: `0 < iter`.
@@ -98,9 +101,10 @@ pub enum Method {
         /// Defaults to `1000`.
         output_samples: i32,
     },
-    /// Model diagnostics
+    /// Model diagnostics. Use [`DiagnoseBuilder`] for construction
+    /// with defaults.
     Diagnose {
-        /// Diagnostic test. Defaults to `Gradient`.
+        /// Diagnostic test. Defaults to [`DiagnosticTest::Gradient`].
         test: DiagnosticTest,
     },
     /// Generate quantities of interest
@@ -110,7 +114,8 @@ pub enum Method {
         /// Defaults to `""`.
         fitted_params: String,
     },
-    /// Pathfinder algorithm
+    /// Pathfinder algorithm. Use [`PathfinderBuilder`] for
+    /// construction with defaults.
     Pathfinder {
         /// Line search step size for first iteration.
         /// Valid values: `0 < init_alpha`.
@@ -167,7 +172,8 @@ pub enum Method {
         /// Defaults to `25`.
         num_elbo_draws: i32,
     },
-    /// Return the log density up to a constant and its gradients, given supplied parameters
+    /// Return the log density up to a constant and its gradients, given supplied parameters.
+    /// Use [`LogProbBuilder`] for parameterized construction with optional defaults.
     LogProb {
         /// Input file (JSON or R dump) of parameter values on unconstrained scale.
         /// Valid values: Path to existing file.
@@ -185,7 +191,8 @@ pub enum Method {
         /// with valid values 0 or 1.
         jacobian: bool,
     },
-    /// Sample from a Laplace approximation
+    /// Sample from a Laplace approximation.
+    /// Use [`LaplaceBuilder`] for parameterized construction with optional defaults.
     Laplace {
         /// A specification of a mode on the constrained scale for all
         /// model parameters, either in JSON or CSV format.

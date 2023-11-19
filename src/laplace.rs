@@ -1,6 +1,6 @@
 use crate::method::Method;
 
-/// Options builder for `Method::Laplace`.
+/// Options builder for [`Method::Laplace`].
 /// For any option left unspecified, the default value indicated
 /// on `Method::Laplace` will be supplied.
 pub struct LaplaceBuilder {

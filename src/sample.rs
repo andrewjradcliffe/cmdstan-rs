@@ -1,7 +1,7 @@
 use crate::method::Method;
 use std::fmt::Write;
 
-/// Options builder for `Method::Sample`.
+/// Options builder for [`Method::Sample`].
 /// For any option left unspecified, the default value indicated
 /// on `Method::Sample` will be supplied.
 #[derive(Debug, PartialEq, Clone)]
@@ -128,7 +128,7 @@ impl From<SampleAdaptBuilder> for SampleAdapt {
     }
 }
 
-/// Options builder for `SampleAdapt`.
+/// Options builder for [`SampleAdapt`].
 /// For any option left unspecified, the default value indicated
 /// on `SampleAdapt` will be supplied.
 #[derive(Debug, PartialEq, Clone)]
@@ -187,7 +187,7 @@ impl SampleAdaptBuilder {
     }
 }
 
-/// Options builder for `SampleAlgorithm::Hmc`.
+/// Options builder for [`SampleAlgorithm::Hmc`].
 /// For any option left unspecified, the default value indicated
 /// on `SampleAlgorithm::Hmc` will be supplied.
 pub struct HmcBuilder {
@@ -239,11 +239,11 @@ pub enum SampleAlgorithm {
     Hmc {
         /// Engine for Hamiltonian Monte Carlo.
         /// Valid values: any variant of `Engine`.
-        /// Defaults to `Nuts` (with respective defaults).
+        /// Defaults to [`Engine::Nuts`] (with respective defaults).
         engine: Engine,
         /// Geometry of base manifold.
         /// Valid values: any variant of `Metric`.
-        /// Defaults to `DiagE`.
+        /// Defaults to [`Metric::DiagE`].
         metric: Metric,
         /// Input file with precomputed Euclidean metric.
         /// Valid values: Path to existing file.
@@ -346,7 +346,7 @@ impl From<NutsBuilder> for Engine {
     }
 }
 
-/// Options builder for `Engine::Static`.
+/// Options builder for [`Engine::Static`].
 /// For any option left unspecified, the default value indicated
 /// on `Engine::Static` will be supplied.
 #[derive(Debug, PartialEq, Clone)]
@@ -366,7 +366,7 @@ impl StaticBuilder {
     }
 }
 
-/// Options builder for `Engine::Nuts`.
+/// Options builder for [`Engine::Nuts`].
 /// For any option left unspecified, the default value indicated
 /// on `Engine::Nuts` will be supplied.
 #[derive(Debug, PartialEq, Clone)]
