@@ -41,7 +41,7 @@ impl Control {
     /// Check whether the compiled executable works.
     pub fn executable_works(&self) -> Result<bool, io::Error> {
         let output = Command::new(&self.model).arg("help").output()?;
-        let stdout = str::from_utf8(&output.stdout[..]).unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout[..]);
         Ok(stdout.contains("Bayesian inference with Markov Chain Monte Carlo"))
     }
 
@@ -122,12 +122,11 @@ impl Control {
         }
     }
 
-    /// Is the current working directory of the process a CmdStan
-    /// installation?
-    fn check_cmdstan_dir(&self) -> Result<(), CompilationError> {
-        match Command::new("make").output() {
+    /// Is `self.cmdstan` a working `CmdStan` installation?
+    fn validate_cmdstan(&self) -> Result<(), CompilationError> {
+        match Command::new("make").current_dir(&self.cmdstan).output() {
             Ok(output) => {
-                let stdout = str::from_utf8(&output.stdout[..]).unwrap();
+                let stdout = String::from_utf8_lossy(&output.stdout[..]);
                 if !stdout.contains("Build a Stan program") {
                     Err(MakeError(format!(
                         "Unexpected behavior of `make` in {:?}",
