@@ -13,182 +13,195 @@ use std::fmt::Write;
 pub enum Method {
     /// Bayesian inference with Markov Chain Monte Carlo
     Sample {
-        /// Number of warmup iterations
-        /// Valid values: 0 <= num_samples
-        /// Defaults to 1000
+        /// Number of warmup iterations.
+        /// Valid values: `0 <= num_samples`.
+        /// Defaults to `1000`.
         num_samples: i32,
         /// Number of warmup iterations
-        /// Valid values: 0 <= warmup
-        /// Defaults to 1000
+        /// Valid values: `0 <= warmup`.
+        /// Defaults to `1000`.
         num_warmup: i32,
         /// Stream warmup samples to output?
-        /// Valid values: [0, 1]
-        /// Defaults to 0
+        /// Defaults to `false`.
         save_warmup: bool,
-        /// Period between saved samples
-        /// Valid values: 0 < thin
-        /// Defaults to 1
+        /// Period between saved samples.
+        /// Valid values: `0 < thin`.
+        /// Defaults to `1`.
+        ///
+        /// At command line, this presents as `false` => 0, `true` => 1,
+        /// with valid values 0 or 1.
         thin: i32,
         /// Warmup Adaptation
         adapt: SampleAdapt,
-        /// Sampling algorithm
+        /// Sampling algorithm. Defaults to `Hmc`.
         algorithm: SampleAlgorithm,
-        /// Number of chains
-        /// Valid values: num_chains > 0
-        /// Defaults to 1
+        /// Number of chains.
+        /// Valid values: `num_chains > 0`.
+        /// Defaults to `1`.
         num_chains: i32,
     },
     /// Point estimation
     Optimize {
+        /// Optimization algorithm. Defaults to `Lbfgs`.
         algorithm: OptimizeAlgorithm,
-        /// When true, include change-of-variables adjustment for constraining parameter transforms
-        /// Valid values: [0, 1]
-        /// Defaults to 0
+        /// When true, include change-of-variables adjustment for
+        /// constraining parameter transforms.
+        /// Defaults to `false`.
+        ///
+        /// At command line, this presents as `false` => 0, `true` => 1,
+        /// with valid values 0 or 1.
         jacobian: bool,
-        /// Total number of iterations
-        /// Valid values: 0 < iter
-        /// Defaults to 2000
+        /// Total number of iterations.
+        /// Valid values: `0 < iter`.
+        /// Defaults to `2000`.
         iter: i32,
         /// Stream optimization progress to output?
-        /// Valid values: [0, 1]
-        /// Defaults to 0
+        /// Defaults to `false`.
+        ///
+        /// At command line, this presents as `false` => 0, `true` => 1,
+        /// with valid values 0 or 1.
         save_iterations: bool,
     },
     /// Variational inference
     Variational {
-        /// Variational inference algorithm
-        /// Valid values: meanfield, fullrank
-        /// Defaults to meanfield
+        /// Variational inference algorithm.
+        /// Defaults to `MeanField`.
         algorithm: VariationalAlgorithm,
         /// Maximum number of ADVI iterations.
-        /// Valid values: 0 < iter
-        /// Defaults to 10000
+        /// Valid values: `0 < iter`.
+        /// Defaults to `10000`.
         iter: i32,
         /// Number of Monte Carlo draws for computing the gradient.
-        /// Valid values: 0 < num_samples
-        /// Defaults to 1
+        /// Valid values: `0 < grad_samples`.
+        /// Defaults to `1`.
         grad_samples: i32,
         /// Number of Monte Carlo draws for estimate of ELBO.
-        /// Valid values: 0 < num_samples
-        /// Defaults to 100
+        /// Valid values: `0 < elbo_samples`.
+        /// Defaults to `100`.
         elbo_samples: i32,
         /// Stepsize scaling parameter.
-        /// Valid values: 0 < eta
-        /// Defaults to 1
+        /// Valid values: `0 < eta`.
+        /// Defaults to `1.0`.
         eta: f64,
-        /// Eta Adaptation for Variational Inference
-        /// Valid subarguments: engaged, iter
+        /// Eta Adaptation for Variational Inference.
         adapt: VariationalAdapt,
         /// Relative tolerance parameter for convergence.
-        /// Valid values: 0 <= tol
-        /// Defaults to 0.01
+        /// Valid values: `0 <= tol_rel_obj`.
+        /// Defaults to `0.01`.
         tol_rel_obj: f64,
-        /// Number of iterations between ELBO evaluations
-        /// Valid values: 0 < eval_elbo
-        /// Defaults to 100
+        /// Number of iterations between ELBO evaluations.
+        /// Valid values: `0 < eval_elbo`.
+        /// Defaults to `100`.
         eval_elbo: i32,
         /// Number of approximate posterior output draws to save.
-        /// Valid values: 0 < output_samples
-        /// Defaults to 1000
+        /// Valid values: `0 < output_samples`.
+        /// Defaults to `1000`.
         output_samples: i32,
     },
     /// Model diagnostics
     Diagnose {
-        /// Diagnostic test
-        /// Valid values: gradient
-        /// Defaults to gradient
+        /// Diagnostic test. Defaults to `Gradient`.
         test: DiagnosticTest,
     },
     /// Generate quantities of interest
     GenerateQuantities {
-        /// Input file of sample of fitted parameter values for model conditioned on data
-        /// Valid values: Path to existing file
-        /// Defaults to ""
+        /// Input file of sample of fitted parameter values for model conditioned on data.
+        /// Valid values: Path to existing file.
+        /// Defaults to `""`.
         fitted_params: String,
     },
     /// Pathfinder algorithm
     Pathfinder {
-        /// Line search step size for first iteration
-        /// Valid values: 0 < init_alpha
-        /// Defaults to 0.001
+        /// Line search step size for first iteration.
+        /// Valid values: `0 < init_alpha`.
+        /// Defaults to `0.001`.
         init_alpha: f64,
-        /// Convergence tolerance on absolute changes in objective function value
-        /// Valid values: 0 <= tol
-        /// Defaults to 9.9999999999999998e-13
+        /// Convergence tolerance on absolute changes in objective function value.
+        /// Valid values: `0 <= tol_obj`.
+        /// Defaults to `9.9999999999999998e-13`.
         tol_obj: f64,
-        /// Convergence tolerance on relative changes in objective function value
-        /// Valid values: 0 <= tol
-        /// Defaults to 10000
+        /// Convergence tolerance on relative changes in objective function value.
+        /// Valid values: `0 <= tol_rel_obj`.
+        /// Defaults to `10000.0`.
         tol_rel_obj: f64,
-        /// Convergence tolerance on the norm of the gradient
-        /// Valid values: 0 <= tol
-        /// Defaults to 1e-08
+        /// Convergence tolerance on the norm of the gradient.
+        /// Valid values: `0 <= tol_grad`.
+        /// Defaults to `1e-08`.
         tol_grad: f64,
-        /// Convergence tolerance on the relative norm of the gradient
-        /// Valid values: 0 <= tol
-        /// Defaults to 10000000
+        /// Convergence tolerance on the relative norm of the gradient.
+        /// Valid values: `0 <= tol_rel_grad`.
+        /// Defaults to `10000000.0`.
         tol_rel_grad: f64,
-        /// Convergence tolerance on changes in parameter value
-        /// Valid values: 0 <= tol
-        /// Defaults to 1e-08
+        /// Convergence tolerance on changes in parameter value.
+        /// Valid values: `0 <= tol_param`.
+        /// Defaults to `1e-08`
         tol_param: f64,
-        /// Amount of history to keep for L-BFGS
-        /// Valid values: 0 < history_size
-        /// Defaults to 5
+        /// Amount of history to keep for L-BFGS.
+        /// Valid values: `0 < history_size`.
+        /// Defaults to `5`.
         history_size: i32,
-        /// Number of draws from PSIS sample
-        /// Valid values: 0 < num_psis_draws
-        /// Defaults to 1000
+        /// Number of draws from PSIS sample.
+        /// Valid values: `0 < num_psis_draws`.
+        /// Defaults to `1000`.
         num_psis_draws: i32,
-        /// Number of single pathfinders
-        /// Valid values: 0 < num_paths
-        /// Defaults to 4
+        /// Number of single pathfinders.
+        /// Valid values: `0 < num_paths`.
+        /// Defaults to `4`.
         num_paths: i32,
-        /// Output single-path pathfinder draws as CSV
-        /// Valid values: [0, 1]
-        /// Defaults to 0
+        /// Output single-path pathfinder draws as CSV.
+        /// Defaults to `false`.
+        ///
+        /// At command line, this presents as `false` => 0, `true` => 1,
+        /// with valid values 0 or 1.
         save_single_paths: bool,
-        /// Maximum number of LBFGS iterations
-        /// Valid values: 0 < max_lbfgs_iters
-        /// Defaults to 1000
+        /// Maximum number of LBFGS iterations.
+        /// Valid values: `0 < max_lbfgs_iters`.
+        /// Defaults to `1000`.
         max_lbfgs_iters: i32,
-        /// Number of approximate posterior draws
-        /// Valid values: 0 < num_draws
-        /// Defaults to 1000
+        /// Number of approximate posterior draws.
+        /// Valid values: `0 < num_draws`.
+        /// Defaults to `1000`.
         num_draws: i32,
-        /// Number of Monte Carlo draws to evaluate ELBO
-        /// Valid values: 0 < num_elbo_draws
-        /// Defaults to 25
+        /// Number of Monte Carlo draws to evaluate ELBO.
+        /// Valid values: `0 < num_elbo_draws`.
+        /// Defaults to `25`.
         num_elbo_draws: i32,
     },
     /// Return the log density up to a constant and its gradients, given supplied parameters
     LogProb {
-        /// Input file (JSON or R dump) of parameter values on unconstrained scale
-        /// Valid values: Path to existing file
-        /// Defaults to ""
+        /// Input file (JSON or R dump) of parameter values on unconstrained scale.
+        /// Valid values: Path to existing file.
+        /// Defaults to `""`.
         unconstrained_params: String,
-        /// Input file (JSON or R dump) of parameter values on constrained scale
-        /// Valid values: Path to existing file
-        /// Defaults to ""
+        /// Input file (JSON or R dump) of parameter values on constrained scale.
+        /// Valid values: Path to existing file.
+        /// Defaults to `""`.
         constrained_params: String,
-        /// When true, include change-of-variables adjustment for constraining parameter transforms
-        /// Valid values: [0, 1]
-        /// Defaults to 1
+        /// When true, include change-of-variables adjustment for
+        /// constraining parameter transforms.
+        /// Defaults to `true`.
+        ///
+        /// At command line, this presents as `false` => 0, `true` => 1,
+        /// with valid values 0 or 1.
         jacobian: bool,
     },
     /// Sample from a Laplace approximation
     Laplace {
-        /// A specification of a mode on the constrained scale for all model parameters, either in JSON or CSV format.
-        /// Valid values: Path to existing file
-        /// Defaults to ""
+        /// A specification of a mode on the constrained scale for all
+        /// model parameters, either in JSON or CSV format.
+        /// Valid values: Path to existing file.
+        /// Defaults to `""`.
         mode: String,
-        /// When true, include change-of-variables adjustment for constraining parameter transforms
-        /// Valid values: [0, 1]
-        /// Defaults to 1
+        /// When true, include change-of-variables adjustment for
+        /// constraining parameter transforms.
+        /// Defaults to `true`.
+        ///
+        /// At command line, this presents as `false` => 0, `true` => 1,
+        /// with valid values 0 or 1.
         jacobian: bool,
-        /// Number of draws from the laplace approximation
-        /// Valid values: 0 <= draws
-        /// Defaults to 1000
+        /// Number of draws from the laplace approximation.
+        /// Valid values: `0 <= draws`.
+        /// Defaults to `1000`.
         draws: i32,
     },
 }

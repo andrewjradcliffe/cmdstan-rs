@@ -42,72 +42,73 @@ impl OptimizeBuilder {
 }
 
 // Common defaults.
-static INIT_ALPHA: f64 = 0.001;
-static TOL_OBJ: f64 = 9.9999999999999998e-13;
-static TOL_REL_OBJ: f64 = 10_000.0;
-static TOL_GRAD: f64 = 1e-8;
-static TOL_REL_GRAD: f64 = 10_000_000.0;
-static TOL_PARAM: f64 = 1e-8;
+pub(crate) const INIT_ALPHA: f64 = 0.001;
+pub(crate) const TOL_OBJ: f64 = 9.9999999999999998e-13;
+pub(crate) const TOL_REL_OBJ: f64 = 10_000.0;
+pub(crate) const TOL_GRAD: f64 = 1e-8;
+pub(crate) const TOL_REL_GRAD: f64 = 10_000_000.0;
+pub(crate) const TOL_PARAM: f64 = 1e-8;
+pub(crate) const HISTORY_SIZE: i32 = 5;
 
 /// Optimization algorithm. Defaults to `Lbfgs`.
 #[derive(Debug, PartialEq, Clone)]
 pub enum OptimizeAlgorithm {
     /// BFGS with linesearch
     Bfgs {
-        /// Line search step size for first iteration
-        /// Valid values: 0 < init_alpha
-        /// Defaults to 0.001
+        /// Line search step size for first iteration.
+        /// Valid values: `0 < init_alpha`.
+        /// Defaults to `0.001`.
         init_alpha: f64,
-        /// Convergence tolerance on absolute changes in objective function value
-        /// Valid values: 0 <= tol
-        /// Defaults to 9.9999999999999998e-13
+        /// Convergence tolerance on absolute changes in objective function value.
+        /// Valid values: `0 <= tol_obj`
+        /// Defaults to `9.9999999999999998e-13`.
         tol_obj: f64,
-        /// Convergence tolerance on relative changes in objective function value
-        /// Valid values: 0 <= tol
-        /// Defaults to 10000
+        /// Convergence tolerance on relative changes in objective function value.
+        /// Valid values: `0 <= tol_rel_obj`.
+        /// Defaults to `10000.0`.
         tol_rel_obj: f64,
-        /// Convergence tolerance on the norm of the gradient
-        /// Valid values: 0 <= tol
-        /// Defaults to 1e-08
+        /// Convergence tolerance on the norm of the gradient.
+        /// Valid values: `0 <= tol_grad`.
+        /// Defaults to `1e-08`.
         tol_grad: f64,
-        /// Convergence tolerance on the relative norm of the gradient
-        /// Valid values: 0 <= tol
-        /// Defaults to 10000000
+        /// Convergence tolerance on the relative norm of the gradient.
+        /// Valid values: `0 <= tol_rel_grad`.
+        /// Defaults to `10000000.0`
         tol_rel_grad: f64,
-        /// Convergence tolerance on changes in parameter value
-        /// Valid values: 0 <= tol
-        /// Defaults to 1e-08
+        /// Convergence tolerance on changes in parameter value.
+        /// Valid values: `0 <= tol_param`.
+        /// Defaults to `1e-08`.
         tol_param: f64,
     },
     /// LBFGS with linesearch
     Lbfgs {
-        /// Line search step size for first iteration
-        /// Valid values: 0 < init_alpha
-        /// Defaults to 0.001
+        /// Line search step size for first iteration.
+        /// Valid values: `0 < init_alpha`
+        /// Defaults to `0.001`.
         init_alpha: f64,
-        /// Convergence tolerance on absolute changes in objective function value
-        /// Valid values: 0 <= tol
-        /// Defaults to 9.9999999999999998e-13
+        /// Convergence tolerance on absolute changes in objective function value.
+        /// Valid values: `0 <= tol_obj`
+        /// Defaults to `9.9999999999999998e-13`.
         tol_obj: f64,
-        /// Convergence tolerance on relative changes in objective function value
-        /// Valid values: 0 <= tol
-        /// Defaults to 10000
+        /// Convergence tolerance on relative changes in objective function value.
+        /// Valid values: `0 <= tol_rel_obj`.
+        /// Defaults to `10000.0`.
         tol_rel_obj: f64,
-        /// Convergence tolerance on the norm of the gradient
-        /// Valid values: 0 <= tol
-        /// Defaults to 1e-08
+        /// Convergence tolerance on the norm of the gradient.
+        /// Valid values: `0 <= tol_grad`.
+        /// Defaults to `1e-08`.
         tol_grad: f64,
-        /// Convergence tolerance on the relative norm of the gradient
-        /// Valid values: 0 <= tol
-        /// Defaults to 10000000
+        /// Convergence tolerance on the relative norm of the gradient.
+        /// Valid values: `0 <= tol_rel_grad`.
+        /// Defaults to `10000000.0`.
         tol_rel_grad: f64,
-        /// Convergence tolerance on changes in parameter value
-        /// Valid values: 0 <= tol
-        /// Defaults to 1e-08
+        /// Convergence tolerance on changes in parameter value.
+        /// Valid values: `0 <= tol_param`.
+        /// Defaults to `1e-08`.
         tol_param: f64,
-        /// Amount of history to keep for L-BFGS
-        /// Valid values: 0 < history_size
-        /// Defaults to 5
+        /// Amount of history to keep for L-BFGS.
+        /// Valid values: `0 < history_size`.
+        /// Defaults to `5`.
         history_size: i32,
     },
     /// Newton's method
@@ -214,7 +215,7 @@ impl LbfgsBuilder {
         let tol_grad = self.tol_grad.unwrap_or(TOL_GRAD);
         let tol_rel_grad = self.tol_rel_grad.unwrap_or(TOL_REL_GRAD);
         let tol_param = self.tol_param.unwrap_or(TOL_PARAM);
-        let history_size = self.history_size.unwrap_or(5);
+        let history_size = self.history_size.unwrap_or(HISTORY_SIZE);
         OptimizeAlgorithm::Lbfgs {
             init_alpha,
             tol_obj,

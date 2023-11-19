@@ -1,4 +1,5 @@
 use crate::method::Method;
+use crate::optimize;
 
 /// Options builder for `Method::Pathfinder`.
 /// For any option left unspecified, the default value indicated
@@ -52,13 +53,13 @@ impl PathfinderBuilder {
     insert_field!(num_draws, i32);
     insert_field!(num_elbo_draws, i32);
     pub fn build(self) -> Method {
-        let init_alpha = self.init_alpha.unwrap_or(0.001);
-        let tol_obj = self.tol_obj.unwrap_or(9.9999999999999998e-13);
-        let tol_rel_obj = self.tol_rel_obj.unwrap_or(10_000.0);
-        let tol_grad = self.tol_grad.unwrap_or(1e-8);
-        let tol_rel_grad = self.tol_rel_grad.unwrap_or(10_000_000.0);
-        let tol_param = self.tol_param.unwrap_or(1e-8);
-        let history_size = self.history_size.unwrap_or(5);
+        let init_alpha = self.init_alpha.unwrap_or(optimize::INIT_ALPHA);
+        let tol_obj = self.tol_obj.unwrap_or(optimize::TOL_OBJ);
+        let tol_rel_obj = self.tol_rel_obj.unwrap_or(optimize::TOL_REL_OBJ);
+        let tol_grad = self.tol_grad.unwrap_or(optimize::TOL_GRAD);
+        let tol_rel_grad = self.tol_rel_grad.unwrap_or(optimize::TOL_REL_GRAD);
+        let tol_param = self.tol_param.unwrap_or(optimize::TOL_PARAM);
+        let history_size = self.history_size.unwrap_or(optimize::HISTORY_SIZE);
         let num_psis_draws = self.num_psis_draws.unwrap_or(1000);
         let num_paths = self.num_paths.unwrap_or(4);
         let save_single_paths = self.save_single_paths.unwrap_or(false);

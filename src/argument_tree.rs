@@ -6,23 +6,25 @@ use std::fmt::Write;
 pub struct ArgumentTree {
     /// Analysis method. Defaults to `Sample`.
     pub method: Method,
-    /// Unique process identifier
-    /// Valid values: id >= 0
-    /// Defaults to 1
+    /// Unique process identifier.
+    /// Valid values: `id >= 0`.
+    /// Defaults to `1`.
     pub id: i32,
     /// Input data options
     pub data: Data,
-    /// Initialization method: "x" initializes randomly between [-x, x], "0" initializes to 0, anything else identifies a file of values
-    /// Valid values: All
-    /// Defaults to "2"
+    /// Initialization method: `"x"` initializes randomly between [-x,
+    /// x], `"0"` initializes to `0`, anything else identifies a file of
+    /// values.
+    /// Valid values: All.
+    /// Defaults to `"2"`.
     pub init: String,
     /// Random number configuration
     pub random: Random,
     /// File output options
     pub output: Output,
     /// Number of threads available to the program.
-    /// Valid values: num_threads > 0 || num_threads == -1
-    /// Defaults to 1 or the value of the STAN_NUM_THREADS environment variable if set.
+    /// Valid values: `num_threads > 0 || num_threads == -1`.
+    /// Defaults to `1` or the value of the STAN_NUM_THREADS environment variable if set.
     pub num_threads: i32,
 }
 impl Default for ArgumentTree {
@@ -197,9 +199,9 @@ impl ArgumentTreeBuilder {
 /// Input data options
 #[derive(Debug, PartialEq, Clone)]
 pub struct Data {
-    /// Input data file
-    /// Valid values: Path to existing file
-    /// Defaults to ""
+    /// Input data file.
+    /// Valid values: Path to existing file.
+    /// Defaults to `""`.
     pub file: String,
 }
 impl Default for Data {
@@ -224,9 +226,10 @@ impl Data {
 /// Random number configuration
 #[derive(Debug, PartialEq, Clone)]
 pub struct Random {
-    /// Random number generator seed
-    /// Valid values: non-negative integer < 4294967296  or -1 to generate seed from system time
-    /// Defaults to -1
+    /// Random number generator seed.
+    /// Valid values: non-negative integer < `4294967296` or `-1` to
+    /// generate seed from system time.
+    /// Defaults to `-1`.
     pub seed: i64,
 }
 impl Default for Random {
@@ -244,25 +247,27 @@ impl Random {
 /// File output options
 #[derive(Debug, PartialEq, Clone)]
 pub struct Output {
-    /// Output file
-    /// Valid values: Path to existing file
-    /// Defaults to output.csv
+    /// Output file.
+    /// Valid values: Path to existing file.
+    /// Defaults to `"output.csv"`.
     pub file: String,
-    /// Auxiliary output file for diagnostic information
-    /// Valid values: Path to existing file
-    /// Defaults to ""
+    /// Auxiliary output file for diagnostic information.
+    /// Valid values: Path to existing file.
+    /// Defaults to `""`.
     pub diagnostic_file: String,
-    /// Number of interations between screen updates
-    /// Valid values: 0 <= refresh
-    /// Defaults to 100
+    /// Number of interations between screen updates.
+    /// Valid values: `0 <= refresh`.
+    /// Defaults to `100`.
     pub refresh: i32,
-    /// The number of significant figures used for the output CSV files.
-    /// Valid values: 0 <= integer <= 18 or -1 to use the default number of significant figures
-    /// Defaults to -1
+    /// The number of significant figures used for the output CSV
+    /// files.
+    /// Valid values: `0 <= sig_figs <= 18` or `-1` to use the
+    /// default number of significant figures.
+    /// Defaults to` -1`.
     pub sig_figs: i32,
-    /// File to store profiling information
-    /// Valid values: Valid path and write access to the folder
-    /// Defaults to ""
+    /// File to store profiling information.
+    /// Valid values: Valid path and write access to the folder.
+    /// Defaults to `""`.
     pub profile_file: String,
 }
 

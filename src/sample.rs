@@ -61,36 +61,38 @@ impl SampleBuilder {
 #[derive(Debug, PartialEq, Clone)]
 pub struct SampleAdapt {
     /// Adaptation engaged?
-    /// Valid values: [0, 1]
-    /// Defaults to 1
+    /// Defaults to `true`.
+    ///
+    /// At command line, this presents as `false` => 0, `true` => 1,
+    /// with valid values 0 or 1.
     pub engaged: bool,
-    /// Adaptation regularization scale
-    /// Valid values: 0 < gamma
-    /// Defaults to 0.05
+    /// Adaptation regularization scale.
+    /// Valid values: `0 < gamma`.
+    /// Defaults to `0.05`.
     pub gamma: f64,
-    /// Adaptation target acceptance statistic
-    /// Valid values: 0 < delta < 1
-    /// Defaults to 0.8
+    /// Adaptation target acceptance statistic.
+    /// Valid values: `0 < delta < 1`
+    /// Defaults to `0.8`.
     pub delta: f64,
-    /// Adaptation relaxation exponent
-    /// Valid values: 0 < kappa
-    /// Defaults to 0.75
+    /// Adaptation relaxation exponent.
+    /// Valid values: `0 < kappa`.
+    /// Defaults to `0.75`.
     pub kappa: f64,
-    /// Adaptation iteration offset
-    /// Valid values: 0 < t0
-    /// Defaults to 10
+    /// Adaptation iteration offset.
+    /// Valid values: `0 < t0`
+    /// Defaults to `10.0`.
     pub t0: f64,
-    /// Width of initial fast adaptation interval
-    /// Valid values: All
-    /// Defaults to 75
+    /// Width of initial fast adaptation interval.
+    /// Valid values: All.
+    /// Defaults to `75`.
     pub init_buffer: u32,
-    /// Width of final fast adaptation interval
-    /// Valid values: All
-    /// Defaults to 50
+    /// Width of final fast adaptation interval.
+    /// Valid values: All.
+    /// Defaults to `50`.
     pub term_buffer: u32,
-    /// Initial width of slow adaptation interval
-    /// Valid values: All
-    /// Defaults to 25
+    /// Initial width of slow adaptation interval.
+    /// Valid values: All.
+    /// Defaults to `25`.
     pub window: u32,
 }
 impl Default for SampleAdapt {
@@ -235,25 +237,25 @@ impl HmcBuilder {
 pub enum SampleAlgorithm {
     /// Hamiltonian Monte Carlo
     Hmc {
-        /// Engine for Hamiltonian Monte Carlo
-        /// Valid values: static, nuts
-        /// Defaults to nuts
+        /// Engine for Hamiltonian Monte Carlo.
+        /// Valid values: any variant of `Engine`.
+        /// Defaults to `Nuts` (with respective defaults).
         engine: Engine,
-        /// Geometry of base manifold
-        /// Valid values: unit_e, diag_e, dense_e
-        /// Defaults to diag_e
+        /// Geometry of base manifold.
+        /// Valid values: any variant of `Metric`.
+        /// Defaults to `DiagE`.
         metric: Metric,
-        /// Input file with precomputed Euclidean metric
-        /// Valid values: Path to existing file
-        /// Defaults to ""
+        /// Input file with precomputed Euclidean metric.
+        /// Valid values: Path to existing file.
+        /// Defaults to `""`.
         metric_file: String,
-        /// Step size for discrete evolution
-        /// Valid values: 0 < stepsize
-        /// Defaults to 1
+        /// Step size for discrete evolution.
+        /// Valid values: `0 < stepsize`.
+        /// Defaults to `1`.
         stepsize: f64,
-        /// Uniformly random jitter of the stepsize, in percent
-        /// Valid values: 0 <= stepsize_jitter <= 1
-        /// Defaults to 0
+        /// Uniformly random jitter of the stepsize, in percent.
+        /// Valid values: `0 <= stepsize_jitter <= 1`
+        /// Defaults to `0`.
         stepsize_jitter: f64,
     },
     /// Fixed Parameter Sampler
@@ -302,16 +304,16 @@ impl From<HmcBuilder> for SampleAlgorithm {
 pub enum Engine {
     /// Static integration time
     Static {
-        /// Total integration time for Hamiltonian evolution
-        /// Valid values: 0 < int_time
-        /// Defaults to 2 * pi
+        /// Total integration time for Hamiltonian evolution.
+        /// Valid values: `0 < int_time`.
+        /// Defaults to `2 * pi`.
         int_time: f64,
     },
     /// The No-U-Turn Sampler
     Nuts {
-        /// Maximum tree depth
-        /// Valid values: 0 < max_depth
-        /// Defaults to 10
+        /// Maximum tree depth.
+        /// Valid values: `0 < max_depth`.
+        /// Defaults to `10`.
         max_depth: i32,
     },
 }
@@ -384,14 +386,12 @@ impl NutsBuilder {
     }
 }
 
-/// Geometry of base manifold
-/// Valid values: unit_e, diag_e, dense_e
-/// Defaults to diag_e
+/// Geometry of base manifold. Defaults to `DiagE`.
 #[derive(Debug, PartialEq, Default, Clone)]
 pub enum Metric {
     /// Euclidean manifold with unit metric
     UnitE,
-    /// Euclidean manifold with diag metric
+    /// Euclidean manifold with diagonal metric
     #[default]
     DiagE,
     /// Euclidean manifold with dense metric

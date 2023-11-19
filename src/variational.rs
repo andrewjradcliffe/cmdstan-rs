@@ -88,12 +88,14 @@ impl VariationalAlgorithm {
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariationalAdapt {
     /// Boolean flag for eta adaptation.
-    /// Valid values: [0, 1]
-    /// Defaults to 1
+    /// Defaults to `true`.
+    ///
+    /// At command line, this presents as `false` => 0, `true` => 1,
+    /// with valid values 0 or 1.
     pub engaged: bool,
     /// Number of iterations for eta adaptation.
-    /// Valid values: 0 < iter
-    /// Defaults to 50
+    /// Valid values: `0 < iter`.
+    /// Defaults to `50`.
     pub iter: i32,
 }
 impl Default for VariationalAdapt {
