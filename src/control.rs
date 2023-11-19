@@ -1,7 +1,7 @@
 use crate::argument_tree::ArgumentTree;
 use std::fmt::Write;
 use std::process::{self, Command};
-use std::{env, ffi, fs, io, path::Path, path::PathBuf, str};
+use std::{ffi, fs, io, path::Path, path::PathBuf, str};
 use thiserror::Error;
 
 /// Structure to direct compilation and execution of a Stan model.
@@ -15,8 +15,6 @@ pub struct Control {
 
 #[derive(Error, Debug)]
 pub enum CompilationError {
-    #[error("Change directory failed: {0:?}")]
-    ChangeDirectoryError(io::Error),
     #[error("Something happened to the process: {0:?}")]
     ProcessError(io::Error),
     #[error("Make problem: {0}")]
@@ -29,7 +27,8 @@ pub enum CompilationError {
 use CompilationError::*;
 
 impl Control {
-    /// Construct a new instance from a path (`cmdstan`) to a [`CmdStan`](https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html)
+    /// Construct a new instance from a path (`cmdstan`) to a
+    /// [`CmdStan`](https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html)
     /// installation and a path (`model`) to a Stan program.
     pub fn new(cmdstan: &Path, model: &Path) -> Self {
         Self {
@@ -68,49 +67,32 @@ impl Control {
         if self.is_workspace_dirty() {
             self.try_remove_executable()?;
         }
-        let current = env::current_dir().map_err(|e| ChangeDirectoryError(e))?;
-
-        self.try_change_dir(&self.cmdstan)?;
-
-        match self.check_cmdstan_dir() {
-            Ok(()) => (),
-            Err(e) => {
-                self.try_change_dir(&current)?;
-                return Err(e);
-            }
-        }
-        let output = self.make(args);
-        let _ = self.try_change_dir(&current);
-        output
-    }
-
-    /// Try to change directories.
-    fn try_change_dir<P>(&self, path: P) -> Result<(), CompilationError>
-    where
-        P: AsRef<Path>,
-    {
-        env::set_current_dir(path).map_err(|e| ChangeDirectoryError(e))
+        let _ = self.validate_cmdstan()?;
+        self.make(args)
     }
 
     /// Is the workspace dirty? (i.e. is there a pre-existing executable?)
     fn is_workspace_dirty(&self) -> bool {
-        let path: &Path = self.model.as_ref();
-        path.exists()
+        self.model.exists()
     }
     /// Try to remove the executable file.
     fn try_remove_executable(&self) -> Result<(), CompilationError> {
         fs::remove_file(&self.model).map_err(|e| DirtyWorkspaceError(e))
     }
 
-    /// Assuming that the current working directory of the process is
-    /// that of the CmdStan installation, call make with the supplied
-    /// arguments.  Not intended for public API.
+    /// Assuming that `self.cmdstan` is a working `CmdStan` installation,
+    /// call `make` with the supplied arguments.  Not intended for public API.
     fn make<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<ffi::OsStr>,
     {
-        match Command::new("make").args(args).arg(&self.model).output() {
+        match Command::new("make")
+            .current_dir(&self.cmdstan)
+            .args(args)
+            .arg(&self.model)
+            .output()
+        {
             Ok(output) => {
                 if self.executable_works().unwrap_or(false) {
                     Ok(output)
