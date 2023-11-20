@@ -26,6 +26,11 @@ pub enum CompilationError {
 }
 use CompilationError::*;
 
+#[cfg(unix)]
+static MAKE: &'static str = "make";
+#[cfg(windows)]
+static MAKE: &'static str = "mingw32-make";
+
 impl Control {
     /// Construct a new instance from a path (`cmdstan`) to a
     /// [`CmdStan`](https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html)
@@ -87,7 +92,7 @@ impl Control {
         I: IntoIterator<Item = S>,
         S: AsRef<ffi::OsStr>,
     {
-        match Command::new("make")
+        match Command::new(MAKE)
             .current_dir(&self.cmdstan)
             .args(args)
             .arg(&self.model)
@@ -106,13 +111,13 @@ impl Control {
 
     /// Is `self.cmdstan` a working `CmdStan` installation?
     fn validate_cmdstan(&self) -> Result<(), CompilationError> {
-        match Command::new("make").current_dir(&self.cmdstan).output() {
+        match Command::new(MAKE).current_dir(&self.cmdstan).output() {
             Ok(output) => {
                 let stdout = String::from_utf8_lossy(&output.stdout[..]);
                 if !stdout.contains("Build a Stan program") {
                     Err(MakeError(format!(
-                        "Unexpected behavior of `make` in {:?}",
-                        &self.cmdstan
+                        "Unexpected behavior of `{}` in {:?}",
+                        MAKE, &self.cmdstan
                     )))
                 } else {
                     Ok(())

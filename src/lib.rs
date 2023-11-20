@@ -23,6 +23,11 @@ use crate::argument_tree::ArgumentTree;
 use crate::control::Control;
 pub use crate::control::{CompilationError, StanSummaryOptions};
 
+#[cfg(unix)]
+static OS_EXTENSION: &'static str = "";
+#[cfg(windows)]
+static OS_EXTENSION: &'static str = "exe";
+
 /// A high level interface to construct a model
 pub struct CmdStanModel {
     control: Control,
@@ -40,7 +45,7 @@ impl CmdStanModel {
         let stan_file: &Path = stan_file.as_ref();
         if stan_file.extension().is_some_and(|ext| ext == "stan") {
             Self {
-                control: Control::new(cmdstan, stan_file.with_extension("").as_ref()),
+                control: Control::new(cmdstan, stan_file.with_extension(OS_EXTENSION).as_ref()),
             }
         } else {
             Self {
