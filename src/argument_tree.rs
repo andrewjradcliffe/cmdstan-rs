@@ -554,6 +554,20 @@ mod tests {
                 x.diagnostic_files(),
                 vec!["abc.._2.", "abc.._3.", "abc.._4."]
             );
+
+            let x = b
+                .clone()
+                .output(Output::builder().file(",,").diagnostic_file(","))
+                .build();
+            assert_eq!(x.output_files(), vec![",,_2.csv", ",,_3.csv", ",,_4.csv"]);
+            assert_eq!(x.diagnostic_files(), vec![",_2.csv", ",_3.csv", ",_4.csv"]);
+
+            let x = b
+                .clone()
+                .output(Output::builder().file(".xyz").diagnostic_file(".txt"))
+                .build();
+            assert_eq!(x.output_files(), vec!["_2.xyz", "_3.xyz", "_4.xyz"]);
+            assert_eq!(x.diagnostic_files(), vec!["_2.txt", "_3.txt", "_4.txt"]);
         }
     }
 
