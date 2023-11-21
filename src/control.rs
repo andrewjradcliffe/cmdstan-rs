@@ -1,14 +1,17 @@
 use crate::argument_tree::ArgumentTree;
-use std::fmt::Write;
 use std::process::{self, Command};
-use std::{ffi, fs, io, path::Path, path::PathBuf, str};
+use std::{
+    ffi::{OsStr, OsString},
+    fs, io,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 
 /// Structure to direct compilation and execution of a Stan model.
 /// Computation of diagnostics and summaries for said model are
 /// facilitated through the same interface.
 #[derive(Debug, PartialEq, Clone)]
-pub struct Control {
+pub(crate) struct Control {
     cmdstan: PathBuf,
     model: PathBuf,
 }
@@ -35,7 +38,7 @@ impl Control {
     /// Construct a new instance from a path (`cmdstan`) to a
     /// [`CmdStan`](https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html)
     /// installation and a path (`model`) to a Stan program.
-    pub fn new(cmdstan: &Path, model: &Path) -> Self {
+    pub(crate) fn new(cmdstan: &Path, model: &Path) -> Self {
         Self {
             cmdstan: PathBuf::from(cmdstan),
             model: PathBuf::from(model),
@@ -43,31 +46,34 @@ impl Control {
     }
 
     /// Check whether the compiled executable works.
-    pub fn executable_works(&self) -> Result<bool, io::Error> {
+    pub(crate) fn executable_works(&self) -> Result<bool, io::Error> {
         let output = Command::new(&self.model).arg("help").output()?;
         let stdout = String::from_utf8_lossy(&output.stdout[..]);
         Ok(stdout.contains("Bayesian inference with Markov Chain Monte Carlo"))
     }
 
     /// Call the executable with option "info" and return the result.
-    pub fn executable_info(&self) -> Result<process::Output, io::Error> {
+    pub(crate) fn executable_info(&self) -> Result<process::Output, io::Error> {
         Command::new(&self.model).arg("info").output()
     }
 
     /// Attempt to compile the Stan model. If successful,
     /// the output (which may be useful for logging) is returned,
     /// otherwise, the error is coarsely categorized and returned.
-    pub fn compile(&self) -> Result<process::Output, CompilationError> {
+    pub(crate) fn compile(&self) -> Result<process::Output, CompilationError> {
         self.compile_with_args::<[_; 0], &str>([])
     }
 
     /// Attempt to compile the Stan model, passing the given `args` on to
     /// `make`. If successful, the output (which may be useful for logging) is returned,
     /// otherwise, the error is coarsely categorized and returned.
-    pub fn compile_with_args<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
+    pub(crate) fn compile_with_args<I, S>(
+        &self,
+        args: I,
+    ) -> Result<process::Output, CompilationError>
     where
         I: IntoIterator<Item = S>,
-        S: AsRef<ffi::OsStr>,
+        S: AsRef<OsStr>,
     {
         if self.is_workspace_dirty() {
             self.try_remove_executable()?;
@@ -90,7 +96,7 @@ impl Control {
     fn make<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
     where
         I: IntoIterator<Item = S>,
-        S: AsRef<ffi::OsStr>,
+        S: AsRef<OsStr>,
     {
         match Command::new(MAKE)
             .current_dir(&self.cmdstan)
@@ -110,7 +116,7 @@ impl Control {
     }
 
     /// Is `self.cmdstan` a working `CmdStan` installation?
-    fn validate_cmdstan(&self) -> Result<(), CompilationError> {
+    pub(crate) fn validate_cmdstan(&self) -> Result<(), CompilationError> {
         match Command::new(MAKE).current_dir(&self.cmdstan).output() {
             Ok(output) => {
                 let stdout = String::from_utf8_lossy(&output.stdout[..]);
@@ -128,7 +134,10 @@ impl Control {
     }
 
     /// Call the executable with the arguments given by `arg_tree`.
-    pub fn call_executable(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
+    pub(crate) fn call_executable(
+        &self,
+        arg_tree: &ArgumentTree,
+    ) -> Result<process::Output, io::Error> {
         Command::new(&self.model)
             .args(arg_tree.command_vec())
             .output()
@@ -138,19 +147,32 @@ impl Control {
     /// check for potential problems.  See
     /// <https://mc-stan.org/docs/cmdstan-guide/diagnose.html> for
     /// more information.
-    pub fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
+    ///
+    /// Most likely, this is not the behavior you were looking for.
+    /// In contrast to the method on `CmdStanOutput`, which
+    /// attempts to use absolute paths by inspection of the `ArgumentTree`
+    /// and context which produced the `CmdStanOutput`, this
+    /// blindly uses the `ArgumentTree`.
+
+    fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
         let files = arg_tree.output_files();
         let mut path = PathBuf::from(&self.cmdstan);
         path.push("bin");
         path.push("diagnose");
-        Command::new(path).args(files.into_iter()).output()
+        Command::new(path).args(files).output()
     }
 
     /// Report statistics for one or more Stan csv files from a HMC
     /// sampler run.  See
     /// <https://mc-stan.org/docs/cmdstan-guide/stansummary.html> for
     /// more information.
-    pub fn stansummary(
+    ///
+    /// Most likely, this is not the behavior you were looking for.
+    /// In contrast to the method on `CmdStanOutput`, which
+    /// attempts to use absolute paths by inspection of the `ArgumentTree`
+    /// and context which produced the `CmdStanOutput`, this
+    /// blindly uses the `ArgumentTree`.
+    fn stansummary(
         &self,
         arg_tree: &ArgumentTree,
         opts: Option<StanSummaryOptions>,
@@ -159,16 +181,15 @@ impl Control {
         let mut path = PathBuf::from(&self.cmdstan);
         path.push("bin");
         path.push("stansummary");
+        let mut cmd = Command::new(path);
+        cmd.args(files);
         match opts {
-            Some(opts) => Command::new(path)
-                .args(files.into_iter())
-                .args(opts.command_fragment().split_whitespace())
-                .output(),
-            None => Command::new(path).args(files.into_iter()).output(),
+            Some(opts) => cmd.args(opts.command_fragment()).output(),
+            None => cmd.output(),
         }
     }
 
-    pub fn cmdstan<'a>(&'a self) -> &'a Path {
+    pub(crate) fn cmdstan<'a>(&'a self) -> &'a Path {
         &self.cmdstan
     }
 }

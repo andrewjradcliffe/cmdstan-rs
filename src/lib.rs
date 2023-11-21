@@ -11,7 +11,7 @@ use std::{
 mod internal_macros;
 
 pub mod argument_tree;
-pub mod control;
+mod control;
 pub mod diagnose;
 pub mod generate_quantities;
 pub mod laplace;
@@ -100,6 +100,11 @@ impl CmdStanModel {
     /// Call the executable with option "info" and return the result.
     pub fn executable_info(&self) -> io::Result<process::Output> {
         self.control.executable_info()
+    }
+
+    /// Does `self` hold a working `CmdStan` installation?
+    pub fn validate_cmdstan(&self) -> Result<(), CompilationError> {
+        self.control.validate_cmdstan()
     }
 }
 
