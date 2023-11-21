@@ -35,7 +35,7 @@ fn main() {
                 .build(),
         )
         .data(Data {
-            file: data_file.to_string_lossy().to_string(),
+            file: data_file.into(),
         })
         .id(2)
         .init("1")
@@ -43,7 +43,8 @@ fn main() {
         .output(
             OutputBuilder::new()
                 .sig_figs(4)
-                .file(output_file.to_string_lossy())
+                .file(output_file)
+                .profile_file(path.join("profile"))
                 .build(),
         )
         .num_threads(48)
@@ -71,11 +72,14 @@ fn main() {
             let csv_filename = path.join("stansummary.csv");
             let summary_opts = StanSummaryOptions {
                 autocorr: None,
-                csv_filename: Some(csv_filename.to_string_lossy().to_string()),
+                csv_filename: Some(csv_filename.into()),
                 percentiles: Some(vec![5, 25, 50, 75, 95]),
                 sig_figs: Some(6),
             };
             println!("{:#?}", output.stansummary(Some(summary_opts)));
+            println!("{:#?}", output.output_files());
+            println!("{:#?}", output.diagnostic_files());
+            println!("{:#?}", output.profile_files());
         }
         Err(e) => {
             println!("Something seems to have gone wrong...\n{:#?}", e);
