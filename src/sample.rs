@@ -1,5 +1,5 @@
 use crate::method::Method;
-use std::fmt::Write;
+use std::ffi::OsString;
 
 /// Options builder for [`Method::Sample`].
 /// For any option left unspecified, the default value indicated
@@ -96,25 +96,24 @@ pub struct SampleAdapt {
     pub window: u32,
 }
 impl Default for SampleAdapt {
-    // Rather than define the defaults in two places, the `build` method of SampleAdaptBuilder,
-    // called on an all-None builder, should serve as the single source of truth.
     fn default() -> Self {
-        SampleAdaptBuilder::new().build()
+        Self::builder().build()
     }
 }
 
 impl SampleAdapt {
-    pub fn command_fragment(&self) -> String {
-        let mut s = String::from("adapt");
-        write!(&mut s, " engaged={}", self.engaged as u8).unwrap();
-        write!(&mut s, " gamma={}", self.gamma).unwrap();
-        write!(&mut s, " delta={}", self.delta).unwrap();
-        write!(&mut s, " kappa={}", self.kappa).unwrap();
-        write!(&mut s, " t0={}", self.t0).unwrap();
-        write!(&mut s, " init_buffer={}", self.init_buffer).unwrap();
-        write!(&mut s, " term_buffer={}", self.term_buffer).unwrap();
-        write!(&mut s, " window={}", self.window).unwrap();
-        s
+    pub fn command_fragment(&self) -> Vec<OsString> {
+        vec![
+            "adapt".into(),
+            format!("engaged={}", self.engaged as u8).into(),
+            format!("gamma={}", self.gamma).into(),
+            format!("delta={}", self.delta).into(),
+            format!("kappa={}", self.kappa).into(),
+            format!("t0={}", self.t0).into(),
+            format!("init_buffer={}", self.init_buffer).into(),
+            format!("term_buffer={}", self.term_buffer).into(),
+            format!("window={}", self.window).into(),
+        ]
     }
     /// Return a builder with all options unspecified.
     pub fn builder() -> SampleAdaptBuilder {
@@ -193,7 +192,7 @@ impl SampleAdaptBuilder {
 pub struct HmcBuilder {
     engine: Option<Engine>,
     metric: Option<Metric>,
-    metric_file: Option<String>,
+    metric_file: Option<OsString>,
     stepsize: Option<f64>,
     stepsize_jitter: Option<f64>,
 }
@@ -212,14 +211,14 @@ impl HmcBuilder {
 
     insert_into_field!(engine, Engine);
     insert_field!(metric, Metric);
-    insert_into_field!(metric_file, String);
+    insert_into_field!(metric_file, OsString);
     insert_field!(stepsize, f64);
     insert_field!(stepsize_jitter, f64);
     /// Build the `SampleAlgorithm::Hmc` instance.
     pub fn build(self) -> SampleAlgorithm {
         let engine = self.engine.unwrap_or_default();
         let metric = self.metric.unwrap_or_default();
-        let metric_file = self.metric_file.unwrap_or_else(|| "".to_string());
+        let metric_file = self.metric_file.unwrap_or_else(|| "".into());
         let stepsize = self.stepsize.unwrap_or(1.0);
         let stepsize_jitter = self.stepsize_jitter.unwrap_or(0.0);
         SampleAlgorithm::Hmc {
@@ -248,7 +247,7 @@ pub enum SampleAlgorithm {
         /// Input file with precomputed Euclidean metric.
         /// Valid values: Path to existing file.
         /// Defaults to `""`.
-        metric_file: String,
+        metric_file: OsString,
         /// Step size for discrete evolution.
         /// Valid values: `0 < stepsize`.
         /// Defaults to `1`.
@@ -269,7 +268,7 @@ impl Default for SampleAlgorithm {
 }
 
 impl SampleAlgorithm {
-    pub fn command_fragment(&self) -> String {
+    pub fn command_fragment(&self) -> Vec<OsString> {
         match &self {
             Self::Hmc {
                 engine,
@@ -278,18 +277,23 @@ impl SampleAlgorithm {
                 stepsize,
                 stepsize_jitter,
             } => {
-                let mut s = String::from("algorithm=hmc");
-                write!(&mut s, " {}", engine.command_fragment()).unwrap();
-                write!(&mut s, " {}", metric.command_fragment()).unwrap();
-                match metric_file.as_ref() {
-                    "" => (),
-                    x => write!(&mut s, " metric_file={}", x).unwrap(),
+                let mut engine = engine.command_fragment();
+                let mut metric = metric.command_fragment();
+                let mut v = Vec::with_capacity(4 + engine.len() + metric.len());
+                v.push("algorithm=hmc".into());
+                v.append(&mut engine);
+                v.append(&mut metric);
+                if !metric_file.is_empty() {
+                    let mut s = OsString::with_capacity(12 + metric_file.len());
+                    s.push("metric_file=");
+                    s.push(metric_file);
+                    v.push(s);
                 }
-                write!(&mut s, " stepsize={}", stepsize).unwrap();
-                write!(&mut s, " stepsize_jitter={}", stepsize_jitter).unwrap();
-                s
+                v.push(format!("stepsize={}", stepsize).into());
+                v.push(format!("stepsize_jitter={}", stepsize_jitter).into());
+                v
             }
-            Self::FixedParam => "algorithm=fixed_param".to_string(),
+            Self::FixedParam => vec!["algorithm=fixed_param".into()],
         }
     }
 }
@@ -324,13 +328,19 @@ impl Default for Engine {
 }
 
 impl Engine {
-    pub fn command_fragment(&self) -> String {
+    pub fn command_fragment(&self) -> Vec<OsString> {
         match &self {
             Engine::Nuts { max_depth } => {
-                format!("engine=nuts max_depth={}", max_depth)
+                vec![
+                    "engine=nuts".into(),
+                    format!("max_depth={}", max_depth).into(),
+                ]
             }
             Engine::Static { int_time } => {
-                format!("engine=static int_time={}", int_time)
+                vec![
+                    "engine=static".into(),
+                    format!("int_time={}", int_time).into(),
+                ]
             }
         }
     }
@@ -399,13 +409,13 @@ pub enum Metric {
 }
 
 impl Metric {
-    pub fn command_fragment(&self) -> String {
-        match &self {
+    pub fn command_fragment(&self) -> Vec<OsString> {
+        let s = match &self {
             Metric::UnitE => "metric=unit_e",
             Metric::DiagE => "metric=diag_e",
             Metric::DenseE => "metric=dense_e",
-        }
-        .to_string()
+        };
+        vec![s.into()]
     }
 }
 
@@ -518,7 +528,20 @@ mod tests {
         #[test]
         fn command_fragment() {
             let x = SampleAdapt::default();
-            assert_eq!(x.command_fragment(), "adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25");
+            assert_eq!(
+                x.command_fragment(),
+                vec![
+                    "adapt",
+                    "engaged=1",
+                    "gamma=0.05",
+                    "delta=0.8",
+                    "kappa=0.75",
+                    "t0=10",
+                    "init_buffer=75",
+                    "term_buffer=50",
+                    "window=25",
+                ]
+            );
 
             let x = SampleAdapt::builder()
                 .engaged(false)
@@ -530,7 +553,20 @@ mod tests {
                 .term_buffer(2)
                 .window(3)
                 .build();
-            assert_eq!(x.command_fragment(), "adapt engaged=0 gamma=0.1 delta=0.2 kappa=0.3 t0=0.4 init_buffer=1 term_buffer=2 window=3");
+            assert_eq!(
+                x.command_fragment(),
+                vec![
+                    "adapt",
+                    "engaged=0",
+                    "gamma=0.1",
+                    "delta=0.2",
+                    "kappa=0.3",
+                    "t0=0.4",
+                    "init_buffer=1",
+                    "term_buffer=2",
+                    "window=3",
+                ]
+            );
         }
     }
 
@@ -543,7 +579,7 @@ mod tests {
             let x = HmcBuilder::new()
                 .engine(Engine::Static { int_time: 2.5 })
                 .metric(Metric::DenseE)
-                .metric_file("big.txt".to_string())
+                .metric_file("big.txt")
                 .stepsize(10.0)
                 .stepsize_jitter(0.5)
                 .build();
@@ -583,7 +619,14 @@ mod tests {
             let mut x = HmcBuilder::new().build();
             assert_eq!(
                 x.command_fragment(),
-                "algorithm=hmc engine=nuts max_depth=10 metric=diag_e stepsize=1 stepsize_jitter=0"
+                vec![
+                    "algorithm=hmc",
+                    "engine=nuts",
+                    "max_depth=10",
+                    "metric=diag_e",
+                    "stepsize=1",
+                    "stepsize_jitter=0",
+                ]
             );
             let SampleAlgorithm::Hmc {
                 ref mut metric_file,
@@ -592,27 +635,42 @@ mod tests {
             else {
                 unreachable!()
             };
-            metric_file.push_str("my_metric.json");
-
+            metric_file.push("my_metric.json");
             assert_eq!(
                 x.command_fragment(),
-                "algorithm=hmc engine=nuts max_depth=10 metric=diag_e metric_file=my_metric.json stepsize=1 stepsize_jitter=0"
+                vec![
+                    "algorithm=hmc",
+                    "engine=nuts",
+                    "max_depth=10",
+                    "metric=diag_e",
+                    "metric_file=my_metric.json",
+                    "stepsize=1",
+                    "stepsize_jitter=0",
+                ]
             );
 
             let x = HmcBuilder::new()
                 .engine(Engine::Static { int_time: 2.5 })
                 .metric(Metric::DenseE)
-                .metric_file("big.txt".to_string())
+                .metric_file("big.txt")
                 .stepsize(10.0)
                 .stepsize_jitter(0.5)
                 .build();
+
             assert_eq!(
                 x.command_fragment(),
-                "algorithm=hmc engine=static int_time=2.5 metric=dense_e metric_file=big.txt stepsize=10 stepsize_jitter=0.5"
+                vec![
+                    "algorithm=hmc",
+                    "engine=static",
+                    "int_time=2.5",
+                    "metric=dense_e",
+                    "metric_file=big.txt",
+                    "stepsize=10",
+                    "stepsize_jitter=0.5",
+                ]
             );
-
             let x = SampleAlgorithm::FixedParam;
-            assert_eq!(x.command_fragment(), "algorithm=fixed_param");
+            assert_eq!(x.command_fragment(), vec!["algorithm=fixed_param"]);
         }
     }
 
@@ -654,14 +712,17 @@ mod tests {
         #[test]
         fn command_fragment() {
             let x = Engine::default();
-            assert_eq!(x.command_fragment(), "engine=nuts max_depth=10");
+            assert_eq!(x.command_fragment(), vec!["engine=nuts", "max_depth=10"]);
 
             let x = Engine::Static {
                 int_time: std::f64::consts::TAU,
             };
             assert_eq!(
                 x.command_fragment(),
-                format!("engine=static int_time={}", std::f64::consts::TAU)
+                vec![
+                    "engine=static",
+                    format!("int_time={}", std::f64::consts::TAU).as_str()
+                ]
             );
         }
     }
@@ -679,11 +740,11 @@ mod tests {
         #[test]
         fn command_fragment() {
             let x = Metric::UnitE;
-            assert_eq!(x.command_fragment(), "metric=unit_e");
+            assert_eq!(x.command_fragment(), vec!["metric=unit_e"]);
             let x = Metric::DiagE;
-            assert_eq!(x.command_fragment(), "metric=diag_e");
+            assert_eq!(x.command_fragment(), vec!["metric=diag_e"]);
             let x = Metric::DenseE;
-            assert_eq!(x.command_fragment(), "metric=dense_e");
+            assert_eq!(x.command_fragment(), vec!["metric=dense_e"]);
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::method::*;
 use std::env;
-use std::fmt::Write;
+use std::ffi::{OsStr, OsString};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ArgumentTree {
@@ -17,7 +17,7 @@ pub struct ArgumentTree {
     /// values.
     /// Valid values: All.
     /// Defaults to `"2"`.
-    pub init: String,
+    pub init: OsString,
     /// Random number configuration
     pub random: Random,
     /// File output options
@@ -33,17 +33,36 @@ impl Default for ArgumentTree {
     }
 }
 impl ArgumentTree {
-    pub fn command_string(&self) -> String {
-        let mut s = self.method.command_fragment();
-        write!(&mut s, " id={}", self.id).unwrap();
-        match self.data.command_fragment().as_ref() {
-            "" => (),
-            x => write!(&mut s, " {}", x).unwrap(),
+    pub fn command_vec(&self) -> Vec<OsString> {
+        let mut method = self.method.command_fragment();
+        let mut data = self.data.command_fragment();
+        let mut random = self.random.command_fragment();
+        let mut output = self.output.command_fragment();
+        let mut v = Vec::with_capacity(3 + method.len() + data.len() + random.len() + output.len());
+        v.append(&mut method);
+        v.push(OsString::from(format!("id={}", self.id)));
+        v.append(&mut data);
+        let mut s = OsString::with_capacity(5 + self.init.len());
+        s.push("init=");
+        s.push(&self.init);
+        v.push(s);
+        v.append(&mut random);
+        v.append(&mut output);
+        v.push(OsString::from(format!("num_threads={}", self.num_threads)));
+        v
+    }
+    pub fn command_os_string(&self) -> OsString {
+        let v: Vec<_> = self.command_vec();
+        let n: usize = v.iter().map(|x| x.len()).sum();
+        let mut s = OsString::with_capacity(n + v.len() - 1);
+        let mut iter = v.into_iter();
+        if let Some(x) = iter.next() {
+            s.push(x);
         }
-        write!(&mut s, " init={}", self.init).unwrap();
-        write!(&mut s, " {}", self.random.command_fragment()).unwrap();
-        write!(&mut s, " {}", self.output.command_fragment()).unwrap();
-        write!(&mut s, " num_threads={}", self.num_threads).unwrap();
+        while let Some(x) = iter.next() {
+            s.push(" ");
+            s.push(x);
+        }
         s
     }
     /// Return a builder with all options unspecified.
@@ -51,42 +70,60 @@ impl ArgumentTree {
         ArgumentTreeBuilder::new()
     }
 
-    fn files<F>(&self, f: F) -> Vec<String>
+    fn files<F>(&self, f: F) -> Vec<OsString>
     where
-        F: Fn(&ArgumentTree) -> &str,
+        F: Fn(&ArgumentTree) -> &OsStr,
     {
-        let mut files: Vec<String> = Vec::new();
+        let mut files: Vec<OsString> = Vec::new();
         let file = f(&self);
-        let (prefix, suffix) = match file.rsplit_once(".") {
-            Some((prefix, suffix)) => (prefix, suffix),
-            None => (file, "csv"),
-        };
-        match &self.method {
-            Method::Sample { num_chains, .. } => {
-                if *num_chains != 1 {
-                    let id = self.id.clone();
-                    (id..id + num_chains).for_each(|id| {
-                        files.push(format!("{prefix}_{id}.{suffix}"));
-                    });
-                } else {
-                    files.push(format!("{prefix}.{suffix}"));
+        let bytes = file.as_encoded_bytes();
+        let mut iter = bytes.rsplitn(2, |b| *b == b'.');
+
+        let (prefix, suffix) = match (iter.next(), iter.next()) {
+            (Some(suffix), Some(prefix)) => {
+                // SAFETY:
+                // - each fragment only contains content that originated
+                //   from `OsStr::as_encoded_bytes`.
+                // - split with ASCII period, which is a non-empty UTF-8
+                //   substring
+                unsafe {
+                    (
+                        OsStr::from_encoded_bytes_unchecked(prefix),
+                        OsStr::from_encoded_bytes_unchecked(suffix),
+                    )
                 }
             }
+            _ => (file, "csv".as_ref()),
+        };
+        match &self.method {
+            Method::Sample { num_chains, .. } if *num_chains != 1 => {
+                let id = self.id.clone();
+                (id..id + num_chains).for_each(|id| {
+                    let mut s = prefix.to_os_string();
+                    s.push(format!("_{id}."));
+                    s.push(suffix);
+                    files.push(s);
+                });
+            }
             _ => {
-                files.push(format!("{prefix}.{suffix}"));
+                let mut s = prefix.to_os_string();
+                s.push(".");
+                s.push(suffix);
+                files.push(s);
             }
         }
         files
     }
+
     /// Return the output file path(s), as implied by the configuration of `self`.
     /// Typically, these will not be literal files on the filesystem.
-    pub fn output_files(&self) -> Vec<String> {
+    pub fn output_files(&self) -> Vec<OsString> {
         self.files(|tree| &tree.output.file)
     }
     /// Return the diagnostic file path(s), as implied by the configuration of `self`.
     /// Typically, these will not be literal files on the filesystem.
-    pub fn diagnostic_files(&self) -> Vec<String> {
-        if self.output.diagnostic_file == "" {
+    pub fn diagnostic_files(&self) -> Vec<OsString> {
+        if self.output.diagnostic_file.is_empty() {
             Vec::new()
         } else {
             self.files(|tree| &tree.output.diagnostic_file)
@@ -94,43 +131,95 @@ impl ArgumentTree {
     }
     /// Return the profile file path(s), as implied by the configuration of `self`.
     /// Typically, these will not be literal files on the filesystem.
-    pub fn profile_files(&self) -> Vec<String> {
-        vec![if self.output.profile_file == "" {
-            "profile.csv".to_string()
+    pub fn profile_files(&self) -> Vec<OsString> {
+        vec![if self.output.profile_file.is_empty() {
+            "profile.csv".into()
         } else {
-            self.output.profile_file.to_string()
+            self.output.profile_file.clone()
         }]
     }
     /// Return the single-path pathfinder file path(s), if
     /// appropriate, as implied by the configuration of `self`.
     /// Typically, these will not be literal files on the filesystem.
-    pub fn single_path_pathfinder_files(&self) -> Option<Vec<String>> {
+    // pub fn single_path_pathfinder_files(&self) -> Option<Vec<String>> {
+    //     match &self.method {
+    //         Method::Pathfinder {
+    //             save_single_paths,
+    //             num_paths,
+    //             ..
+    //         } => {
+    //             let mut files: Vec<String> = Vec::new();
+    //             if *save_single_paths {
+    //                 let file = &self.output.file;
+    //                 // Note that at present, it is easy to confuse `CmdStan` with
+    //                 // too many '.' interspersed in self.output.file.
+    //                 // Thus, this may not necessarily reproduce the files
+    //                 // particularly well.
+    //                 let prefix = match file.rsplit_once(".") {
+    //                     Some((prefix, _)) => prefix,
+    //                     None => file,
+    //                 };
+    //                 if *num_paths != 1 {
+    //                     let id = self.id.clone();
+    //                     (id..id + num_paths).for_each(|id| {
+    //                         files.push(format!("{prefix}_path_{id}.csv"));
+    //                         files.push(format!("{prefix}_path_{id}.json"));
+    //                     });
+    //                 } else {
+    //                     files.push(format!("{prefix}.csv"));
+    //                     files.push(format!("{prefix}.json"));
+    //                 }
+    //             }
+    //             Some(files)
+    //         }
+    //         _ => None,
+    //     }
+    // }
+    pub fn single_path_pathfinder_files(&self) -> Option<Vec<OsString>> {
         match &self.method {
             Method::Pathfinder {
                 save_single_paths,
                 num_paths,
                 ..
             } => {
-                let mut files: Vec<String> = Vec::new();
+                let mut files: Vec<OsString> = Vec::new();
                 if *save_single_paths {
-                    let file = &self.output.file;
+                    let file: &OsStr = self.output.file.as_ref();
                     // Note that at present, it is easy to confuse `CmdStan` with
                     // too many '.' interspersed in self.output.file.
                     // Thus, this may not necessarily reproduce the files
                     // particularly well.
-                    let prefix = match file.rsplit_once(".") {
-                        Some((prefix, _)) => prefix,
-                        None => file,
+                    let bytes = file.as_encoded_bytes();
+                    let mut iter = bytes.rsplitn(2, |b| *b == b'.');
+                    let prefix = match (iter.next(), iter.next()) {
+                        (Some(_), Some(prefix)) => {
+                            // SAFETY:
+                            // - each fragment only contains content that originated
+                            //   from `OsStr::as_encoded_bytes`.
+                            // - split with ASCII period, which is a non-empty UTF-8
+                            //   substring
+                            unsafe { OsStr::from_encoded_bytes_unchecked(prefix) }
+                        }
+                        _ => file,
                     };
                     if *num_paths != 1 {
                         let id = self.id.clone();
                         (id..id + num_paths).for_each(|id| {
-                            files.push(format!("{prefix}_path_{id}.csv"));
-                            files.push(format!("{prefix}_path_{id}.json"));
+                            let mut s1 = prefix.to_os_string();
+                            s1.push(format!("_path_{id}."));
+                            let mut s2 = s1.clone();
+                            s1.push("csv");
+                            s2.push("json");
+                            files.push(s1);
+                            files.push(s2);
                         });
                     } else {
-                        files.push(format!("{prefix}.csv"));
-                        files.push(format!("{prefix}.json"));
+                        let mut s1 = prefix.to_os_string();
+                        let mut s2 = s1.clone();
+                        s1.push(".csv");
+                        s2.push(".json");
+                        files.push(s1);
+                        files.push(s2);
                     }
                 }
                 Some(files)
@@ -148,7 +237,7 @@ pub struct ArgumentTreeBuilder {
     method: Option<Method>,
     id: Option<i32>,
     data: Option<Data>,
-    init: Option<String>,
+    init: Option<OsString>,
     random: Option<Random>,
     output: Option<Output>,
     num_threads: Option<i32>,
@@ -169,7 +258,7 @@ impl ArgumentTreeBuilder {
     insert_into_field!(method, Method);
     insert_field!(id, i32);
     insert_field!(data, Data);
-    insert_into_field!(init, String);
+    insert_into_field!(init, OsString);
     insert_field!(random, Random);
     insert_into_field!(output, Output);
     insert_field!(num_threads, i32);
@@ -178,7 +267,7 @@ impl ArgumentTreeBuilder {
         let method = self.method.unwrap_or_default();
         let id = self.id.unwrap_or(1);
         let data = self.data.unwrap_or_default();
-        let init = self.init.unwrap_or_else(|| "2".to_string());
+        let init = self.init.unwrap_or_else(|| "2".into());
         let random = self.random.unwrap_or_default();
         let output = self.output.unwrap_or_default();
         let num_threads = self.num_threads.unwrap_or_else(|| {
@@ -202,24 +291,25 @@ pub struct Data {
     /// Input data file.
     /// Valid values: Path to existing file.
     /// Defaults to `""`.
-    pub file: String,
+    pub file: OsString,
 }
 impl Default for Data {
     fn default() -> Self {
-        Self {
-            file: "".to_string(),
-        }
+        Self { file: "".into() }
     }
 }
 
 impl Data {
-    pub fn command_fragment(&self) -> String {
-        let mut s = String::new();
-        match self.file.as_ref() {
-            "" => (),
-            x => write!(&mut s, "data file={}", x).unwrap(),
+    pub fn command_fragment(&self) -> Vec<OsString> {
+        let mut v = Vec::with_capacity(2);
+        if !self.file.is_empty() {
+            v.push("data".into());
+            let mut s = OsString::with_capacity(5 + self.file.len());
+            s.push("file=");
+            s.push(&self.file);
+            v.push(s);
         }
-        s
+        v
     }
 }
 
@@ -239,8 +329,8 @@ impl Default for Random {
 }
 
 impl Random {
-    pub fn command_fragment(&self) -> String {
-        format!("random seed={}", self.seed)
+    pub fn command_fragment(&self) -> Vec<OsString> {
+        vec!["random".into(), format!("seed={}", self.seed).into()]
     }
 }
 
@@ -250,11 +340,11 @@ pub struct Output {
     /// Output file.
     /// Valid values: Path to existing file.
     /// Defaults to `"output.csv"`.
-    pub file: String,
+    pub file: OsString,
     /// Auxiliary output file for diagnostic information.
     /// Valid values: Path to existing file.
     /// Defaults to `""`.
-    pub diagnostic_file: String,
+    pub diagnostic_file: OsString,
     /// Number of interations between screen updates.
     /// Valid values: `0 <= refresh`.
     /// Defaults to `100`.
@@ -268,29 +358,38 @@ pub struct Output {
     /// File to store profiling information.
     /// Valid values: Valid path and write access to the folder.
     /// Defaults to `""`.
-    pub profile_file: String,
+    pub profile_file: OsString,
 }
 
 impl Default for Output {
     fn default() -> Self {
-        OutputBuilder::new().build()
+        Self::builder().build()
     }
 }
 
 impl Output {
-    pub fn command_fragment(&self) -> String {
-        let mut s = format!("output file={}", self.file);
-        match self.diagnostic_file.as_ref() {
-            "" => (),
-            x => write!(&mut s, " diagnostic_file={}", x).unwrap(),
+    pub fn command_fragment(&self) -> Vec<OsString> {
+        let mut v = Vec::with_capacity(6);
+        v.push("output".into());
+        let mut s = OsString::with_capacity(5 + self.file.len());
+        s.push("file=");
+        s.push(&self.file);
+        v.push(s);
+        if !self.diagnostic_file.is_empty() {
+            let mut s = OsString::with_capacity(16 + self.diagnostic_file.len());
+            s.push("diagnostic_file=");
+            s.push(&self.diagnostic_file);
+            v.push(s);
         }
-        write!(&mut s, " refresh={}", self.refresh).unwrap();
-        write!(&mut s, " sig_figs={}", self.sig_figs).unwrap();
-        match self.profile_file.as_ref() {
-            "" => (),
-            x => write!(&mut s, " profile_file={}", x).unwrap(),
+        v.push(format!("refresh={}", self.refresh).into());
+        v.push(format!("sig_figs={}", self.sig_figs).into());
+        if !self.profile_file.is_empty() {
+            let mut s = OsString::with_capacity(13 + self.profile_file.len());
+            s.push("profile_file=");
+            s.push(&self.profile_file);
+            v.push(s);
         }
-        s
+        v
     }
     /// Return a builder with all options unspecified.
     pub fn builder() -> OutputBuilder {
@@ -309,11 +408,11 @@ impl From<OutputBuilder> for Output {
 /// on `Output` will be supplied.
 #[derive(Debug, PartialEq, Clone)]
 pub struct OutputBuilder {
-    file: Option<String>,
-    diagnostic_file: Option<String>,
+    file: Option<OsString>,
+    diagnostic_file: Option<OsString>,
     refresh: Option<i32>,
     sig_figs: Option<i32>,
-    profile_file: Option<String>,
+    profile_file: Option<OsString>,
 }
 
 impl OutputBuilder {
@@ -327,18 +426,18 @@ impl OutputBuilder {
             profile_file: None,
         }
     }
-    insert_into_field!(file, String);
-    insert_into_field!(diagnostic_file, String);
+    insert_into_field!(file, OsString);
+    insert_into_field!(diagnostic_file, OsString);
     insert_field!(refresh, i32);
     insert_field!(sig_figs, i32);
-    insert_into_field!(profile_file, String);
+    insert_into_field!(profile_file, OsString);
     /// Build the `Output` instance.
     pub fn build(self) -> Output {
-        let file = self.file.unwrap_or_else(|| "output.csv".to_string());
-        let diagnostic_file = self.diagnostic_file.unwrap_or_else(|| "".to_string());
+        let file = self.file.unwrap_or_else(|| "output.csv".into());
+        let diagnostic_file = self.diagnostic_file.unwrap_or_else(|| "".into());
         let refresh = self.refresh.unwrap_or(100);
         let sig_figs = self.sig_figs.unwrap_or(-1);
-        let profile_file = self.profile_file.unwrap_or_else(|| "".to_string());
+        let profile_file = self.profile_file.unwrap_or_else(|| "".into());
         Output {
             file,
             diagnostic_file,
@@ -363,16 +462,16 @@ mod tests {
             let method = SampleBuilder::new().num_chains(10_000).build();
             let id = 2;
             let data = Data {
-                file: "bernoulli.json".to_string(),
+                file: "bernoulli.json".into(),
             };
-            let init = "5".to_string();
+            let init: OsString = "5".into();
             let random = Random { seed: 12345 };
             let output = Output {
-                file: "hello.csv".to_string(),
-                diagnostic_file: "world.txt".to_string(),
+                file: "hello.csv".into(),
+                diagnostic_file: "world.txt".into(),
                 refresh: 1,
                 sig_figs: 18,
-                profile_file: "foo.txt".to_string(),
+                profile_file: "foo.txt".into(),
             };
             let num_threads = 48;
             let x = ArgumentTree::builder()
@@ -402,17 +501,15 @@ mod tests {
         fn default() {
             let method = SampleBuilder::new().build();
             let id = 1;
-            let data = Data {
-                file: "".to_string(),
-            };
-            let init = "2".to_string();
+            let data = Data { file: "".into() };
+            let init: OsString = "2".into();
             let random = Random { seed: -1 };
             let output = Output {
-                file: "output.csv".to_string(),
-                diagnostic_file: "".to_string(),
+                file: "output.csv".into(),
+                diagnostic_file: "".into(),
                 refresh: 100,
                 sig_figs: -1,
-                profile_file: "".to_string(),
+                profile_file: "".into(),
             };
             let num_threads = 1;
             assert_eq!(
@@ -430,9 +527,9 @@ mod tests {
         }
 
         #[test]
-        fn command_string() {
+        fn command_os_string() {
             let x = ArgumentTree::default();
-            assert_eq!(x.command_string(), "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=1 id=1 init=2 random seed=-1 output file=output.csv refresh=100 sig_figs=-1 num_threads=1");
+            assert_eq!(x.command_os_string(), "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=1 id=1 init=2 random seed=-1 output file=output.csv refresh=100 sig_figs=-1 num_threads=1");
 
             let method = SampleBuilder::new()
                 .num_chains(10)
@@ -445,16 +542,16 @@ mod tests {
                 .build();
             let id = 2;
             let data = Data {
-                file: "bernoulli.json".to_string(),
+                file: "bernoulli.json".into(),
             };
-            let init = "5".to_string();
+            let init: OsString = "5".into();
             let random = Random { seed: 12345 };
             let output = Output {
-                file: "hello.csv".to_string(),
-                diagnostic_file: "world.txt".to_string(),
+                file: "hello.csv".into(),
+                diagnostic_file: "world.txt".into(),
                 refresh: 1,
                 sig_figs: 18,
-                profile_file: "foo.txt".to_string(),
+                profile_file: "foo.txt".into(),
             };
             let num_threads = 48;
             let x = ArgumentTree {
@@ -466,7 +563,7 @@ mod tests {
                 output,
                 num_threads,
             };
-            assert_eq!(x.command_string(), "method=sample num_samples=10000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=100 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=10 id=2 data file=bernoulli.json init=5 random seed=12345 output file=hello.csv diagnostic_file=world.txt refresh=1 sig_figs=18 profile_file=foo.txt num_threads=48");
+            assert_eq!(x.command_os_string(), "method=sample num_samples=10000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=100 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=10 id=2 data file=bernoulli.json init=5 random seed=12345 output file=hello.csv diagnostic_file=world.txt refresh=1 sig_figs=18 profile_file=foo.txt num_threads=48");
 
             let method = SampleBuilder::new()
                 .num_chains(10)
@@ -479,16 +576,16 @@ mod tests {
                 .build();
             let id = 2;
             let data = Data {
-                file: "bernoulli.json".to_string(),
+                file: "bernoulli.json".into(),
             };
-            let init = "5".to_string();
+            let init: OsString = "5".into();
             let random = Random { seed: 12345 };
             let output = Output {
-                file: "hello.csv".to_string(),
-                diagnostic_file: "world.txt".to_string(),
+                file: "hello.csv".into(),
+                diagnostic_file: "world.txt".into(),
                 refresh: 1,
                 sig_figs: 18,
-                profile_file: "foo.txt".to_string(),
+                profile_file: "foo.txt".into(),
             };
             let num_threads = 48;
             let x = ArgumentTree {
@@ -500,7 +597,7 @@ mod tests {
                 output,
                 num_threads,
             };
-            assert_eq!(x.command_string(), "method=sample num_samples=10000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=static int_time=2.5 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=10 id=2 data file=bernoulli.json init=5 random seed=12345 output file=hello.csv diagnostic_file=world.txt refresh=1 sig_figs=18 profile_file=foo.txt num_threads=48");
+            assert_eq!(x.command_os_string(), "method=sample num_samples=10000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=static int_time=2.5 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=10 id=2 data file=bernoulli.json init=5 random seed=12345 output file=hello.csv diagnostic_file=world.txt refresh=1 sig_figs=18 profile_file=foo.txt num_threads=48");
         }
 
         #[test]
@@ -584,10 +681,13 @@ mod tests {
         #[test]
         fn command_fragment() {
             let mut x = Data::default();
-            assert_eq!(x.command_fragment(), "");
+            assert_eq!(x.command_fragment(), Vec::<OsString>::new());
 
-            x.file.push_str("bernoulli.data.json");
-            assert_eq!(x.command_fragment(), "data file=bernoulli.data.json");
+            x.file.push("bernoulli.data.json");
+            assert_eq!(
+                x.command_fragment(),
+                vec!["data", "file=bernoulli.data.json"]
+            );
         }
     }
 
@@ -604,7 +704,7 @@ mod tests {
         #[test]
         fn command_fragment() {
             let x = Random::default();
-            assert_eq!(x.command_fragment(), "random seed=-1");
+            assert_eq!(x.command_fragment(), vec!["random", "seed=-1"]);
         }
     }
 
@@ -615,20 +715,20 @@ mod tests {
         #[test]
         fn builder() {
             let x = Output::builder()
-                .file("hello.csv".to_string())
-                .diagnostic_file("world.txt".to_string())
+                .file("hello.csv")
+                .diagnostic_file("world.txt")
                 .refresh(1)
                 .sig_figs(18)
-                .profile_file("foo.txt".to_string())
+                .profile_file("foo.txt")
                 .build();
             assert_eq!(
                 x,
                 Output {
-                    file: "hello.csv".to_string(),
-                    diagnostic_file: "world.txt".to_string(),
+                    file: "hello.csv".into(),
+                    diagnostic_file: "world.txt".into(),
                     refresh: 1,
                     sig_figs: 18,
-                    profile_file: "foo.txt".to_string(),
+                    profile_file: "foo.txt".into(),
                 }
             );
         }
@@ -639,11 +739,11 @@ mod tests {
             assert_eq!(
                 x,
                 Output {
-                    file: "output.csv".to_string(),
-                    diagnostic_file: "".to_string(),
+                    file: "output.csv".into(),
+                    diagnostic_file: "".into(),
                     refresh: 100,
                     sig_figs: -1,
-                    profile_file: "".to_string(),
+                    profile_file: "".into(),
                 }
             );
         }
@@ -653,25 +753,44 @@ mod tests {
             let mut x = Output::default();
             assert_eq!(
                 x.command_fragment(),
-                "output file=output.csv refresh=100 sig_figs=-1"
+                vec!["output", "file=output.csv", "refresh=100", "sig_figs=-1"]
             );
 
-            x.diagnostic_file.push_str("my_file.txt");
+            x.diagnostic_file.push("my_file.txt");
             assert_eq!(
                 x.command_fragment(),
-                "output file=output.csv diagnostic_file=my_file.txt refresh=100 sig_figs=-1"
+                vec![
+                    "output",
+                    "file=output.csv",
+                    "diagnostic_file=my_file.txt",
+                    "refresh=100",
+                    "sig_figs=-1"
+                ]
             );
 
-            x.profile_file.push_str("my_other_file.txt");
+            x.profile_file.push("my_other_file.txt");
             assert_eq!(
                 x.command_fragment(),
-                "output file=output.csv diagnostic_file=my_file.txt refresh=100 sig_figs=-1 profile_file=my_other_file.txt"
+                vec![
+                    "output",
+                    "file=output.csv",
+                    "diagnostic_file=my_file.txt",
+                    "refresh=100",
+                    "sig_figs=-1",
+                    "profile_file=my_other_file.txt"
+                ]
             );
 
             x.diagnostic_file.clear();
             assert_eq!(
                 x.command_fragment(),
-                "output file=output.csv refresh=100 sig_figs=-1 profile_file=my_other_file.txt"
+                vec![
+                    "output",
+                    "file=output.csv",
+                    "refresh=100",
+                    "sig_figs=-1",
+                    "profile_file=my_other_file.txt"
+                ]
             );
         }
     }

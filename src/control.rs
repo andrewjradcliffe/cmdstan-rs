@@ -130,7 +130,7 @@ impl Control {
     /// Call the executable with the arguments given by `arg_tree`.
     pub fn call_executable(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
         Command::new(&self.model)
-            .args(arg_tree.command_string().split_whitespace())
+            .args(arg_tree.command_vec())
             .output()
     }
 

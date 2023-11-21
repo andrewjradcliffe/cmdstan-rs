@@ -1,5 +1,5 @@
 use crate::method::Method;
-use std::fmt::Write;
+use std::ffi::OsString;
 
 /// Options builder for [`Method::Diagnose`].
 /// For any option left unspecified, the default value indicated
@@ -46,13 +46,14 @@ impl Default for DiagnosticTest {
 }
 
 impl DiagnosticTest {
-    pub fn command_fragment(&self) -> String {
+    pub fn command_fragment(&self) -> Vec<OsString> {
         match &self {
-            DiagnosticTest::Gradient { epsilon, error } => {
-                let mut s = String::from("test=gradient");
-                write!(&mut s, " epsilon={}", epsilon).unwrap();
-                write!(&mut s, " error={}", error).unwrap();
-                s
+            Self::Gradient { epsilon, error } => {
+                vec![
+                    "test=gradient".into(),
+                    format!("epsilon={}", epsilon).into(),
+                    format!("error={}", error).into(),
+                ]
             }
         }
     }
@@ -96,7 +97,7 @@ mod tests {
         let x = DiagnosticTest::default();
         assert_eq!(
             x.command_fragment(),
-            "test=gradient epsilon=0.000001 error=0.000001"
+            vec!["test=gradient", "epsilon=0.000001", "error=0.000001"]
         );
     }
 }

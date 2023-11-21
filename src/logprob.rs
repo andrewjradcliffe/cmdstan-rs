@@ -1,12 +1,13 @@
 use crate::method::Method;
+use std::ffi::OsString;
 
 /// Options builder for [`Method::LogProb`].
 /// For any option left unspecified, the default value indicated
 /// on `Method::LogProb` will be supplied.
 #[derive(Debug, PartialEq, Clone)]
 pub struct LogProbBuilder {
-    unconstrained_params: Option<String>,
-    constrained_params: Option<String>,
+    unconstrained_params: Option<OsString>,
+    constrained_params: Option<OsString>,
     jacobian: Option<bool>,
 }
 impl LogProbBuilder {
@@ -18,13 +19,13 @@ impl LogProbBuilder {
             jacobian: None,
         }
     }
-    insert_into_field!(unconstrained_params, String);
-    insert_into_field!(constrained_params, String);
+    insert_into_field!(unconstrained_params, OsString);
+    insert_into_field!(constrained_params, OsString);
     insert_field!(jacobian, bool);
     /// Build the `Method::LogProb` instance.
     pub fn build(self) -> Method {
-        let unconstrained_params = self.unconstrained_params.unwrap_or_else(|| "".to_string());
-        let constrained_params = self.constrained_params.unwrap_or_else(|| "".to_string());
+        let unconstrained_params = self.unconstrained_params.unwrap_or_else(|| "".into());
+        let constrained_params = self.constrained_params.unwrap_or_else(|| "".into());
         let jacobian = self.jacobian.unwrap_or(true);
         Method::LogProb {
             unconstrained_params,
@@ -41,15 +42,15 @@ mod tests {
     #[test]
     fn builder() {
         let x = LogProbBuilder::new()
-            .unconstrained_params("unc.txt".to_string())
-            .constrained_params("c.txt".to_string())
+            .unconstrained_params("unc.txt")
+            .constrained_params("c.txt")
             .jacobian(false)
             .build();
         assert_eq!(
             x,
             Method::LogProb {
-                unconstrained_params: "unc.txt".to_string(),
-                constrained_params: "c.txt".to_string(),
+                unconstrained_params: "unc.txt".into(),
+                constrained_params: "c.txt".into(),
                 jacobian: false
             }
         );
@@ -57,8 +58,8 @@ mod tests {
         assert_eq!(
             x,
             Method::LogProb {
-                unconstrained_params: "".to_string(),
-                constrained_params: "".to_string(),
+                unconstrained_params: "".into(),
+                constrained_params: "".into(),
                 jacobian: true
             }
         );

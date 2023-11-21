@@ -1,5 +1,5 @@
 use crate::method::Method;
-use std::fmt::Write;
+use std::ffi::OsString;
 
 /// Options builder for [`Method::Optimize`].
 /// For any option left unspecified, the default value indicated
@@ -43,7 +43,7 @@ impl OptimizeBuilder {
 
 // Common defaults.
 pub(crate) const INIT_ALPHA: f64 = 0.001;
-pub(crate) const TOL_OBJ: f64 = 9.9999999999999998e-13;
+pub(crate) const TOL_OBJ: f64 = 1e-12;
 pub(crate) const TOL_REL_OBJ: f64 = 10_000.0;
 pub(crate) const TOL_GRAD: f64 = 1e-8;
 pub(crate) const TOL_REL_GRAD: f64 = 10_000_000.0;
@@ -61,7 +61,7 @@ pub enum OptimizeAlgorithm {
         init_alpha: f64,
         /// Convergence tolerance on absolute changes in objective function value.
         /// Valid values: `0 <= tol_obj`.
-        /// Defaults to `9.9999999999999998e-13`.
+        /// Defaults to `1e-12`.
         tol_obj: f64,
         /// Convergence tolerance on relative changes in objective function value.
         /// Valid values: `0 <= tol_rel_obj`.
@@ -88,7 +88,7 @@ pub enum OptimizeAlgorithm {
         init_alpha: f64,
         /// Convergence tolerance on absolute changes in objective function value.
         /// Valid values: `0 <= tol_obj`
-        /// Defaults to `9.9999999999999998e-13`.
+        /// Defaults to `1e-12`.
         tol_obj: f64,
         /// Convergence tolerance on relative changes in objective function value.
         /// Valid values: `0 <= tol_rel_obj`.
@@ -235,7 +235,7 @@ impl From<LbfgsBuilder> for OptimizeAlgorithm {
 }
 
 impl OptimizeAlgorithm {
-    pub fn command_fragment(&self) -> String {
+    pub fn command_fragment(&self) -> Vec<OsString> {
         match &self {
             Bfgs {
                 init_alpha,
@@ -245,14 +245,15 @@ impl OptimizeAlgorithm {
                 tol_rel_grad,
                 tol_param,
             } => {
-                let mut s = String::from("algorithm=bfgs");
-                write!(&mut s, " init_alpha={}", init_alpha).unwrap();
-                write!(&mut s, " tol_obj={}", tol_obj).unwrap();
-                write!(&mut s, " tol_rel_obj={}", tol_rel_obj).unwrap();
-                write!(&mut s, " tol_grad={}", tol_grad).unwrap();
-                write!(&mut s, " tol_rel_grad={}", tol_rel_grad).unwrap();
-                write!(&mut s, " tol_param={}", tol_param).unwrap();
-                s
+                vec![
+                    "algorithm=bfgs".into(),
+                    format!("init_alpha={}", init_alpha).into(),
+                    format!("tol_obj={}", tol_obj).into(),
+                    format!("tol_rel_obj={}", tol_rel_obj).into(),
+                    format!("tol_grad={}", tol_grad).into(),
+                    format!("tol_rel_grad={}", tol_rel_grad).into(),
+                    format!("tol_param={}", tol_param).into(),
+                ]
             }
             Lbfgs {
                 init_alpha,
@@ -263,17 +264,18 @@ impl OptimizeAlgorithm {
                 tol_param,
                 history_size,
             } => {
-                let mut s = String::from("algorithm=lbfgs");
-                write!(&mut s, " init_alpha={}", init_alpha).unwrap();
-                write!(&mut s, " tol_obj={}", tol_obj).unwrap();
-                write!(&mut s, " tol_rel_obj={}", tol_rel_obj).unwrap();
-                write!(&mut s, " tol_grad={}", tol_grad).unwrap();
-                write!(&mut s, " tol_rel_grad={}", tol_rel_grad).unwrap();
-                write!(&mut s, " tol_param={}", tol_param).unwrap();
-                write!(&mut s, " history_size={}", history_size).unwrap();
-                s
+                vec![
+                    "algorithm=lbfgs".into(),
+                    format!("init_alpha={}", init_alpha).into(),
+                    format!("tol_obj={}", tol_obj).into(),
+                    format!("tol_rel_obj={}", tol_rel_obj).into(),
+                    format!("tol_grad={}", tol_grad).into(),
+                    format!("tol_rel_grad={}", tol_rel_grad).into(),
+                    format!("tol_param={}", tol_param).into(),
+                    format!("history_size={}", history_size).into(),
+                ]
             }
-            Newton => "algorithm=newton".to_string(),
+            Newton => vec!["algorithm=newton".into()],
         }
     }
 }
@@ -364,7 +366,7 @@ mod tests {
             x,
             OptimizeAlgorithm::Lbfgs {
                 init_alpha: 0.001,
-                tol_obj: 9.9999999999999998e-13,
+                tol_obj: 1e-12,
                 tol_rel_obj: 10000.0,
                 tol_grad: 1e-8,
                 tol_rel_grad: 10_000_000.0,
@@ -380,7 +382,7 @@ mod tests {
             x,
             OptimizeAlgorithm::Bfgs {
                 init_alpha: 0.001,
-                tol_obj: 9.9999999999999998e-13,
+                tol_obj: 1e-12,
                 tol_rel_obj: 10000.0,
                 tol_grad: 1e-8,
                 tol_rel_grad: 10_000_000.0,
@@ -392,12 +394,35 @@ mod tests {
     #[test]
     fn command_fragment() {
         let x = LbfgsBuilder::new().build();
-        assert_eq!(x.command_fragment(), "algorithm=lbfgs init_alpha=0.001 tol_obj=0.000000000001 tol_rel_obj=10000 tol_grad=0.00000001 tol_rel_grad=10000000 tol_param=0.00000001 history_size=5");
+        assert_eq!(
+            x.command_fragment(),
+            vec![
+                "algorithm=lbfgs",
+                "init_alpha=0.001",
+                "tol_obj=0.000000000001",
+                "tol_rel_obj=10000",
+                "tol_grad=0.00000001",
+                "tol_rel_grad=10000000",
+                "tol_param=0.00000001",
+                "history_size=5",
+            ]
+        );
 
         let x = BfgsBuilder::new().build();
-        assert_eq!(x.command_fragment(), "algorithm=bfgs init_alpha=0.001 tol_obj=0.000000000001 tol_rel_obj=10000 tol_grad=0.00000001 tol_rel_grad=10000000 tol_param=0.00000001");
+        assert_eq!(
+            x.command_fragment(),
+            vec![
+                "algorithm=bfgs",
+                "init_alpha=0.001",
+                "tol_obj=0.000000000001",
+                "tol_rel_obj=10000",
+                "tol_grad=0.00000001",
+                "tol_rel_grad=10000000",
+                "tol_param=0.00000001",
+            ]
+        );
 
         let x = OptimizeAlgorithm::Newton;
-        assert_eq!(x.command_fragment(), "algorithm=newton");
+        assert_eq!(x.command_fragment(), vec!["algorithm=newton"]);
     }
 }

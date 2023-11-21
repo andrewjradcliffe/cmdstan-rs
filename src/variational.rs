@@ -1,5 +1,5 @@
 use crate::method::Method;
-use std::fmt::Write;
+use std::ffi::OsString;
 
 /// Options builder for [`Method::Variational`].
 /// For any option left unspecified, the default value indicated
@@ -75,12 +75,12 @@ pub enum VariationalAlgorithm {
     FullRank,
 }
 impl VariationalAlgorithm {
-    pub fn command_fragment(&self) -> String {
-        match &self {
+    pub fn command_fragment(&self) -> Vec<OsString> {
+        let s = match &self {
             Self::MeanField => "algorithm=meanfield",
             Self::FullRank => "algorithm=fullrank",
-        }
-        .to_string()
+        };
+        vec![s.into()]
     }
 }
 
@@ -100,16 +100,17 @@ pub struct VariationalAdapt {
 }
 impl Default for VariationalAdapt {
     fn default() -> Self {
-        VariationalAdaptBuilder::new().build()
+        Self::builder().build()
     }
 }
 
 impl VariationalAdapt {
-    pub fn command_fragment(&self) -> String {
-        let mut s = String::from("adapt");
-        write!(&mut s, " engaged={}", self.engaged as u8).unwrap();
-        write!(&mut s, " iter={}", self.iter).unwrap();
-        s
+    pub fn command_fragment(&self) -> Vec<OsString> {
+        vec![
+            "adapt".into(),
+            format!("engaged={}", self.engaged as u8).into(),
+            format!("iter={}", self.iter).into(),
+        ]
     }
     /// Return a builder with all options unspecified.
     pub fn builder() -> VariationalAdaptBuilder {
@@ -215,9 +216,9 @@ mod tests {
         #[test]
         fn command_fragment() {
             let x = VariationalAlgorithm::default();
-            assert_eq!(x.command_fragment(), "algorithm=meanfield");
+            assert_eq!(x.command_fragment(), vec!["algorithm=meanfield"]);
             let x = VariationalAlgorithm::FullRank;
-            assert_eq!(x.command_fragment(), "algorithm=fullrank");
+            assert_eq!(x.command_fragment(), vec!["algorithm=fullrank"]);
         }
     }
 
@@ -250,12 +251,12 @@ mod tests {
         #[test]
         fn command_fragment() {
             let x = VariationalAdapt::default();
-            assert_eq!(x.command_fragment(), "adapt engaged=1 iter=50");
+            assert_eq!(x.command_fragment(), vec!["adapt", "engaged=1", "iter=50"]);
             let x = VariationalAdaptBuilder::new()
                 .engaged(false)
                 .iter(200)
                 .build();
-            assert_eq!(x.command_fragment(), "adapt engaged=0 iter=200");
+            assert_eq!(x.command_fragment(), vec!["adapt", "engaged=0", "iter=200"]);
         }
     }
 }

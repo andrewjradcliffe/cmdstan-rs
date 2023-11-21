@@ -1,10 +1,11 @@
 use crate::method::Method;
+use std::ffi::OsString;
 
 /// Options builder for [`Method::Laplace`].
 /// For any option left unspecified, the default value indicated
 /// on `Method::Laplace` will be supplied.
 pub struct LaplaceBuilder {
-    mode: Option<String>,
+    mode: Option<OsString>,
     jacobian: Option<bool>,
     draws: Option<i32>,
 }
@@ -17,12 +18,12 @@ impl LaplaceBuilder {
             draws: None,
         }
     }
-    insert_into_field!(mode, String);
+    insert_into_field!(mode, OsString);
     insert_field!(jacobian, bool);
     insert_field!(draws, i32);
     /// Build the `Method::Laplace` instance.
     pub fn build(self) -> Method {
-        let mode = self.mode.unwrap_or_else(|| "".to_string());
+        let mode = self.mode.unwrap_or_else(|| "".into());
         let jacobian = self.jacobian.unwrap_or(true);
         let draws = self.draws.unwrap_or(1000);
         Method::Laplace {
@@ -40,14 +41,14 @@ mod tests {
     #[test]
     fn builder() {
         let x = LaplaceBuilder::new()
-            .mode("theta.json".to_string())
+            .mode("theta.json")
             .jacobian(false)
             .draws(10)
             .build();
         assert_eq!(
             x,
             Method::Laplace {
-                mode: "theta.json".to_string(),
+                mode: "theta.json".into(),
                 jacobian: false,
                 draws: 10
             }
@@ -56,7 +57,7 @@ mod tests {
         assert_eq!(
             x,
             Method::Laplace {
-                mode: "".to_string(),
+                mode: "".into(),
                 jacobian: true,
                 draws: 1000
             }

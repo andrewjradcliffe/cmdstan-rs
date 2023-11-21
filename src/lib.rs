@@ -1,6 +1,11 @@
-use std::io::Write;
-use std::process::{self, Command};
-use std::{env, ffi, fs::File, io, path::Path, path::PathBuf};
+use std::{
+    env,
+    ffi::{OsStr, OsString},
+    fs::File,
+    io::{self, Write},
+    path::{Path, PathBuf},
+    process::{self, Command},
+};
 
 #[macro_use]
 mod internal_macros;
@@ -82,7 +87,7 @@ impl CmdStanModel {
     pub fn compile_with_args<I, S>(&self, args: I) -> Result<process::Output, CompilationError>
     where
         I: IntoIterator<Item = S>,
-        S: AsRef<ffi::OsStr>,
+        S: AsRef<OsStr>,
     {
         self.control.compile_with_args(args)
     }
@@ -125,7 +130,7 @@ impl CmdStanOutput {
     /// which the relative path will be joined.
     fn files<F>(&self, f: F) -> Vec<PathBuf>
     where
-        F: Fn(&ArgumentTree) -> Vec<String>,
+        F: Fn(&ArgumentTree) -> Vec<OsString>,
     {
         f(&self.argument_tree)
             .into_iter()

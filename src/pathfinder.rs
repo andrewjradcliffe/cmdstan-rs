@@ -129,7 +129,7 @@ mod tests {
             x,
             Method::Pathfinder {
                 init_alpha: 0.001,
-                tol_obj: 9.9999999999999998e-13,
+                tol_obj: 1e-12,
                 tol_rel_obj: 10_000.0,
                 tol_grad: 1e-8,
                 tol_rel_grad: 10_000_000.0,
