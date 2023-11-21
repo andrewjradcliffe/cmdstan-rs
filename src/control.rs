@@ -182,7 +182,7 @@ pub struct StanSummaryOptions {
     /// addition to statistics.
     pub autocorr: Option<i32>,
     /// Write statistics to a csv file.
-    pub csv_filename: Option<String>,
+    pub csv_filename: Option<OsString>,
     /// Percentiles to report as ordered set of comma-separated
     /// integers from (1,99), inclusive. Default is 5,50,95.
     pub percentiles: Option<Vec<u8>>,
@@ -199,56 +199,37 @@ impl StanSummaryOptions {
             sig_figs: None,
         }
     }
-    pub fn command_fragment(&self) -> String {
-        let mut s = String::new();
-        let mut state = false;
-        match &self.autocorr {
-            Some(n) => {
-                state = true;
-                write!(&mut s, "--autocorr {}", n).unwrap();
-            }
-            None => (),
+    pub fn command_fragment(&self) -> Vec<OsString> {
+        let mut v = Vec::with_capacity(4);
+        if let Some(n) = &self.autocorr {
+            v.push(format!("--autocorr={}", n).into());
         }
-        match &self.csv_filename {
-            Some(file) => {
-                if state {
-                    write!(&mut s, " --csv_filename {}", file).unwrap();
-                } else {
-                    state = true;
-                    write!(&mut s, "--csv_filename {}", file).unwrap();
-                }
-            }
-            None => (),
+        if let Some(file) = &self.csv_filename {
+            let mut s = OsString::with_capacity(15 + file.len());
+            s.push("--csv_filename=");
+            s.push(file);
+            v.push(s);
         }
-        match &self.percentiles {
-            Some(values) => {
-                if state {
-                    write!(&mut s, " --percentiles ").unwrap();
-                } else {
-                    state = true;
-                    write!(&mut s, "--percentiles ").unwrap();
-                }
-                let mut values = values.iter();
-                if let Some(val) = values.next() {
-                    write!(&mut s, "{}", val).unwrap();
-                }
-                while let Some(val) = values.next() {
-                    write!(&mut s, ",{}", val).unwrap();
-                }
+        if let Some(percentiles) = &self.percentiles {
+            let mut s = OsString::with_capacity(14 + 3 * percentiles.len());
+            s.push("--percentiles=");
+            let mut values = percentiles.iter();
+            if let Some(p) = values.next() {
+                s.push(format!("{}", p));
             }
-            None => (),
-        }
-        match &self.sig_figs {
-            Some(n) => {
-                if state {
-                    write!(&mut s, " --sig_figs {}", n).unwrap();
-                } else {
-                    write!(&mut s, "--sig_figs {}", n).unwrap();
-                }
+            while let Some(p) = values.next() {
+                s.push(",");
+                s.push(format!("{}", p));
             }
-            None => (),
+            v.push(s);
         }
-        s
+        if let Some(sig_figs) = &self.sig_figs {
+            let mut s = OsString::with_capacity(14);
+            s.push("--sig_figs=");
+            s.push(format!("{}", sig_figs));
+            v.push(s);
+        }
+        v
     }
 }
 
@@ -264,13 +245,17 @@ mod tests {
         fn command_fragment() {
             let x = StanSummaryOptions {
                 autocorr: None,
-                csv_filename: Some("stansummary.csv".to_string()),
+                csv_filename: Some("stansummary.csv".into()),
                 percentiles: Some(vec![5, 25, 50, 75, 95]),
                 sig_figs: Some(6),
             };
             assert_eq!(
                 x.command_fragment(),
-                "--csv_filename stansummary.csv --percentiles 5,25,50,75,95 --sig_figs 6"
+                vec![
+                    "--csv_filename=stansummary.csv",
+                    "--percentiles=5,25,50,75,95",
+                    "--sig_figs=6",
+                ]
             );
 
             let x = StanSummaryOptions {
@@ -279,28 +264,39 @@ mod tests {
                 percentiles: Some(vec![50, 75]),
                 sig_figs: None,
             };
-            assert_eq!(x.command_fragment(), "--autocorr 1 --percentiles 50,75");
+            assert_eq!(
+                x.command_fragment(),
+                vec!["--autocorr=1", "--percentiles=50,75"]
+            );
 
             let x = StanSummaryOptions {
                 autocorr: Some(1),
-                csv_filename: Some("hello.csv".to_string()),
+                csv_filename: Some("hello.csv".into()),
                 percentiles: Some(vec![50]),
                 sig_figs: None,
             };
             assert_eq!(
                 x.command_fragment(),
-                "--autocorr 1 --csv_filename hello.csv --percentiles 50"
+                vec![
+                    "--autocorr=1",
+                    "--csv_filename=hello.csv",
+                    "--percentiles=50"
+                ]
             );
 
             let x = StanSummaryOptions {
                 autocorr: None,
-                csv_filename: Some("hello.csv".to_string()),
+                csv_filename: Some("hello.csv".into()),
                 percentiles: Some(vec![50]),
                 sig_figs: Some(3),
             };
             assert_eq!(
                 x.command_fragment(),
-                "--csv_filename hello.csv --percentiles 50 --sig_figs 3"
+                vec![
+                    "--csv_filename=hello.csv",
+                    "--percentiles=50",
+                    "--sig_figs=3"
+                ]
             );
         }
     }
