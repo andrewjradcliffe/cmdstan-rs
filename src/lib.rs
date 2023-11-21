@@ -231,9 +231,7 @@ impl CmdStanOutput {
         let mut cmd = Command::new(path);
         cmd.args(self.output_files());
         match opts {
-            Some(opts) => cmd
-                .args(opts.command_fragment().split_whitespace())
-                .output(),
+            Some(opts) => cmd.args(opts.command_fragment()).output(),
             None => cmd.output(),
         }
     }
