@@ -105,8 +105,8 @@ pub enum Method {
     /// Model diagnostics. Use [`DiagnoseBuilder`] for construction
     /// with defaults.
     Diagnose {
-        /// Diagnostic test. Defaults to [`DiagnosticTest::Gradient`].
-        test: DiagnosticTest,
+        /// Diagnostic test. Defaults to [`DiagnoseTest::Gradient`].
+        test: DiagnoseTest,
     },
     /// Generate quantities of interest
     GenerateQuantities {

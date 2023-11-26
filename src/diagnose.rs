@@ -6,14 +6,14 @@ use std::ffi::OsString;
 /// on `Method::Diagnose` will be supplied.
 #[derive(Debug, PartialEq, Clone)]
 pub struct DiagnoseBuilder {
-    test: Option<DiagnosticTest>,
+    test: Option<DiagnoseTest>,
 }
 impl DiagnoseBuilder {
     /// Return a builder with all options unspecified.
     pub fn new() -> Self {
         Self { test: None }
     }
-    insert_field!(test, DiagnosticTest);
+    insert_field!(test, DiagnoseTest);
     /// Build the `Method::Diagnose` instance.
     pub fn build(self) -> Method {
         let test = self.test.unwrap_or_default();
@@ -23,7 +23,7 @@ impl DiagnoseBuilder {
 
 /// Diagnostic test. Defaults to `Gradient`.
 #[derive(Debug, PartialEq, Clone)]
-pub enum DiagnosticTest {
+pub enum DiagnoseTest {
     /// Check model gradient against finite differences
     Gradient {
         /// Finite difference step size.
@@ -36,16 +36,16 @@ pub enum DiagnosticTest {
         error: f64,
     },
 }
-impl Default for DiagnosticTest {
+impl Default for DiagnoseTest {
     fn default() -> Self {
-        DiagnosticTest::Gradient {
+        DiagnoseTest::Gradient {
             epsilon: 1e-6,
             error: 1e-6,
         }
     }
 }
 
-impl DiagnosticTest {
+impl DiagnoseTest {
     pub fn command_fragment(&self) -> Vec<OsString> {
         match &self {
             Self::Gradient { epsilon, error } => {
@@ -66,7 +66,7 @@ mod tests {
     #[test]
     fn builder() {
         let x = DiagnoseBuilder::new()
-            .test(DiagnosticTest::Gradient {
+            .test(DiagnoseTest::Gradient {
                 epsilon: 1e-1,
                 error: 1e-1,
             })
@@ -74,7 +74,7 @@ mod tests {
         assert_eq!(
             x,
             Method::Diagnose {
-                test: DiagnosticTest::Gradient {
+                test: DiagnoseTest::Gradient {
                     epsilon: 1e-1,
                     error: 1e-1
                 }
@@ -84,8 +84,8 @@ mod tests {
 
     #[test]
     fn default() {
-        let x = DiagnosticTest::default();
-        let y = DiagnosticTest::Gradient {
+        let x = DiagnoseTest::default();
+        let y = DiagnoseTest::Gradient {
             epsilon: 1e-6_f64,
             error: 1e-6_f64,
         };
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn command_fragment() {
-        let x = DiagnosticTest::default();
+        let x = DiagnoseTest::default();
         assert_eq!(
             x.command_fragment(),
             vec!["test=gradient", "epsilon=0.000001", "error=0.000001"]
