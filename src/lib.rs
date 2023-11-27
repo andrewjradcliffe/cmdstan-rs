@@ -22,6 +22,8 @@ pub mod pathfinder;
 pub mod sample;
 pub mod variational;
 
+pub mod parser;
+
 pub use crate::method::*;
 
 use crate::argument_tree::ArgumentTree;
