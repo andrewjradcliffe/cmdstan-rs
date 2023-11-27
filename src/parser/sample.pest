@@ -1,11 +1,9 @@
 // Declaration of a product type, with CmdStan's rule that
 // declarations of the same product type, with or without a body, must not be adjacent
 sample_adapt = {
-    !( ("adapt" ~ (sep+ ~ sample_adapt_pair)*)
-        ~ (sep+ ~ ("adapt" ~ (sep+ ~ sample_adapt_pair)*))+
-    )
-    ~
-    ("adapt" ~ (sep+ ~ sample_adapt_pair)*)
+    !("adapt" ~ (sep+ ~ sample_adapt_pair)*
+        ~ (sep+ ~ ("adapt" ~ (sep+ ~ sample_adapt_pair)*))+)
+    ~ "adapt" ~ (sep+ ~ sample_adapt_pair)*
 }
 sample_adapt_as_type = { SOI ~ sample_adapt ~ EOI }
 
@@ -23,38 +21,38 @@ sample_adapt_pair = {
 // Two or more of the same field, directly adjacent and without a
 // value, is an error.
 gamma       = ${
-    !(("gamma" ~ (sep+ ~ "gamma" ~ (&sep | EOI))+))
+    !("gamma" ~ (sep+ ~ "gamma" ~ (&sep | EOI))+)
     ~ "gamma" ~ ("=" ~ float)?
 }
 delta       = ${
-    !(("delta" ~ (sep+ ~ "delta" ~ (&sep | EOI))+))
+    !("delta" ~ (sep+ ~ "delta" ~ (&sep | EOI))+)
     ~ "delta" ~ ("=" ~ float)?
 }
 kappa       = ${
-    !(("kappa" ~ (sep+ ~ "kappa" ~ (&sep | EOI))+))
+    !("kappa" ~ (sep+ ~ "kappa" ~ (&sep | EOI))+)
     ~ "kappa" ~ ("=" ~ float)?
 }
 t0          = ${
-    !(("t0" ~ (sep+ ~ "t0" ~ (&sep | EOI))+))
+    !("t0" ~ (sep+ ~ "t0" ~ (&sep | EOI))+)
     ~ "t0" ~ ("=" ~ float)?
 }
 init_buffer = ${
-    !(("init_buffer" ~ (sep+ ~ "init_buffer" ~ (&sep | EOI))+))
+    !("init_buffer" ~ (sep+ ~ "init_buffer" ~ (&sep | EOI))+)
     ~ "init_buffer" ~ ("=" ~ integer)?
 }
 term_buffer = ${
-    !(("term_buffer" ~ (sep+ ~ "term_buffer" ~ (&sep | EOI))+))
+    !("term_buffer" ~ (sep+ ~ "term_buffer" ~ (&sep | EOI))+)
     ~ "term_buffer" ~ ("=" ~ integer)?
 }
 window      = ${
-    !(("window" ~ (sep+ ~ "window" ~ (&sep | EOI))+))
+    !("window" ~ (sep+ ~ "window" ~ (&sep | EOI))+)
     ~ "window" ~ ("=" ~ integer)?
 }
 
 // Declaration of a sum type
 sample_algorithm = {
     !("algorithm" ~ (sep+ ~ "algorithm" ~ (&sep | EOI))+)
-    ~ ("algorithm" ~ ("=" ~ (hmc | fixed_param))?)
+    ~ "algorithm" ~ ("=" ~ (hmc | fixed_param))?
 }
 sample_algorithm_as_type = { SOI ~ sample_algorithm ~ &EOI }
 
@@ -69,22 +67,22 @@ hmc_term = { engine | metric | stepsize_jitter | stepsize }
 
 stepsize = {
     !("stepsize" ~ (sep+ ~ "stepsize" ~ (&sep | EOI))+)
-    ~ ("stepsize" ~ ("=" ~ float)?)
+    ~ "stepsize" ~ ("=" ~ float)?
 }
 
 stepsize_jitter = {
     !("stepsize_jitter" ~ (sep+ ~ "stepsize_jitter" ~ (&sep | EOI))+)
-    ~ ("stepsize_jitter" ~ ("=" ~ float)?)
+    ~ "stepsize_jitter" ~ ("=" ~ float)?
 }
 
 metric_file = {
     !("metric_file" ~ (sep+ ~ "metric_file" ~ (&sep | EOI))+)
-    ~ ("metric_file" ~ ("=" ~ path)?)
+    ~ "metric_file" ~ ("=" ~ path)?
 }
 
 metric = {
     !("metric" ~ (sep+ ~ "metric" ~ (&sep | EOI))+)
-    ~ ("metric" ~ ("=" ~ (unit_e | diag_e | dense_e))?)
+    ~ "metric" ~ ("=" ~ (unit_e | diag_e | dense_e))?
 }
 metric_as_type = ${ SOI ~ metric ~ &EOI }
 
@@ -95,7 +93,7 @@ dense_e = { "dense_e" }
 // Declaration of a sum type
 engine = {
     !("engine" ~ (sep+ ~ "engine" ~ (&sep | EOI))+)
-    ~ ("engine" ~ ("=" ~ (nuts | static))?)
+    ~ "engine" ~ ("=" ~ (nuts | static))?
 }
 engine_as_type = ${ SOI ~ engine ~ &EOI }
 
@@ -112,7 +110,7 @@ static = { "static" ~ (sep+ ~ int_time)* }
 
 int_time     = ${
     !("int_time" ~ (sep+ ~ "int_time" ~ (&sep | EOI))+)
-    ~ ("int_time" ~ ("=" ~ float)?)
+    ~ "int_time" ~ ("=" ~ float)?
 }
 
 
@@ -129,22 +127,22 @@ sample_term = { num_samples
 }
 
 num_samples          = ${
-    !(("num_samples" ~ (sep+ ~ "num_samples" ~ (&sep | EOI))+))
+    !("num_samples" ~ (sep+ ~ "num_samples" ~ (&sep | EOI))+)
     ~ "num_samples" ~ ("=" ~ integer)?
 }
 num_warmup          = ${
-    !(("num_warmup" ~ (sep+ ~ "num_warmup" ~ (&sep | EOI))+))
+    !("num_warmup" ~ (sep+ ~ "num_warmup" ~ (&sep | EOI))+)
     ~ "num_warmup" ~ ("=" ~ integer)?
 }
 thin          = ${
-    !(("thin" ~ (sep+ ~ "thin" ~ (&sep | EOI))+))
+    !("thin" ~ (sep+ ~ "thin" ~ (&sep | EOI))+)
     ~ "thin" ~ ("=" ~ integer)?
 }
 num_chains          = ${
-    !(("num_chains" ~ (sep+ ~ "num_chains" ~ (&sep | EOI))+))
+    !("num_chains" ~ (sep+ ~ "num_chains" ~ (&sep | EOI))+)
     ~ "num_chains" ~ ("=" ~ integer)?
 }
 save_warmup     = ${
-    !(("save_warmup" ~ (sep+ ~ "save_warmup" ~ (&sep | EOI))+))
-    ~ ("save_warmup" ~ ("=" ~ (false | true))?)
+    !("save_warmup" ~ (sep+ ~ "save_warmup" ~ (&sep | EOI))+)
+    ~ "save_warmup" ~ ("=" ~ (false | true))?
 }

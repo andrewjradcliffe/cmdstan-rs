@@ -7,10 +7,10 @@ laplace_term = {
 }
 
 mode = ${
-    !(("mode" ~ (sep+ ~ "mode" ~ (&sep | EOI))+))
+    !("mode" ~ (sep+ ~ "mode" ~ (&sep | EOI))+)
     ~ "mode" ~ ("=" ~ path)?
 }
 draws = ${
-    !(("draws" ~ (sep+ ~ "draws" ~ (&sep | EOI))+))
+    !("draws" ~ (sep+ ~ "draws" ~ (&sep | EOI))+)
     ~ "draws" ~ ("=" ~ integer)?
 }

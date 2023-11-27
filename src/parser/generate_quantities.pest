@@ -2,5 +2,5 @@
 generate_quantities = { "generate_quantities" ~ (sep+ ~ fitted_params)* }
 
 fitted_params = { !("fitted_params" ~ (sep+ ~ "fitted_params" ~ (&sep | EOI))+)
-    ~ ("fitted_params" ~ ("=" ~ path)?)
+    ~ "fitted_params" ~ ("=" ~ path)?
 }

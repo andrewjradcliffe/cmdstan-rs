@@ -26,50 +26,48 @@ single_quote_path = ${ "'" ~ non_single_quote* ~ "'" }
 double_quote_path = ${ "\"" ~ non_double_quote* ~ "\"" }
 path = { single_quote_path | double_quote_path | regular_path }
 
-
-
 // And some common items
 engaged     = ${
-    !(("engaged" ~ (sep+ ~ "engaged" ~ (&sep | EOI))+))
-    ~ ("engaged" ~ ("=" ~ (false | true))?)
+    !("engaged" ~ (sep+ ~ "engaged" ~ (&sep | EOI))+)
+    ~ "engaged" ~ ("=" ~ (false | true))?
 }
 init_alpha       = ${
-    !(("init_alpha" ~ (sep+ ~ "init_alpha" ~ (&sep | EOI))+))
-    ~ ("init_alpha" ~ ("=" ~ float)?)
+    !("init_alpha" ~ (sep+ ~ "init_alpha" ~ (&sep | EOI))+)
+    ~ "init_alpha" ~ ("=" ~ float)?
 }
 tol_obj       = ${
-    !(("tol_obj" ~ (sep+ ~ "tol_obj" ~ (&sep | EOI))+))
-    ~ ("tol_obj" ~ ("=" ~ float)?)
+    !("tol_obj" ~ (sep+ ~ "tol_obj" ~ (&sep | EOI))+)
+    ~ "tol_obj" ~ ("=" ~ float)?
 }
 tol_rel_obj       = ${
-    !(("tol_rel_obj" ~ (sep+ ~ "tol_rel_obj" ~ (&sep | EOI))+))
-    ~ ("tol_rel_obj" ~ ("=" ~ float)?)
+    !("tol_rel_obj" ~ (sep+ ~ "tol_rel_obj" ~ (&sep | EOI))+)
+    ~ "tol_rel_obj" ~ ("=" ~ float)?
 }
 tol_grad       = ${
-    !(("tol_grad" ~ (sep+ ~ "tol_grad" ~ (&sep | EOI))+))
-    ~ ("tol_grad" ~ ("=" ~ float)?)
+    !("tol_grad" ~ (sep+ ~ "tol_grad" ~ (&sep | EOI))+)
+    ~ "tol_grad" ~ ("=" ~ float)?
 }
 tol_rel_grad       = ${
-    !(("tol_rel_grad" ~ (sep+ ~ "tol_rel_grad" ~ (&sep | EOI))+))
-    ~ ("tol_rel_grad" ~ ("=" ~ float)?)
+    !("tol_rel_grad" ~ (sep+ ~ "tol_rel_grad" ~ (&sep | EOI))+)
+    ~ "tol_rel_grad" ~ ("=" ~ float)?
 }
 tol_param       = ${
-    !(("tol_param" ~ (sep+ ~ "tol_param" ~ (&sep | EOI))+))
-    ~ ("tol_param" ~ ("=" ~ float)?)
+    !("tol_param" ~ (sep+ ~ "tol_param" ~ (&sep | EOI))+)
+    ~ "tol_param" ~ ("=" ~ float)?
 }
 history_size       = ${
-    !(("history_size" ~ (sep+ ~ "history_size" ~ (&sep | EOI))+))
-    ~ ("history_size" ~ ("=" ~ integer)?)
+    !("history_size" ~ (sep+ ~ "history_size" ~ (&sep | EOI))+)
+    ~ "history_size" ~ ("=" ~ integer)?
 }
 iter       = ${
-    !(("iter" ~ (sep+ ~ "iter" ~ (&sep | EOI))+))
-    ~ ("iter" ~ ("=" ~ integer)?)
+    !("iter" ~ (sep+ ~ "iter" ~ (&sep | EOI))+)
+    ~ "iter" ~ ("=" ~ integer)?
 }
 jacobian     = ${
-    !(("jacobian" ~ (sep+ ~ "jacobian" ~ (&sep | EOI))+))
-    ~ ("jacobian" ~ ("=" ~ (false | true))?)
+    !("jacobian" ~ (sep+ ~ "jacobian" ~ (&sep | EOI))+)
+    ~ "jacobian" ~ ("=" ~ (false | true))?
 }
 file       = ${
-    !(("file" ~ (sep+ ~ "file" ~ (&sep | EOI))+))
-    ~ ("file" ~ ("=" ~ path)?)
+    !("file" ~ (sep+ ~ "file" ~ (&sep | EOI))+)
+    ~ "file" ~ ("=" ~ path)?
 }
