@@ -401,10 +401,13 @@ impl Method {
     fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
         match pair.as_rule() {
             Rule::method => match pair.into_inner().next() {
-                Some(pair) => match pair.as_rule() {
-                    Rule::sample => try_sample_from_pair(pair),
-                    _ => todo!(),
-                },
+                Some(pair) => {
+                    let pair = pair.into_inner().next().unwrap();
+                    match pair.as_rule() {
+                        Rule::sample => try_sample_from_pair(pair),
+                        _ => todo!(),
+                    }
+                }
                 _ => Ok(Self::default()),
             },
             r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
