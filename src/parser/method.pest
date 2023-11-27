@@ -1,17 +1,27 @@
 // Declaration of a sum type, with special case logic:
 // the type is optional iff the variant is declared
 method = {
-    !("method" ~ (sep+ ~ "method" ~ (&sep | EOI))+)
-    ~ (((("method" ~ "=")? ~ (
-                    sample
-                  | optimize
-                  | variational
-                  | diagnose
-                  | generate_quantities
-                  | pathfinder
-                  | logprob
-                  | laplace)
-            ) | "method"))
+    !(("method" | method_variant) ~ (sep+ ~ ("method" | method_variant) ~ (&sep | EOI))+)
+    ~ (("method" ~ "=")? ~ method_variant | "method")
+
+}
+method_as_type = { SOI ~ method ~ &EOI}
+
+method_variant = {
+    sample
+  | optimize
+  | variational
+  | diagnose
+  | generate_quantities
+  | pathfinder
+  | logprob
+  | laplace
 }
 
-method_as_type = { SOI ~ method ~ &EOI}
+// Special case for use in argument tree
+method_special_case = {
+    !(("method" | method_variant) ~ (sep+ ~ ("method" | method_variant) ~ (&sep | EOI))+)
+    ~ ( ("method" ~ "=")? ~ method_variant
+      | "method" ~ sep+ ~ "method" ~ "=" ~ method_variant // The additional accepted syntax
+      | "method")
+}
