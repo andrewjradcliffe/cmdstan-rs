@@ -402,7 +402,41 @@ pub(crate) fn try_sample_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Parse
 mod tests {
     use super::*;
 
-    #[cfg(test)]
+    mod metric {
+        use super::*;
+        use Metric::*;
+
+        #[test]
+        fn from_str() {
+            assert_eq!("metric".parse::<Metric>().unwrap(), DiagE);
+            assert_eq!("metric=unit_e".parse::<Metric>().unwrap(), UnitE);
+            assert_eq!("metric=diag_e".parse::<Metric>().unwrap(), DiagE);
+            assert_eq!("metric=dense_e".parse::<Metric>().unwrap(), DenseE);
+            assert!("".parse::<Metric>().is_err());
+        }
+    }
+
+    mod engine {
+        use super::*;
+        use Engine::*;
+
+        #[test]
+        fn from_str() {
+            assert_eq!("engine".parse::<Engine>().unwrap(), Engine::default());
+            assert!("".parse::<Engine>().is_err());
+
+            let lhs = "engine=static int_time int_time=3 int_time=2 int_time"
+                .parse::<Engine>()
+                .unwrap();
+            let rhs = Static { int_time: 2.0_f64 };
+            assert_eq!(lhs, rhs);
+
+            assert!("engine=static int_time int_time=3 int_time int_time"
+                .parse::<Engine>()
+                .is_err());
+        }
+    }
+
     mod sample_adapt {
         use super::*;
 
@@ -424,10 +458,20 @@ mod tests {
 
             let adapt = s.parse::<SampleAdapt>();
             assert!(adapt.is_ok());
+            assert_eq!(
+                adapt.unwrap(),
+                SampleAdapt::builder()
+                    .delta(0.2)
+                    .kappa(0.3)
+                    .t0(99.0)
+                    .init_buffer(5)
+                    .term_buffer(6)
+                    .window(7)
+                    .build()
+            );
         }
     }
 
-    #[cfg(test)]
     mod sample_algorithm {
         use super::*;
 
@@ -443,19 +487,48 @@ mod tests {
                 .build();
             assert_eq!(lhs, rhs);
 
-            let s = "algorithm=hmc metric metric_file metric_file=hello.csv";
+            let s = "algorithm=hmc metric metric_file metric_file=foo.csv";
             let lhs = s.parse::<SampleAlgorithm>().unwrap();
-            let rhs = HmcBuilder::new().metric_file("hello.csv").build();
+            let rhs = HmcBuilder::new().metric_file("foo.csv").build();
             assert_eq!(lhs, rhs);
+
+            let s = "algorithm=hmc metric=dense_e metric_file metric_file=foo.csv metric_file=bar.txt metric=unit_e";
+            let lhs = s.parse::<SampleAlgorithm>().unwrap();
+            let rhs = HmcBuilder::new()
+                .metric_file("bar.txt")
+                .metric(Metric::UnitE)
+                .build();
+            assert_eq!(lhs, rhs);
+        }
+
+        #[test]
+        fn metric_file_oddities() {
+            let quots = ["'", "\""];
+            for quot in quots {
+                let files = [
+                    format!("{quot}foo.csv{quot}"),
+                    format!("{quot}foo    .csv{quot}"),
+                    format!("{quot}foo    bar.csv{quot}"),
+                    format!("{quot}{quot}"),
+                ];
+                files.into_iter().for_each(|file| {
+                    let s = format!(
+                        "algorithm=hmc metric metric_file metric_file={} metric",
+                        file
+                    );
+                    let lhs = s.parse::<SampleAlgorithm>().unwrap();
+                    let rhs = HmcBuilder::new().metric_file(file).build();
+                    assert_eq!(lhs, rhs);
+                });
+            }
         }
     }
 
-    #[cfg(test)]
     mod method {
         use super::*;
 
         #[test]
-        fn sample_from_str() {
+        fn from_str() {
             let suffix = "sample algorithm=hmc stepsize=0.5 engine=nuts max_depth=5 engine=static int_time=3 engine=nuts adapt engaged=0 algorithm=fixed_param algorithm=hmc num_samples=5 num_warmup=20 thin num_chains=5 algorithm=hmc metric=unit_e adapt gamma=0.1 delta=0.2 kappa=0.3 algorithm=hmc engine=static thin=2 num_samples=10 algorithm=hmc engine=nuts engine engine=nuts max_depth=10 max_depth=1 max_depth=2 max_depth=3 engine=static engine=nuts metric=dense_e metric stepsize stepsize_jitter=0.1 stepsize_jitter thin adapt algorithm adapt";
             let s = format!("method={}", suffix);
             let lhs = s.parse::<Method>().unwrap();

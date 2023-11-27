@@ -62,8 +62,7 @@ fixed_param = { "fixed_param" }
 // Body of a sum type, non-unit variant
 hmc = { "hmc" ~ (sep+ ~ hmc_term)* }
 
-// hmc_term = { engine | metric | metric_file | stepsize_jitter | stepsize }
-hmc_term = { engine | metric | stepsize_jitter | stepsize }
+hmc_term = { engine | metric_file | metric | stepsize_jitter | stepsize }
 
 stepsize = {
     !("stepsize" ~ (sep+ ~ "stepsize" ~ (&sep | EOI))+)
