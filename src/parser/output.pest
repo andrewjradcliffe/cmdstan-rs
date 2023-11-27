@@ -1,9 +1,9 @@
 // Declaration of a product type, with CmdStan's rule that
 // declarations of the same product type, with or without a body, must not be adjacent
 output = {
-    !(("output" ~ ((" ")+ ~ output_term)*)
-        ~ ((" ")+ ~ ("output" ~ ((" ")+ ~ output_term)*))+)
-    ~ ("output" ~ ((" ")+ ~ output_term)*)
+    !(("output" ~ (sep+ ~ output_term)*)
+        ~ (sep+ ~ ("output" ~ (sep+ ~ output_term)*))+)
+    ~ ("output" ~ (sep+ ~ output_term)*)
 }
 
 output_as_type = { SOI ~ output ~ &EOI }
@@ -17,18 +17,18 @@ output_term = {
 }
 
 diagnostic_file       = ${
-    !(("diagnostic_file" ~ ((" ")+ ~ "diagnostic_file" ~ (&(" ") | EOI))+))
+    !(("diagnostic_file" ~ (sep+ ~ "diagnostic_file" ~ (&sep | EOI))+))
     ~ ("diagnostic_file" ~ ("=" ~ path)?)
 }
 profile_file       = ${
-    !(("profile_file" ~ ((" ")+ ~ "profile_file" ~ (&(" ") | EOI))+))
+    !(("profile_file" ~ (sep+ ~ "profile_file" ~ (&sep | EOI))+))
     ~ ("profile_file" ~ ("=" ~ path)?)
 }
 sig_figs = ${
-    !(("sig_figs" ~ ((" ")+ ~ "sig_figs" ~ (&(" ") | EOI))+))
+    !(("sig_figs" ~ (sep+ ~ "sig_figs" ~ (&sep | EOI))+))
     ~ "sig_figs" ~ ("=" ~ signed_integer)?
 }
 refresh = ${
-    !(("refresh" ~ ((" ")+ ~ "refresh" ~ (&(" ") | EOI))+))
+    !(("refresh" ~ (sep+ ~ "refresh" ~ (&sep | EOI))+))
     ~ "refresh" ~ ("=" ~ integer)?
 }

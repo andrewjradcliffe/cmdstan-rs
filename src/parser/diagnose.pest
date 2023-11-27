@@ -1,24 +1,24 @@
 // Declaration of a sum type
 diagnose_test = {
-    !("test" ~ ((" ")+ ~ "test" ~ (&(" ") | EOI))+)
+    !("test" ~ (sep+ ~ "test" ~ (&sep | EOI))+)
     ~ ("test" ~ ("=" ~ gradient)?)
 }
 
 diagnose_test_as_type = { SOI ~ diagnose_test ~ &EOI }
 
 // Body of a sum type, non-unit variant
-gradient = { "gradient" ~ ((" ")+ ~ gradient_term)* }
+gradient = { "gradient" ~ (sep+ ~ gradient_term)* }
 gradient_term = { epsilon | error }
 
 // Body of a sum type, non-unit variant
-diagnose = { "diagnose" ~ ((" ")+ ~ diagnose_term)* }
+diagnose = { "diagnose" ~ (sep+ ~ diagnose_term)* }
 diagnose_term = { diagnose_test }
 
 epsilon          = ${
-    !(("epsilon" ~ ((" ")+ ~ "epsilon" ~ (&(" ") | EOI))+))
+    !(("epsilon" ~ (sep+ ~ "epsilon" ~ (&sep | EOI))+))
     ~ ("epsilon" ~ ("=" ~ float)?)
 }
 error          = ${
-    !(("error" ~ ((" ")+ ~ "error" ~ (&(" ") | EOI))+))
+    !(("error" ~ (sep+ ~ "error" ~ (&sep | EOI))+))
     ~ ("error" ~ ("=" ~ float)?)
 }

@@ -1,5 +1,5 @@
 // Body of a sum type, non-unit variant
-logprob = { "logprob" ~ ((" ")+ ~ logprob_term)* }
+logprob = { "logprob" ~ (sep+ ~ logprob_term)* }
 
 logprob_term = {
     unconstrained_params
@@ -8,10 +8,10 @@ logprob_term = {
 }
 
 unconstrained_params          = ${
-    !(("unconstrained_params" ~ ((" ")+ ~ "unconstrained_params" ~ (&(" ") | EOI))+))
+    !(("unconstrained_params" ~ (sep+ ~ "unconstrained_params" ~ (&sep | EOI))+))
     ~ "unconstrained_params" ~ ("=" ~ path)?
 }
 constrained_params          = ${
-    !(("constrained_params" ~ ((" ")+ ~ "constrained_params" ~ (&(" ") | EOI))+))
+    !(("constrained_params" ~ (sep+ ~ "constrained_params" ~ (&sep | EOI))+))
     ~ "constrained_params" ~ ("=" ~ path)?
 }

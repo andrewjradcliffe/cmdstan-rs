@@ -13,6 +13,9 @@ float   = @{
 
 signed_integer = @{ ("-" | "+")? ~ ASCII_DIGIT+ }
 
+// Valid separators in this language are space or tab
+sep = _{ " " | "\t" }
+
 // Obviously, this needs more thought. In the end, it might be easiest to provide
 // it with `cfg_attr` and a `grammar_inline` attribute
 non_ws = _{ !(" " | "\t") ~ ANY }
@@ -27,46 +30,46 @@ path = { single_quote_path | double_quote_path | regular_path }
 
 // And some common items
 engaged     = ${
-    !(("engaged" ~ ((" ")+ ~ "engaged" ~ (&(" ") | EOI))+))
+    !(("engaged" ~ (sep+ ~ "engaged" ~ (&sep | EOI))+))
     ~ ("engaged" ~ ("=" ~ (false | true))?)
 }
 init_alpha       = ${
-    !(("init_alpha" ~ ((" ")+ ~ "init_alpha" ~ (&(" ") | EOI))+))
+    !(("init_alpha" ~ (sep+ ~ "init_alpha" ~ (&sep | EOI))+))
     ~ ("init_alpha" ~ ("=" ~ float)?)
 }
 tol_obj       = ${
-    !(("tol_obj" ~ ((" ")+ ~ "tol_obj" ~ (&(" ") | EOI))+))
+    !(("tol_obj" ~ (sep+ ~ "tol_obj" ~ (&sep | EOI))+))
     ~ ("tol_obj" ~ ("=" ~ float)?)
 }
 tol_rel_obj       = ${
-    !(("tol_rel_obj" ~ ((" ")+ ~ "tol_rel_obj" ~ (&(" ") | EOI))+))
+    !(("tol_rel_obj" ~ (sep+ ~ "tol_rel_obj" ~ (&sep | EOI))+))
     ~ ("tol_rel_obj" ~ ("=" ~ float)?)
 }
 tol_grad       = ${
-    !(("tol_grad" ~ ((" ")+ ~ "tol_grad" ~ (&(" ") | EOI))+))
+    !(("tol_grad" ~ (sep+ ~ "tol_grad" ~ (&sep | EOI))+))
     ~ ("tol_grad" ~ ("=" ~ float)?)
 }
 tol_rel_grad       = ${
-    !(("tol_rel_grad" ~ ((" ")+ ~ "tol_rel_grad" ~ (&(" ") | EOI))+))
+    !(("tol_rel_grad" ~ (sep+ ~ "tol_rel_grad" ~ (&sep | EOI))+))
     ~ ("tol_rel_grad" ~ ("=" ~ float)?)
 }
 tol_param       = ${
-    !(("tol_param" ~ ((" ")+ ~ "tol_param" ~ (&(" ") | EOI))+))
+    !(("tol_param" ~ (sep+ ~ "tol_param" ~ (&sep | EOI))+))
     ~ ("tol_param" ~ ("=" ~ float)?)
 }
 history_size       = ${
-    !(("history_size" ~ ((" ")+ ~ "history_size" ~ (&(" ") | EOI))+))
+    !(("history_size" ~ (sep+ ~ "history_size" ~ (&sep | EOI))+))
     ~ ("history_size" ~ ("=" ~ integer)?)
 }
 iter       = ${
-    !(("iter" ~ ((" ")+ ~ "iter" ~ (&(" ") | EOI))+))
+    !(("iter" ~ (sep+ ~ "iter" ~ (&sep | EOI))+))
     ~ ("iter" ~ ("=" ~ integer)?)
 }
 jacobian     = ${
-    !(("jacobian" ~ ((" ")+ ~ "jacobian" ~ (&(" ") | EOI))+))
+    !(("jacobian" ~ (sep+ ~ "jacobian" ~ (&sep | EOI))+))
     ~ ("jacobian" ~ ("=" ~ (false | true))?)
 }
 file       = ${
-    !(("file" ~ ((" ")+ ~ "file" ~ (&(" ") | EOI))+))
+    !(("file" ~ (sep+ ~ "file" ~ (&sep | EOI))+))
     ~ ("file" ~ ("=" ~ path)?)
 }

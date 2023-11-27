@@ -1,12 +1,12 @@
 optimize_algorithm = {
-    !("algorithm" ~ ((" ")+ ~ "algorithm" ~ (&(" ") | EOI))+)
+    !("algorithm" ~ (sep+ ~ "algorithm" ~ (&sep | EOI))+)
     ~ ("algorithm" ~ ("=" ~ (bfgs | lbfgs | newton))?)
 }
 
 optimize_algorithm_as_type = { SOI ~ optimize_algorithm ~ &EOI }
 
-bfgs = { "bfgs" ~ ((" ")+ ~ bfgs_term)* }
-lbfgs = { "lbfgs" ~ ((" ")+ ~ lbfgs_term)* }
+bfgs = { "bfgs" ~ (sep+ ~ bfgs_term)* }
+lbfgs = { "lbfgs" ~ (sep+ ~ lbfgs_term)* }
 newton = { "newton" }
 
 bfgs_term = {
@@ -28,7 +28,7 @@ lbfgs_term = {
   | history_size
 }
 
-optimize = { "optimize" ~ ((" ")+ ~ optimize_term)* }
+optimize = { "optimize" ~ (sep+ ~ optimize_term)* }
 
 optimize_term = {
     optimize_algorithm
@@ -38,6 +38,6 @@ optimize_term = {
 }
 
 save_iterations     = ${
-    !(("save_iterations" ~ ((" ")+ ~ "save_iterations" ~ (&(" ") | EOI))+))
+    !(("save_iterations" ~ (sep+ ~ "save_iterations" ~ (&sep | EOI))+))
     ~ ("save_iterations" ~ ("=" ~ (false | true))?)
 }

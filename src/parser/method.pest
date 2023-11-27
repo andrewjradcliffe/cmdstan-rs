@@ -1,7 +1,7 @@
 // Declaration of a sum type, with special case logic:
 // the type is optional iff the variant is declared
 method = {
-    !("method" ~ ((" ")+ ~ "method" ~ (&(" ") | EOI))+)
+    !("method" ~ (sep+ ~ "method" ~ (&sep | EOI))+)
     ~ (((("method" ~ "=")? ~ (
                     sample
                   | optimize

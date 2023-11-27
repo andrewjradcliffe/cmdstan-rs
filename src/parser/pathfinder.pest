@@ -1,5 +1,5 @@
 // Body of a sum type, non-unit variant
-pathfinder = { "pathfinder" ~ ((" ")+ ~ pathfinder_term)* }
+pathfinder = { "pathfinder" ~ (sep+ ~ pathfinder_term)* }
 
 pathfinder_term = {
     init_alpha
@@ -17,26 +17,26 @@ pathfinder_term = {
 }
 
 num_psis_draws          = ${
-    !(("num_psis_draws" ~ ((" ")+ ~ "num_psis_draws" ~ (&(" ") | EOI))+))
+    !(("num_psis_draws" ~ (sep+ ~ "num_psis_draws" ~ (&sep | EOI))+))
     ~ "num_psis_draws" ~ ("=" ~ integer)?
 }
 num_paths          = ${
-    !(("num_paths" ~ ((" ")+ ~ "num_paths" ~ (&(" ") | EOI))+))
+    !(("num_paths" ~ (sep+ ~ "num_paths" ~ (&sep | EOI))+))
     ~ "num_paths" ~ ("=" ~ integer)?
 }
 save_single_paths     = ${
-    !(("save_single_paths" ~ ((" ")+ ~ "save_single_paths" ~ (&(" ") | EOI))+))
+    !(("save_single_paths" ~ (sep+ ~ "save_single_paths" ~ (&sep | EOI))+))
     ~ ("save_single_paths" ~ ("=" ~ (false | true))?)
 }
 max_lbfgs_iters          = ${
-    !(("max_lbfgs_iters" ~ ((" ")+ ~ "max_lbfgs_iters" ~ (&(" ") | EOI))+))
+    !(("max_lbfgs_iters" ~ (sep+ ~ "max_lbfgs_iters" ~ (&sep | EOI))+))
     ~ "max_lbfgs_iters" ~ ("=" ~ integer)?
 }
 num_draws          = ${
-    !(("num_draws" ~ ((" ")+ ~ "num_draws" ~ (&(" ") | EOI))+))
+    !(("num_draws" ~ (sep+ ~ "num_draws" ~ (&sep | EOI))+))
     ~ "num_draws" ~ ("=" ~ integer)?
 }
 num_elbo_draws          = ${
-    !(("num_elbo_draws" ~ ((" ")+ ~ "num_elbo_draws" ~ (&(" ") | EOI))+))
+    !(("num_elbo_draws" ~ (sep+ ~ "num_elbo_draws" ~ (&sep | EOI))+))
     ~ "num_elbo_draws" ~ ("=" ~ integer)?
 }

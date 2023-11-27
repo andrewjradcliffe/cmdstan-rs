@@ -1,4 +1,4 @@
-laplace = { "laplace" ~ ((" ")+ ~ laplace_term)* }
+laplace = { "laplace" ~ (sep+ ~ laplace_term)* }
 
 laplace_term = {
     mode
@@ -7,10 +7,10 @@ laplace_term = {
 }
 
 mode = ${
-    !(("mode" ~ ((" ")+ ~ "mode" ~ (&(" ") | EOI))+))
+    !(("mode" ~ (sep+ ~ "mode" ~ (&sep | EOI))+))
     ~ "mode" ~ ("=" ~ path)?
 }
 draws = ${
-    !(("draws" ~ ((" ")+ ~ "draws" ~ (&(" ") | EOI))+))
+    !(("draws" ~ (sep+ ~ "draws" ~ (&sep | EOI))+))
     ~ "draws" ~ ("=" ~ integer)?
 }
