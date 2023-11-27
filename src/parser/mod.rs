@@ -86,14 +86,34 @@ impl FromStr for Engine {
     }
 }
 
-macro_rules! unify_engine_kv {
-    ($P:ident, $T:ident) => {
-        $P.into_inner()
-            .filter_map(|p| p.into_inner().next())
-            .last()
-            .map(|p| p.as_str().parse::<$T>().unwrap())
-    };
+// This enables us to skip parsing of n-1 floats.
+// It is equivalent to parsing each and simply taking the last
+// due to the fact that any number can be represented
+// as a float.
+// As the name suggests, this applies only to the Rule::r#static
+// `Pair` which produces 0 or more Rule::int_time `Pair`s
+fn unify_int_time(pair: Pair<'_, Rule>) -> Option<f64> {
+    pair.into_inner()
+        .filter_map(|p| p.into_inner().next())
+        .last()
+        .map(|p| p.as_str().parse::<f64>().unwrap())
 }
+// It would be nice to skip parsing of n-1 integers, but we
+// have no other way to check that each value is < 2^31
+fn unify_max_depth(pair: Pair<'_, Rule>) -> Result<Option<i32>, ParseGrammarError> {
+    let pairs = pair.into_inner().filter_map(|p| p.into_inner().next());
+    let mut max_depth: Option<i32> = None;
+    for pair in pairs {
+        match pair.as_str().parse::<i32>() {
+            Ok(value) => {
+                max_depth = Some(value);
+            }
+            Err(e) => return Err(EngineError(format!("{e:#?}"))),
+        }
+    }
+    Ok(max_depth)
+}
+
 impl Engine {
     fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
         match pair.as_rule() {
@@ -102,14 +122,14 @@ impl Engine {
                     Some(pair) => match pair.as_rule() {
                         Rule::nuts => {
                             let mut builder = NutsBuilder::new();
-                            if let Some(value) = unify_engine_kv!(pair, i32) {
+                            if let Some(value) = unify_max_depth(pair)? {
                                 builder = builder.max_depth(value);
                             }
                             builder.build()
                         }
                         Rule::r#static => {
                             let mut builder = StaticBuilder::new();
-                            if let Some(value) = unify_engine_kv!(pair, f64) {
+                            if let Some(value) = unify_int_time(pair) {
                                 builder = builder.int_time(value);
                             }
                             builder.build()
@@ -227,13 +247,13 @@ macro_rules! unify_hmc_terms {
                 Rule::engine => match pair.into_inner().next() {
                     Some(pair) => match pair.as_rule() {
                         Rule::nuts => {
-                            if let Some(value) = unify_engine_kv!(pair, i32) {
+                            if let Some(value) = unify_max_depth(pair)? {
                                 $max_depth = Some(value);
                             }
                             $state = true;
                         }
                         Rule::r#static => {
-                            if let Some(value) = unify_engine_kv!(pair, f64) {
+                            if let Some(value) = unify_int_time(pair) {
                                 $int_time = Some(value);
                             }
                             $state = false;
