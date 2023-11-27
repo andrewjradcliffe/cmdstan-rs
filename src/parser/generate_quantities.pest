@@ -1,0 +1,6 @@
+// Body of a sum type, non-unit variant
+generate_quantities = { "generate_quantities" ~ ((" ")+ ~ fitted_params)* }
+
+fitted_params = { !("fitted_params" ~ ((" ")+ ~ "fitted_params" ~ (&(" ") | EOI))+)
+    ~ ("fitted_params" ~ ("=" ~ path)?)
+}

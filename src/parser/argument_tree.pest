@@ -1,0 +1,31 @@
+// Technically, these are the permissible grammars.
+// The declaration can appear twice, but only if it is an empty declaration
+// directly adjacent to a declaration with associated value
+id = {
+    !("id" ~ ((" ")+ ~ "id" ~ (&(" ") | EOI))+)
+    ~ ("id" ~ (((" ")+ ~ "id" ~ "=" ~ integer) | ("=" ~ integer)?))
+}
+
+init = {
+    !("init" ~ ((" ")+ ~ "init" ~ (&(" ") | EOI))+)
+    ~ ("init" ~ (((" ")+ ~ "init" ~ "=" ~ (float | path)) | ("=" ~ (float | path))?))
+}
+
+num_threads = {
+    !("num_threads" ~ ((" ")+ ~ "num_threads" ~ (&(" ") | EOI))+)
+    ~ ("num_threads" ~ (((" ")+ ~ "num_threads" ~ "=" ~ signed_integer) | ("=" ~ signed_integer)?))
+}
+
+argument_tree = {
+    SOI ~
+    (
+        method
+        | init
+        | data
+        | random
+        | output
+        | id
+        | num_threads
+    )+
+    ~ EOI
+}

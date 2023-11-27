@@ -1,0 +1,17 @@
+// Declaration of a sum type, with special case logic:
+// the type is optional iff the variant is declared
+method = {
+    !("method" ~ ((" ")+ ~ "method" ~ (&(" ") | EOI))+)
+    ~ (((("method" ~ "=")? ~ (
+                    sample
+                  | optimize
+                  | variational
+                  | diagnose
+                  | generate_quantities
+                  | pathfinder
+                  | logprob
+                  | laplace)
+            ) | "method"))
+}
+
+method_as_type = { SOI ~ method ~ &EOI}

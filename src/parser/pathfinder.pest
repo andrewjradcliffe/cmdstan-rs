@@ -1,0 +1,42 @@
+// Body of a sum type, non-unit variant
+pathfinder = { "pathfinder" ~ ((" ")+ ~ pathfinder_term)* }
+
+pathfinder_term = {
+    init_alpha
+    | tol_obj
+    | tol_rel_obj
+    | tol_grad
+    | tol_param
+    | history_size
+    | num_psis_draws
+    | num_paths
+    | save_single_paths
+    | max_lbfgs_iters
+    | num_draws
+    | num_elbo_draws
+}
+
+num_psis_draws          = ${
+    !(("num_psis_draws" ~ ((" ")+ ~ "num_psis_draws" ~ (&(" ") | EOI))+))
+    ~ "num_psis_draws" ~ ("=" ~ integer)?
+}
+num_paths          = ${
+    !(("num_paths" ~ ((" ")+ ~ "num_paths" ~ (&(" ") | EOI))+))
+    ~ "num_paths" ~ ("=" ~ integer)?
+}
+save_single_paths     = ${
+    !(("save_single_paths" ~ ((" ")+ ~ "save_single_paths" ~ (&(" ") | EOI))+))
+    ~ ("save_single_paths" ~ ("=" ~ (false | true))?)
+}
+max_lbfgs_iters          = ${
+    !(("max_lbfgs_iters" ~ ((" ")+ ~ "max_lbfgs_iters" ~ (&(" ") | EOI))+))
+    ~ "max_lbfgs_iters" ~ ("=" ~ integer)?
+}
+num_draws          = ${
+    !(("num_draws" ~ ((" ")+ ~ "num_draws" ~ (&(" ") | EOI))+))
+    ~ "num_draws" ~ ("=" ~ integer)?
+}
+num_elbo_draws          = ${
+    !(("num_elbo_draws" ~ ((" ")+ ~ "num_elbo_draws" ~ (&(" ") | EOI))+))
+    ~ "num_elbo_draws" ~ ("=" ~ integer)?
+}

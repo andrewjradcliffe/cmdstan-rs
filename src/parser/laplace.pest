@@ -1,0 +1,16 @@
+laplace = { "laplace" ~ ((" ")+ ~ laplace_term)* }
+
+laplace_term = {
+    mode
+    | jacobian
+    | draws
+}
+
+mode = ${
+    !(("mode" ~ ((" ")+ ~ "mode" ~ (&(" ") | EOI))+))
+    ~ "mode" ~ ("=" ~ path)?
+}
+draws = ${
+    !(("draws" ~ ((" ")+ ~ "draws" ~ (&(" ") | EOI))+))
+    ~ "draws" ~ ("=" ~ integer)?
+}

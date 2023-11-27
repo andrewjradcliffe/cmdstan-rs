@@ -1,0 +1,34 @@
+// Declaration of a product type, with CmdStan's rule that
+// declarations of the same product type, with or without a body, must not be adjacent
+output = {
+    !(("output" ~ ((" ")+ ~ output_term)*)
+        ~ ((" ")+ ~ ("output" ~ ((" ")+ ~ output_term)*))+)
+    ~ ("output" ~ ((" ")+ ~ output_term)*)
+}
+
+output_as_type = { SOI ~ output ~ &EOI }
+
+output_term = {
+    file
+  | diagnostic_file
+  | profile_file
+  | sig_figs
+  | refresh
+}
+
+diagnostic_file       = ${
+    !(("diagnostic_file" ~ ((" ")+ ~ "diagnostic_file" ~ (&(" ") | EOI))+))
+    ~ ("diagnostic_file" ~ ("=" ~ path)?)
+}
+profile_file       = ${
+    !(("profile_file" ~ ((" ")+ ~ "profile_file" ~ (&(" ") | EOI))+))
+    ~ ("profile_file" ~ ("=" ~ path)?)
+}
+sig_figs = ${
+    !(("sig_figs" ~ ((" ")+ ~ "sig_figs" ~ (&(" ") | EOI))+))
+    ~ "sig_figs" ~ ("=" ~ signed_integer)?
+}
+refresh = ${
+    !(("refresh" ~ ((" ")+ ~ "refresh" ~ (&(" ") | EOI))+))
+    ~ "refresh" ~ ("=" ~ integer)?
+}

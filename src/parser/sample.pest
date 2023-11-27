@@ -1,0 +1,150 @@
+// Declaration of a product type, with CmdStan's rule that
+// declarations of the same product type, with or without a body, must not be adjacent
+sample_adapt = {
+    !( ("adapt" ~ ((" ")+ ~ sample_adapt_pair)*)
+        ~ ((" ")+ ~ ("adapt" ~ ((" ")+ ~ sample_adapt_pair)*))+
+    )
+    ~
+    ("adapt" ~ ((" ")+ ~ sample_adapt_pair)*)
+}
+sample_adapt_as_type = { SOI ~ sample_adapt ~ EOI }
+
+sample_adapt_pair = {
+    engaged
+  | gamma
+  | delta
+  | kappa
+  | t0
+  | init_buffer
+  | term_buffer
+  | window
+}
+
+// Two or more of the same field, directly adjacent and without a
+// value, is an error.
+gamma       = ${
+    !(("gamma" ~ ((" ")+ ~ "gamma" ~ (&(" ") | EOI))+))
+    ~ "gamma" ~ ("=" ~ float)?
+}
+delta       = ${
+    !(("delta" ~ ((" ")+ ~ "delta" ~ (&(" ") | EOI))+))
+    ~ "delta" ~ ("=" ~ float)?
+}
+kappa       = ${
+    !(("kappa" ~ ((" ")+ ~ "kappa" ~ (&(" ") | EOI))+))
+    ~ "kappa" ~ ("=" ~ float)?
+}
+t0          = ${
+    !(("t0" ~ ((" ")+ ~ "t0" ~ (&(" ") | EOI))+))
+    ~ "t0" ~ ("=" ~ float)?
+}
+init_buffer = ${
+    !(("init_buffer" ~ ((" ")+ ~ "init_buffer" ~ (&(" ") | EOI))+))
+    ~ "init_buffer" ~ ("=" ~ integer)?
+}
+term_buffer = ${
+    !(("term_buffer" ~ ((" ")+ ~ "term_buffer" ~ (&(" ") | EOI))+))
+    ~ "term_buffer" ~ ("=" ~ integer)?
+}
+window      = ${
+    !(("window" ~ ((" ")+ ~ "window" ~ (&(" ") | EOI))+))
+    ~ "window" ~ ("=" ~ integer)?
+}
+
+// Declaration of a sum type
+sample_algorithm = {
+    !("algorithm" ~ ((" ")+ ~ "algorithm" ~ (&(" ") | EOI))+)
+    ~ ("algorithm" ~ ("=" ~ (hmc | fixed_param))?)
+}
+sample_algorithm_as_type = { SOI ~ sample_algorithm ~ &EOI }
+
+// Body of a sum type, unit variant
+fixed_param = { "fixed_param" }
+
+// Body of a sum type, non-unit variant
+hmc = { "hmc" ~ ((" ")+ ~ hmc_term)* }
+
+// hmc_term = { engine | metric | metric_file | stepsize_jitter | stepsize }
+hmc_term = { engine | metric | stepsize_jitter | stepsize }
+
+stepsize = {
+    !("stepsize" ~ ((" ")+ ~ "stepsize" ~ (&(" ") | EOI))+)
+    ~ ("stepsize" ~ ("=" ~ float)?)
+}
+
+stepsize_jitter = {
+    !("stepsize_jitter" ~ ((" ")+ ~ "stepsize_jitter" ~ (&(" ") | EOI))+)
+    ~ ("stepsize_jitter" ~ ("=" ~ float)?)
+}
+
+metric_file = {
+    !("metric_file" ~ ((" ")+ ~ "metric_file" ~ (&(" ") | EOI))+)
+    ~ ("metric_file" ~ ("=" ~ path)?)
+}
+
+metric = {
+    !("metric" ~ ((" ")+ ~ "metric" ~ (&(" ") | EOI))+)
+    ~ ("metric" ~ ("=" ~ (unit_e | diag_e | dense_e))?)
+}
+metric_as_type = ${ SOI ~ metric ~ &EOI }
+
+unit_e = { "unit_e" }
+diag_e = { "diag_e" }
+dense_e = { "dense_e" }
+
+// Declaration of a sum type
+engine = {
+    !("engine" ~ ((" ")+ ~ "engine" ~ (&(" ") | EOI))+)
+    ~ ("engine" ~ ("=" ~ (nuts | static))?)
+}
+engine_as_type = ${ SOI ~ engine ~ &EOI }
+
+// Body of a sum type, non-unit variant
+nuts = { "nuts" ~ ((" ")+ ~ max_depth)* }
+
+max_depth     = ${
+    !("max_depth" ~ ((" ")+ ~ "max_depth" ~ (&(" ") | EOI))+)
+    ~ ("max_depth" ~ ("=" ~ integer)?)
+}
+
+// Body of a sum type, non-unit variant
+static = { "static" ~ ((" ")+ ~ int_time)* }
+
+int_time     = ${
+    !("int_time" ~ ((" ")+ ~ "int_time" ~ (&(" ") | EOI))+)
+    ~ ("int_time" ~ ("=" ~ float)?)
+}
+
+
+// Body of a sum type, non-unit variant
+sample = { "sample" ~ ((" ")+ ~ sample_term)* }
+
+sample_term = { num_samples
+    | num_warmup
+    | save_warmup
+    | thin
+    | sample_adapt
+    | sample_algorithm
+    | num_chains
+}
+
+num_samples          = ${
+    !(("num_samples" ~ ((" ")+ ~ "num_samples" ~ (&(" ") | EOI))+))
+    ~ "num_samples" ~ ("=" ~ integer)?
+}
+num_warmup          = ${
+    !(("num_warmup" ~ ((" ")+ ~ "num_warmup" ~ (&(" ") | EOI))+))
+    ~ "num_warmup" ~ ("=" ~ integer)?
+}
+thin          = ${
+    !(("thin" ~ ((" ")+ ~ "thin" ~ (&(" ") | EOI))+))
+    ~ "thin" ~ ("=" ~ integer)?
+}
+num_chains          = ${
+    !(("num_chains" ~ ((" ")+ ~ "num_chains" ~ (&(" ") | EOI))+))
+    ~ "num_chains" ~ ("=" ~ integer)?
+}
+save_warmup     = ${
+    !(("save_warmup" ~ ((" ")+ ~ "save_warmup" ~ (&(" ") | EOI))+))
+    ~ ("save_warmup" ~ ("=" ~ (false | true))?)
+}

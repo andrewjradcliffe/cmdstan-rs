@@ -1,0 +1,43 @@
+optimize_algorithm = {
+    !("algorithm" ~ ((" ")+ ~ "algorithm" ~ (&(" ") | EOI))+)
+    ~ ("algorithm" ~ ("=" ~ (bfgs | lbfgs | newton))?)
+}
+
+optimize_algorithm_as_type = { SOI ~ optimize_algorithm ~ &EOI }
+
+bfgs = { "bfgs" ~ ((" ")+ ~ bfgs_term)* }
+lbfgs = { "lbfgs" ~ ((" ")+ ~ lbfgs_term)* }
+newton = { "newton" }
+
+bfgs_term = {
+    init_alpha
+    | tol_obj
+    | tol_rel_obj
+    | tol_grad
+    | tol_rel_grad
+    | tol_param
+}
+
+lbfgs_term = {
+    init_alpha
+  | tol_obj
+  | tol_rel_obj
+  | tol_grad
+  | tol_rel_grad
+  | tol_param
+  | history_size
+}
+
+optimize = { "optimize" ~ ((" ")+ ~ optimize_term)* }
+
+optimize_term = {
+    optimize_algorithm
+    | jacobian
+    | iter
+    | save_iterations
+}
+
+save_iterations     = ${
+    !(("save_iterations" ~ ((" ")+ ~ "save_iterations" ~ (&(" ") | EOI))+))
+    ~ ("save_iterations" ~ ("=" ~ (false | true))?)
+}

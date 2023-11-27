@@ -1,0 +1,13 @@
+// Declaration of a product type, with CmdStan's rule that
+// declarations of the same product type, with or without a body, must not be adjacent
+random = {
+    !(("random" ~ ((" ")+ ~ seed)*)
+        ~ ((" ")+ ~ ("random" ~ ((" ")+ ~ seed)*))+)
+    ~ ("random" ~ ((" ")+ ~ seed)*)
+}
+random_as_type = { SOI ~ random ~ &EOI }
+
+seed = ${
+    !(("seed" ~ ((" ")+ ~ "seed" ~ (&(" ") | EOI))+))
+    ~ "seed" ~ ("=" ~ signed_integer)?
+}
