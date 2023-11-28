@@ -73,6 +73,7 @@ macro_rules! path_arm {
 }
 
 mod diagnose;
+mod generate_quantities;
 mod method;
 mod optimize;
 mod sample;
