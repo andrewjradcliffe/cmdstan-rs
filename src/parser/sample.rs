@@ -275,86 +275,66 @@ pub(crate) fn try_sample_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Parse
     match pair.as_rule() {
         Rule::sample => {
             let sample = pair;
-            let algorithms = sample
-                .clone()
-                .into_inner()
-                .map(|sample_term| sample_term.into_inner().next().unwrap())
-                .filter(|p| match p.as_rule() {
-                    Rule::sample_algorithm => true,
-                    _ => false,
-                });
-            let adapts = sample
-                .clone()
-                .into_inner()
-                .map(|sample_term| sample_term.into_inner().next().unwrap())
-                .filter(|p| match p.as_rule() {
-                    Rule::sample_adapt => true,
-                    _ => false,
-                });
-
-            // First, we unify the adapts
-            let mut builder = SampleAdapt::builder();
-            for adapt in adapts {
-                unify_sample_adapt_terms!(builder, adapt);
-            }
-            let adapt = builder.build();
-
-            // Next, we unify the algorithms.
+            // We use a builder to hold state during adapt unification
+            let mut adapt_builder = SampleAdapt::builder();
             // Here, we need an extra state to store the algorithm type
             // We also use an `HmcBuilder` to store the state; whether it
             // gets built consumed depends on the algorithm type.
             let mut alg_state = true; // true => Hmc, false => FixedParam
-            let mut builder = HmcBuilder::new();
+            let mut hmc_builder = HmcBuilder::new();
             // Here, we need to store external states in order to
             // perform unification on the `Engine` variants.
             let mut engine_state = true; // true => Nuts, false => Static
             let mut max_depth: Option<i32> = None;
             let mut int_time: Option<f64> = None;
-            for algorithm in algorithms {
-                match algorithm.into_inner().next() {
-                    Some(pair) => match pair.as_rule() {
-                        Rule::fixed_param => {
-                            alg_state = false;
-                        }
-                        Rule::hmc => {
-                            alg_state = true;
-                            unify_hmc_terms!(builder, pair, engine_state, max_depth, int_time);
-                        }
-                        _ => unreachable!(),
-                    },
-                    _ => (),
-                }
-            }
-            let algorithm = if !alg_state {
-                SampleAlgorithm::FixedParam
-            } else {
-                let engine = engine_cond(engine_state, max_depth, int_time);
-                builder.engine(engine).build()
-            };
-
-            // Finally, we unify all the other fields
-            let fields = sample
-                .into_inner()
-                .map(|sample_term| sample_term.into_inner().next().unwrap())
-                .filter(|p| match p.as_rule() {
-                    Rule::sample_algorithm => false,
-                    Rule::sample_adapt => false,
-                    _ => true,
-                });
-            // We use a builder to store states
+            // We use a builder to store the non-adapt and non-algorithm states
+            // during unification
             let mut builder = SampleBuilder::new();
-            for pair in fields {
+
+            let pairs = sample
+                .into_inner()
+                .map(|sample_term| sample_term.into_inner().next().unwrap());
+            for pair in pairs {
                 match pair.as_rule() {
+                    Rule::sample_algorithm => match pair.into_inner().next() {
+                        Some(pair) => match pair.as_rule() {
+                            Rule::fixed_param => {
+                                alg_state = false;
+                            }
+                            Rule::hmc => {
+                                alg_state = true;
+                                unify_hmc_terms!(
+                                    hmc_builder,
+                                    pair,
+                                    engine_state,
+                                    max_depth,
+                                    int_time
+                                );
+                            }
+                            _ => unreachable!(),
+                        },
+                        _ => (),
+                    },
+                    Rule::sample_adapt => {
+                        unify_sample_adapt_terms!(adapt_builder, pair);
+                    }
                     Rule::num_samples => number_arm!(builder, pair, num_samples, i32),
                     Rule::num_warmup => number_arm!(builder, pair, num_warmup, i32),
                     Rule::thin => number_arm!(builder, pair, thin, i32),
                     Rule::num_chains => number_arm!(builder, pair, num_chains, i32),
                     Rule::save_warmup => boolean_arm!(builder, pair, save_warmup),
-                    // nothing else is reachable since algorithm and adapt have
-                    // been filtered
                     _ => unreachable!(),
                 }
             }
+
+            let adapt = adapt_builder.build();
+            let algorithm = if !alg_state {
+                SampleAlgorithm::FixedParam
+            } else {
+                let engine = engine_cond(engine_state, max_depth, int_time);
+                hmc_builder.engine(engine).build()
+            };
+
             Ok(builder.algorithm(algorithm).adapt(adapt).build())
         }
         r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
@@ -528,6 +508,13 @@ mod tests {
 
             let lhs = "method=sample".parse::<Method>().unwrap();
             assert_eq!(lhs, Method::default());
+
+            let s = "method=sample adapt engaged=-0 algorithm=hmc stepsize=0.5 engine=nuts max_depth=5 engine=static int_time=2 adapt gamma=0.1 delta algorithm=fixed_param adapt delta=0.2 gamma=0.5 num_samples adapt engaged=+1";
+            let rhs = SampleBuilder::new()
+                .adapt(SampleAdapt::builder().gamma(0.5).delta(0.2))
+                .algorithm(SampleAlgorithm::FixedParam)
+                .build();
+            assert_eq!(s.parse::<Method>().unwrap(), rhs);
         }
     }
 }
