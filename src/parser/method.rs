@@ -1,4 +1,5 @@
 use crate::method::Method;
+use crate::parser::optimize::try_optimize_from_pair;
 use crate::parser::sample::try_sample_from_pair;
 use crate::parser::*;
 
@@ -10,6 +11,7 @@ impl Method {
                     let pair = pair.into_inner().next().unwrap();
                     match pair.as_rule() {
                         Rule::sample => try_sample_from_pair(pair),
+                        Rule::optimize => try_optimize_from_pair(pair),
                         _ => todo!(),
                     }
                 }
