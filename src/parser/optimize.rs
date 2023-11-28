@@ -15,16 +15,6 @@ impl FromStr for OptimizeAlgorithm {
     }
 }
 
-// macro_rules! match_unify_arms {
-//     { $B:ident, $P:ident ; $($float_field:ident),+ ; $int_field:ident } => {
-//         match $P.as_rule() {
-//             $(Rule::$float_field => number_arm!($B, $P, $float_field, f64),)+
-//                 Rule::$int_field => number_arm!($B, $P, $int_field, i32),
-//             _ => unreachable!(),
-//         }
-//     }
-// }
-
 macro_rules! unify_bfgs_terms {
     ($B:ident, $bfgs:ident) => {
         let pairs = $bfgs
@@ -59,10 +49,6 @@ macro_rules! unify_lbfgs_terms {
                 Rule::history_size => number_arm!($B, pair, history_size, i32),
                 _ => unreachable!(),
             }
-            // match_unify_arms! {
-            //     $B, pair ; init_alpha, tol_obj, tol_rel_obj, tol_grad, tol_rel_grad, tol_param ;
-            //     history_size
-            // };
         }
     };
 }
