@@ -19,13 +19,15 @@ use std::str::FromStr;
 #[grammar = "parser/argument_tree.pest"]
 pub struct GrammarParser;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ParseGrammarError {
     MetricError(String),
     EngineError(String),
     SampleAdaptError(String),
     SampleAlgorithmError(String),
     OptimizeAlgorithmError(String),
+    VariationalAdaptError(String),
+    VariationalAlgorithmError(String),
     MethodError(String),
     RuleError(String),
 }
@@ -72,3 +74,4 @@ macro_rules! path_arm {
 mod method;
 mod optimize;
 mod sample;
+mod variational;

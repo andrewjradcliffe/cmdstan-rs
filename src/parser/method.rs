@@ -1,6 +1,7 @@
 use crate::method::Method;
 use crate::parser::optimize::try_optimize_from_pair;
 use crate::parser::sample::try_sample_from_pair;
+use crate::parser::variational::try_variational_from_pair;
 use crate::parser::*;
 
 impl Method {
@@ -12,6 +13,7 @@ impl Method {
                     match pair.as_rule() {
                         Rule::sample => try_sample_from_pair(pair),
                         Rule::optimize => try_optimize_from_pair(pair),
+                        Rule::variational => try_variational_from_pair(pair),
                         _ => todo!(),
                     }
                 }
