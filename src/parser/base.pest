@@ -1,89 +1,71 @@
 true  = { "+"? ~ "1" }
-false = { ("-" | "+")? ~ "0"}
+false = { ("-" | "+")? ~ "0" }
 
-integer = @{ "+"? ~ ASCII_DIGIT+ }
-float   = @{
-    ("-" | "+")? ~
-    (
-        ^"nan"
-        | (^"inf" ~ (^"inity")?)
-      | (ASCII_DIGIT+) ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
-    )
-}
-
+integer        = @{ "+"? ~ ASCII_DIGIT+ }
 signed_integer = @{ ("-" | "+")? ~ ASCII_DIGIT+ }
+float          = @{
+    ("-" | "+")? ~ (^"nan" | (^"inf" ~ (^"inity")?) | (ASCII_DIGIT+) ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?)
+}
 
 // Valid separators in this language are space or tab
 sep = _{ " " | "\t" }
 
 // Obviously, this needs more thought. In the end, it might be easiest to provide
 // it with `cfg_attr` and a `grammar_inline` attribute
-non_ws = _{ !(" " | "\t") ~ ANY }
-non_single_quote = _{ !"'" ~ ANY}
-non_double_quote = _{ !"\"" ~ ANY}
-regular_path = ${ non_ws* }
+non_ws            = _{ !(" " | "\t") ~ ANY }
+non_single_quote  = _{ !"'" ~ ANY }
+non_double_quote  = _{ !"\"" ~ ANY }
+regular_path      = ${ non_ws* }
 single_quote_path = ${ "'" ~ non_single_quote* ~ "'" }
 double_quote_path = ${ "\"" ~ non_double_quote* ~ "\"" }
-path = { single_quote_path | double_quote_path | regular_path }
+path              =  { single_quote_path | double_quote_path | regular_path }
 
 // And some common items
-engaged     = ${
-    !(_engaged ~ (sep+ ~ _engaged ~ (&sep | EOI))+)
-    ~ _engaged ~ ("=" ~ (false | true))?
+engaged      = ${
+    !(_engaged ~ (sep+ ~ _engaged ~ (&sep | EOI))+) ~ _engaged ~ ("=" ~ (false | true))?
 }
-init_alpha       = ${
-    !(_init_alpha ~ (sep+ ~ _init_alpha ~ (&sep | EOI))+)
-    ~ _init_alpha ~ ("=" ~ float)?
+init_alpha   = ${
+    !(_init_alpha ~ (sep+ ~ _init_alpha ~ (&sep | EOI))+) ~ _init_alpha ~ ("=" ~ float)?
 }
-tol_obj       = ${
-    !(_tol_obj ~ (sep+ ~ _tol_obj ~ (&sep | EOI))+)
-    ~ _tol_obj ~ ("=" ~ float)?
+tol_obj      = ${
+    !(_tol_obj ~ (sep+ ~ _tol_obj ~ (&sep | EOI))+) ~ _tol_obj ~ ("=" ~ float)?
 }
-tol_rel_obj       = ${
-    !(_tol_rel_obj ~ (sep+ ~ _tol_rel_obj ~ (&sep | EOI))+)
-    ~ _tol_rel_obj ~ ("=" ~ float)?
+tol_rel_obj  = ${
+    !(_tol_rel_obj ~ (sep+ ~ _tol_rel_obj ~ (&sep | EOI))+) ~ _tol_rel_obj ~ ("=" ~ float)?
 }
-tol_grad       = ${
-    !(_tol_grad ~ (sep+ ~ _tol_grad ~ (&sep | EOI))+)
-    ~ _tol_grad ~ ("=" ~ float)?
+tol_grad     = ${
+    !(_tol_grad ~ (sep+ ~ _tol_grad ~ (&sep | EOI))+) ~ _tol_grad ~ ("=" ~ float)?
 }
-tol_rel_grad       = ${
-    !(_tol_rel_grad ~ (sep+ ~ _tol_rel_grad ~ (&sep | EOI))+)
-    ~ _tol_rel_grad ~ ("=" ~ float)?
+tol_rel_grad = ${
+    !(_tol_rel_grad ~ (sep+ ~ _tol_rel_grad ~ (&sep | EOI))+) ~ _tol_rel_grad ~ ("=" ~ float)?
 }
-tol_param       = ${
-    !(_tol_param ~ (sep+ ~ _tol_param ~ (&sep | EOI))+)
-    ~ _tol_param ~ ("=" ~ float)?
+tol_param    = ${
+    !(_tol_param ~ (sep+ ~ _tol_param ~ (&sep | EOI))+) ~ _tol_param ~ ("=" ~ float)?
 }
-history_size       = ${
-    !(_history_size ~ (sep+ ~ _history_size ~ (&sep | EOI))+)
-    ~ _history_size ~ ("=" ~ integer)?
+history_size = ${
+    !(_history_size ~ (sep+ ~ _history_size ~ (&sep | EOI))+) ~ _history_size ~ ("=" ~ integer)?
 }
-iter       = ${
-    !(_iter ~ (sep+ ~ _iter ~ (&sep | EOI))+)
-    ~ _iter ~ ("=" ~ integer)?
+iter         = ${
+    !(_iter ~ (sep+ ~ _iter ~ (&sep | EOI))+) ~ _iter ~ ("=" ~ integer)?
 }
 jacobian     = ${
-    !(_jacobian ~ (sep+ ~ _jacobian ~ (&sep | EOI))+)
-    ~ _jacobian ~ ("=" ~ (false | true))?
+    !(_jacobian ~ (sep+ ~ _jacobian ~ (&sep | EOI))+) ~ _jacobian ~ ("=" ~ (false | true))?
 }
-file       = ${
-    !(_file ~ (sep+ ~ _file ~ (&sep | EOI))+)
-    ~ _file ~ ("=" ~ path)?
+file         = ${
+    !(_file ~ (sep+ ~ _file ~ (&sep | EOI))+) ~ _file ~ ("=" ~ path)?
 }
 
 // Literals
-_algorithm = _{ "algorithm" }
-_adapt = _{ "adapt" }
-_engaged = _{ "engaged" }
-_init_alpha = _{ "init_alpha" }
-_tol_obj = _{ "tol_obj" }
-_tol_rel_obj = _{ "tol_rel_obj" }
-_tol_grad = _{ "tol_grad" }
+_algorithm    = _{ "algorithm" }
+_adapt        = _{ "adapt" }
+_engaged      = _{ "engaged" }
+_init_alpha   = _{ "init_alpha" }
+_tol_obj      = _{ "tol_obj" }
+_tol_rel_obj  = _{ "tol_rel_obj" }
+_tol_grad     = _{ "tol_grad" }
 _tol_rel_grad = _{ "tol_rel_grad" }
-_tol_param = _{ "tol_param" }
+_tol_param    = _{ "tol_param" }
 _history_size = _{ "history_size" }
-_iter = _{ "iter" }
-_jacobian = _{ "jacobian" }
-_file = _{ "file" }
-
+_iter         = _{ "iter" }
+_jacobian     = _{ "jacobian" }
+_file         = _{ "file" }

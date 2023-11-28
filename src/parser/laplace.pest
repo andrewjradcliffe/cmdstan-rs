@@ -2,18 +2,16 @@ laplace = { "laplace" ~ (sep+ ~ laplace_term)* }
 
 laplace_term = {
     mode
-    | jacobian
-    | draws
+  | jacobian
+  | draws
 }
 
-mode = ${
-    !(_mode ~ (sep+ ~ _mode ~ (&sep | EOI))+)
-    ~ _mode ~ ("=" ~ path)?
+mode  = ${
+    !(_mode ~ (sep+ ~ _mode ~ (&sep | EOI))+) ~ _mode ~ ("=" ~ path)?
 }
 draws = ${
-    !(_draws ~ (sep+ ~ _draws ~ (&sep | EOI))+)
-    ~ _draws ~ ("=" ~ integer)?
+    !(_draws ~ (sep+ ~ _draws ~ (&sep | EOI))+) ~ _draws ~ ("=" ~ integer)?
 }
 
-_mode = _{ "mode" }
+_mode  = _{ "mode" }
 _draws = _{ "draws" }

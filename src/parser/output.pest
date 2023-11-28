@@ -15,25 +15,22 @@ output_term = {
   | refresh
 }
 
-diagnostic_file       = ${
+diagnostic_file = ${
     !(_diagnosic_file ~ (sep+ ~ _diagnosic_file ~ (&sep | EOI))+)
     ~ _diagnosic_file ~ ("=" ~ path)?
 }
-profile_file       = ${
-    !(_profile_file ~ (sep+ ~ _profile_file ~ (&sep | EOI))+)
-    ~ _profile_file ~ ("=" ~ path)?
+profile_file    = ${
+    !(_profile_file ~ (sep+ ~ _profile_file ~ (&sep | EOI))+) ~ _profile_file ~ ("=" ~ path)?
 }
-sig_figs = ${
-    !(_sig_figs ~ (sep+ ~ _sig_figs ~ (&sep | EOI))+)
-    ~ _sig_figs ~ ("=" ~ signed_integer)?
+sig_figs        = ${
+    !(_sig_figs ~ (sep+ ~ _sig_figs ~ (&sep | EOI))+) ~ _sig_figs ~ ("=" ~ signed_integer)?
 }
-refresh = ${
-    !(_refresh ~ (sep+ ~ _refresh ~ (&sep | EOI))+)
-    ~ _refresh ~ ("=" ~ integer)?
+refresh         = ${
+    !(_refresh ~ (sep+ ~ _refresh ~ (&sep | EOI))+) ~ _refresh ~ ("=" ~ integer)?
 }
 
-_output = _{ "output" }
+_output         = _{ "output" }
 _diagnosic_file = _{ "diagnosic_file" }
-_profile_file = _{ "profile_file" }
-_sig_figs = _{ "sig_figs" }
-_refresh = _{ "refresh" }
+_profile_file   = _{ "profile_file" }
+_sig_figs       = _{ "sig_figs" }
+_refresh        = _{ "refresh" }

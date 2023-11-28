@@ -3,18 +3,18 @@ logprob = { "logprob" ~ (sep+ ~ logprob_term)* }
 
 logprob_term = {
     unconstrained_params
-    | constrained_params
-    | jacobian
+  | constrained_params
+  | jacobian
 }
 
-unconstrained_params          = ${
+unconstrained_params = ${
     !(_unconstrained_params ~ (sep+ ~ _unconstrained_params ~ (&sep | EOI))+)
     ~ _unconstrained_params ~ ("=" ~ path)?
 }
-constrained_params          = ${
+constrained_params   = ${
     !(_constrained_params ~ (sep+ ~ _constrained_params ~ (&sep | EOI))+)
     ~ _constrained_params ~ ("=" ~ path)?
 }
 
 _unconstrained_params = _{ "unconstrained_params" }
-_constrained_params = _{ "constrained_params" }
+_constrained_params   = _{ "constrained_params" }

@@ -1,8 +1,7 @@
 // Declaration of a product type, with CmdStan's rule that
 // declarations of the same product type, with or without a body, must not be adjacent
 data = {
-    !(_data ~ (sep+ ~ file)* ~ (sep+ ~ (_data ~ (sep+ ~ file)*))+)
-    ~ _data ~ (sep+ ~ file)*
+    !(_data ~ (sep+ ~ file)* ~ (sep+ ~ (_data ~ (sep+ ~ file)*))+) ~ _data ~ (sep+ ~ file)*
 }
 
 data_as_type = { SOI ~ data ~ &EOI }

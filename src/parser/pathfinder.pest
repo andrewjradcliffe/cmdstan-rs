@@ -3,47 +3,46 @@ pathfinder = { "pathfinder" ~ (sep+ ~ pathfinder_term)* }
 
 pathfinder_term = {
     init_alpha
-    | tol_obj
-    | tol_rel_obj
-    | tol_grad
-    | tol_param
-    | history_size
-    | num_psis_draws
-    | num_paths
-    | save_single_paths
-    | max_lbfgs_iters
-    | num_draws
-    | num_elbo_draws
+  | tol_obj
+  | tol_rel_obj
+  | tol_grad
+  | tol_param
+  | history_size
+  | num_psis_draws
+  | num_paths
+  | save_single_paths
+  | max_lbfgs_iters
+  | num_draws
+  | num_elbo_draws
 }
 
-num_psis_draws          = ${
+num_psis_draws    = ${
     !(_num_psis_draws ~ (sep+ ~ _num_psis_draws ~ (&sep | EOI))+)
     ~ _num_psis_draws ~ ("=" ~ integer)?
 }
-num_paths          = ${
+num_paths         = ${
     !(_num_paths ~ (sep+ ~ _num_paths ~ (&sep | EOI))+)
     ~ _num_paths ~ ("=" ~ integer)?
 }
-save_single_paths     = ${
+save_single_paths = ${
     !(_save_single_paths ~ (sep+ ~ _save_single_paths ~ (&sep | EOI))+)
     ~ (_save_single_paths ~ ("=" ~ (false | true))?)
 }
-max_lbfgs_iters          = ${
+max_lbfgs_iters   = ${
     !(_max_lbfgs_iters ~ (sep+ ~ _max_lbfgs_iters ~ (&sep | EOI))+)
     ~ _max_lbfgs_iters ~ ("=" ~ integer)?
 }
-num_draws          = ${
-    !(_num_draws ~ (sep+ ~ _num_draws ~ (&sep | EOI))+)
-    ~ _num_draws ~ ("=" ~ integer)?
+num_draws         = ${
+    !(_num_draws ~ (sep+ ~ _num_draws ~ (&sep | EOI))+) ~ _num_draws ~ ("=" ~ integer)?
 }
-num_elbo_draws          = ${
+num_elbo_draws    = ${
     !(_num_elbo_draws ~ (sep+ ~ _num_elbo_draws ~ (&sep | EOI))+)
     ~ _num_elbo_draws ~ ("=" ~ integer)?
 }
 
-_num_psis_draws = _{ "num_psis_draws" }
-_num_paths = _{ "num_paths" }
+_num_psis_draws    = _{ "num_psis_draws" }
+_num_paths         = _{ "num_paths" }
 _save_single_paths = _{ "save_single_paths" }
-_max_lbfgs_iters = _{ "max_lbfgs_iters" }
-_num_draws = _{ "num_draws" }
-_num_elbo_draws = _{ "num_elbo_draws" }
+_max_lbfgs_iters   = _{ "max_lbfgs_iters" }
+_num_draws         = _{ "num_draws" }
+_num_elbo_draws    = _{ "num_elbo_draws" }
