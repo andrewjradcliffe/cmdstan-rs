@@ -13,7 +13,7 @@ impl DiagnoseBuilder {
     pub fn new() -> Self {
         Self { test: None }
     }
-    insert_field!(test, DiagnoseTest);
+    insert_into_field!(test, DiagnoseTest);
     /// Build the `Method::Diagnose` instance.
     pub fn build(self) -> Method {
         let test = self.test.unwrap_or_default();
@@ -38,10 +38,7 @@ pub enum DiagnoseTest {
 }
 impl Default for DiagnoseTest {
     fn default() -> Self {
-        DiagnoseTest::Gradient {
-            epsilon: 1e-6,
-            error: 1e-6,
-        }
+        GradientBuilder::new().build()
     }
 }
 
@@ -56,6 +53,38 @@ impl DiagnoseTest {
                 ]
             }
         }
+    }
+}
+
+impl From<GradientBuilder> for DiagnoseTest {
+    fn from(x: GradientBuilder) -> Self {
+        x.build()
+    }
+}
+
+/// Options builder for [`DiagnoseTest::Gradient`].
+/// For any option left unspecified, the default value indicated
+/// on `DiagnoseTest::Gradient` will be supplied.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GradientBuilder {
+    epsilon: Option<f64>,
+    error: Option<f64>,
+}
+impl GradientBuilder {
+    /// Return a builder with all options unspecified.
+    pub fn new() -> Self {
+        GradientBuilder {
+            epsilon: None,
+            error: None,
+        }
+    }
+    insert_field!(epsilon, f64);
+    insert_field!(error, f64);
+    /// Build the `DiagnoseTest::Gradient` instance.
+    pub fn build(self) -> DiagnoseTest {
+        let epsilon = self.epsilon.unwrap_or(1e-6);
+        let error = self.error.unwrap_or(1e-6);
+        DiagnoseTest::Gradient { epsilon, error }
     }
 }
 
