@@ -115,43 +115,6 @@ impl Engine {
     }
 }
 
-macro_rules! number_arm {
-    ($B:ident, $P:ident, $F:ident, $T:ty) => {
-        match $P.into_inner().next() {
-            Some(pair) => {
-                let value = pair.as_str().parse::<$T>().unwrap();
-                $B = $B.$F(value);
-            }
-            _ => (),
-        }
-    };
-}
-macro_rules! boolean_arm {
-    ($B:ident, $P:ident, $F:ident) => {
-        match $P.into_inner().next() {
-            Some(pair) => {
-                let value = match pair.as_rule() {
-                    Rule::r#true => true,
-                    Rule::r#false => false,
-                    _ => unreachable!(),
-                };
-                $B = $B.$F(value);
-            }
-            _ => (),
-        }
-    };
-}
-macro_rules! path_arm {
-    ($B:ident, $P:ident, $F:ident) => {
-        match $P.into_inner().next() {
-            Some(pair) => {
-                $B = $B.$F(pair.as_str());
-            }
-            _ => (),
-        }
-    };
-}
-
 macro_rules! unify_sample_adapt_terms {
     ($B:ident, $sample_adapt:ident) => {
         let pairs = $sample_adapt
