@@ -85,38 +85,40 @@ pub(crate) fn try_optimize_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Par
     match pair.as_rule() {
         Rule::optimize => {
             let optimize = pair;
-            let algorithms = optimize
-                .clone()
-                .into_inner()
-                .map(|optimize_term| optimize_term.into_inner().next().unwrap())
-                .filter(|p| match p.as_rule() {
-                    Rule::optimize_algorithm => true,
-                    _ => false,
-                });
-
             // We need 3 states to handle the 3 variants.
             // 0 => Bfgs, 1 => Lbfgs, 2 => Newton
             let mut alg_state: u8 = 1;
-            // We use builders for the respective variants to hold state
+            // We use builders to hold state for the respective algorithm variants
             let mut bfgs_builder = BfgsBuilder::new();
             let mut lbfgs_builder = LbfgsBuilder::new();
-            for algorithm in algorithms {
-                match algorithm.into_inner().next() {
-                    Some(pair) => match pair.as_rule() {
-                        Rule::bfgs => {
-                            alg_state = 0;
-                            unify_bfgs_terms!(bfgs_builder, pair);
-                        }
-                        Rule::lbfgs => {
-                            alg_state = 1;
-                            unify_lbfgs_terms!(lbfgs_builder, pair);
-                        }
-                        Rule::newton => {
-                            alg_state = 2;
-                        }
-                        _ => unreachable!(),
+            // We use another builder to hold state for the method variant
+            let mut opt_builder = OptimizeBuilder::new();
+            let pairs = optimize
+                .into_inner()
+                .map(|optimize_term| optimize_term.into_inner().next().unwrap());
+            for pair in pairs {
+                match pair.as_rule() {
+                    Rule::optimize_algorithm => match pair.into_inner().next() {
+                        Some(pair) => match pair.as_rule() {
+                            Rule::bfgs => {
+                                alg_state = 0;
+                                unify_bfgs_terms!(bfgs_builder, pair);
+                            }
+                            Rule::lbfgs => {
+                                alg_state = 1;
+                                unify_lbfgs_terms!(lbfgs_builder, pair);
+                            }
+                            Rule::newton => {
+                                alg_state = 2;
+                            }
+                            _ => unreachable!(),
+                        },
+                        _ => (),
                     },
-                    _ => (),
+                    Rule::jacobian => boolean_arm!(opt_builder, pair, jacobian),
+                    Rule::iter => number_arm!(opt_builder, pair, iter, i32),
+                    Rule::save_iterations => boolean_arm!(opt_builder, pair, save_iterations),
+                    _ => unreachable!(),
                 }
             }
 
@@ -127,24 +129,7 @@ pub(crate) fn try_optimize_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Par
                 _ => unreachable!(),
             };
 
-            let fields = optimize
-                .into_inner()
-                .map(|optimize_term| optimize_term.into_inner().next().unwrap())
-                .filter(|p| match p.as_rule() {
-                    Rule::optimize_algorithm => false,
-                    _ => true,
-                });
-
-            let mut builder = OptimizeBuilder::new();
-            for pair in fields {
-                match pair.as_rule() {
-                    Rule::jacobian => boolean_arm!(builder, pair, jacobian),
-                    Rule::iter => number_arm!(builder, pair, iter, i32),
-                    Rule::save_iterations => boolean_arm!(builder, pair, save_iterations),
-                    _ => unreachable!(),
-                }
-            }
-            Ok(builder.algorithm(algorithm).build())
+            Ok(opt_builder.algorithm(algorithm).build())
         }
         r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
     }
