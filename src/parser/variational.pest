@@ -1,7 +1,7 @@
 // Declaration of a sum type, with CmdStan's rule two declarations without a body
 // must not be adjacent
 variational_algorithm         = {
-    !(_algorithm ~ (sep+ ~ _algorithm ~ &sep)+) ~ _algorithm ~ ("=" ~ (meanfield | fullrank))
+    !(_algorithm ~ (sep+ ~ _algorithm ~ &sep)+) ~ _algorithm ~ ("=" ~ (meanfield | fullrank))?
 }
 variational_algorithm_as_type = { SOI ~ variational_algorithm ~ &EOI }
 
@@ -57,6 +57,6 @@ variational_term = {
 
 _grad_samples   = _{ "grad_samples" }
 _elbo_samples   = _{ "elbo_samples" }
-_eta            = _{ "eta " }
-_eval_elbo      = _{ "eval_elbo " }
+_eta            = _{ "eta" }
+_eval_elbo      = _{ "eval_elbo" }
 _output_samples = _{ "output_samples" }
