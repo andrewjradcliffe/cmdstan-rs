@@ -1,7 +1,7 @@
 use crate::diagnose::*;
 use crate::generate_quantities::*;
 use crate::laplace::*;
-use crate::logprob::*;
+use crate::log_prob::*;
 use crate::optimize::*;
 use crate::pathfinder::*;
 use crate::sample::*;

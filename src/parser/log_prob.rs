@@ -1,13 +1,13 @@
-use crate::logprob::*;
+use crate::log_prob::*;
 use crate::method::Method;
 use crate::parser::*;
 
-pub(crate) fn try_logprob_from_pair(pair: Pair<'_, Rule>) -> Result<Method, ParseGrammarError> {
+pub(crate) fn try_log_prob_from_pair(pair: Pair<'_, Rule>) -> Result<Method, ParseGrammarError> {
     match pair.as_rule() {
-        Rule::logprob => {
+        Rule::log_prob => {
             let pairs = pair
                 .into_inner()
-                .map(|logprob_term| logprob_term.into_inner().next().unwrap());
+                .map(|log_prob_term| log_prob_term.into_inner().next().unwrap());
             // We use the builder to hold state during unification.
             let mut builder = LogProbBuilder::new();
             for pair in pairs {
@@ -36,10 +36,10 @@ mod tests {
         #[test]
         fn from_str() {
             let rhs = LogProbBuilder::new().build();
-            assert_eq!("logprob".parse::<Method>().unwrap(), rhs);
-            assert_eq!("method=logprob".parse::<Method>().unwrap(), rhs);
+            assert_eq!("log_prob".parse::<Method>().unwrap(), rhs);
+            assert_eq!("method=log_prob".parse::<Method>().unwrap(), rhs);
 
-            let s = "method=logprob jacobian jacobian=0 jacobian=1 unconstrained_params=foo.bar unconstrained_params unconstrained_params=bar.baz constrained_params=foo.bar constrained_params jacobian=0";
+            let s = "method=log_prob jacobian jacobian=0 jacobian=1 unconstrained_params=foo.bar unconstrained_params unconstrained_params=bar.baz constrained_params=foo.bar constrained_params jacobian=0";
             let rhs = LogProbBuilder::new()
                 .jacobian(false)
                 .unconstrained_params("bar.baz")

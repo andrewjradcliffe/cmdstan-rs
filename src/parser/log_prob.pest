@@ -1,7 +1,7 @@
 // Body of a sum type, non-unit variant
-logprob = { "logprob" ~ (sep+ ~ logprob_term)* }
+log_prob = { "log_prob" ~ (sep+ ~ log_prob_term)* }
 
-logprob_term = {
+log_prob_term = {
     unconstrained_params
   | constrained_params
   | jacobian

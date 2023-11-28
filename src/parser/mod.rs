@@ -10,7 +10,7 @@ use std::str::FromStr;
 #[grammar = "parser/diagnose.pest"]
 #[grammar = "parser/generate_quantities.pest"]
 #[grammar = "parser/pathfinder.pest"]
-#[grammar = "parser/logprob.pest"]
+#[grammar = "parser/log_prob.pest"]
 #[grammar = "parser/laplace.pest"]
 #[grammar = "parser/method.pest"]
 #[grammar = "parser/data.pest"]
@@ -74,7 +74,8 @@ macro_rules! path_arm {
 
 mod diagnose;
 mod generate_quantities;
-mod logprob;
+mod laplace;
+mod log_prob;
 mod method;
 mod optimize;
 mod pathfinder;

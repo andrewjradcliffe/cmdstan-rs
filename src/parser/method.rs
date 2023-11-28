@@ -1,7 +1,8 @@
 use crate::method::Method;
 use crate::parser::diagnose::try_diagnose_from_pair;
 use crate::parser::generate_quantities::try_generate_quantities_from_pair;
-use crate::parser::logprob::try_logprob_from_pair;
+use crate::parser::laplace::try_laplace_from_pair;
+use crate::parser::log_prob::try_log_prob_from_pair;
 use crate::parser::optimize::try_optimize_from_pair;
 use crate::parser::pathfinder::try_pathfinder_from_pair;
 use crate::parser::sample::try_sample_from_pair;
@@ -21,7 +22,8 @@ impl Method {
                         Rule::diagnose => try_diagnose_from_pair(pair),
                         Rule::generate_quantities => try_generate_quantities_from_pair(pair),
                         Rule::pathfinder => try_pathfinder_from_pair(pair),
-                        Rule::logprob => try_logprob_from_pair(pair),
+                        Rule::log_prob => try_log_prob_from_pair(pair),
+                        Rule::laplace => try_laplace_from_pair(pair),
                         _ => todo!(),
                     }
                 }

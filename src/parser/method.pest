@@ -13,7 +13,7 @@ method_variant = {
   | diagnose
   | generate_quantities
   | pathfinder
-  | logprob
+  | log_prob
   | laplace
 }
 
