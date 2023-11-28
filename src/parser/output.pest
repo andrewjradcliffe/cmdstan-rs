@@ -16,8 +16,8 @@ output_term = {
 }
 
 diagnostic_file = ${
-    !(_diagnosic_file ~ (sep+ ~ _diagnosic_file ~ (&sep | EOI))+)
-    ~ _diagnosic_file ~ ("=" ~ path)?
+    !(_diagnostic_file ~ (sep+ ~ _diagnostic_file ~ (&sep | EOI))+)
+    ~ _diagnostic_file ~ ("=" ~ path)?
 }
 profile_file    = ${
     !(_profile_file ~ (sep+ ~ _profile_file ~ (&sep | EOI))+) ~ _profile_file ~ ("=" ~ path)?
@@ -29,8 +29,8 @@ refresh         = ${
     !(_refresh ~ (sep+ ~ _refresh ~ (&sep | EOI))+) ~ _refresh ~ ("=" ~ integer)?
 }
 
-_output         = _{ "output" }
-_diagnosic_file = _{ "diagnosic_file" }
-_profile_file   = _{ "profile_file" }
-_sig_figs       = _{ "sig_figs" }
-_refresh        = _{ "refresh" }
+_output          = _{ "output" }
+_diagnostic_file = _{ "diagnostic_file" }
+_profile_file    = _{ "profile_file" }
+_sig_figs        = _{ "sig_figs" }
+_refresh         = _{ "refresh" }
