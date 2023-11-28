@@ -17,26 +17,33 @@ pathfinder_term = {
 }
 
 num_psis_draws          = ${
-    !("num_psis_draws" ~ (sep+ ~ "num_psis_draws" ~ (&sep | EOI))+)
-    ~ "num_psis_draws" ~ ("=" ~ integer)?
+    !(_num_psis_draws ~ (sep+ ~ _num_psis_draws ~ (&sep | EOI))+)
+    ~ _num_psis_draws ~ ("=" ~ integer)?
 }
 num_paths          = ${
-    !("num_paths" ~ (sep+ ~ "num_paths" ~ (&sep | EOI))+)
-    ~ "num_paths" ~ ("=" ~ integer)?
+    !(_num_paths ~ (sep+ ~ _num_paths ~ (&sep | EOI))+)
+    ~ _num_paths ~ ("=" ~ integer)?
 }
 save_single_paths     = ${
-    !("save_single_paths" ~ (sep+ ~ "save_single_paths" ~ (&sep | EOI))+)
-    ~ ("save_single_paths" ~ ("=" ~ (false | true))?)
+    !(_save_single_paths ~ (sep+ ~ _save_single_paths ~ (&sep | EOI))+)
+    ~ (_save_single_paths ~ ("=" ~ (false | true))?)
 }
 max_lbfgs_iters          = ${
-    !("max_lbfgs_iters" ~ (sep+ ~ "max_lbfgs_iters" ~ (&sep | EOI))+)
-    ~ "max_lbfgs_iters" ~ ("=" ~ integer)?
+    !(_max_lbfgs_iters ~ (sep+ ~ _max_lbfgs_iters ~ (&sep | EOI))+)
+    ~ _max_lbfgs_iters ~ ("=" ~ integer)?
 }
 num_draws          = ${
-    !("num_draws" ~ (sep+ ~ "num_draws" ~ (&sep | EOI))+)
-    ~ "num_draws" ~ ("=" ~ integer)?
+    !(_num_draws ~ (sep+ ~ _num_draws ~ (&sep | EOI))+)
+    ~ _num_draws ~ ("=" ~ integer)?
 }
 num_elbo_draws          = ${
-    !("num_elbo_draws" ~ (sep+ ~ "num_elbo_draws" ~ (&sep | EOI))+)
-    ~ "num_elbo_draws" ~ ("=" ~ integer)?
+    !(_num_elbo_draws ~ (sep+ ~ _num_elbo_draws ~ (&sep | EOI))+)
+    ~ _num_elbo_draws ~ ("=" ~ integer)?
 }
+
+_num_psis_draws = _{ "num_psis_draws" }
+_num_paths = _{ "num_paths" }
+_save_single_paths = _{ "save_single_paths" }
+_max_lbfgs_iters = _{ "max_lbfgs_iters" }
+_num_draws = _{ "num_draws" }
+_num_elbo_draws = _{ "num_elbo_draws" }

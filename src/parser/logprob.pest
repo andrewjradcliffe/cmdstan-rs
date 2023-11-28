@@ -8,10 +8,13 @@ logprob_term = {
 }
 
 unconstrained_params          = ${
-    !("unconstrained_params" ~ (sep+ ~ "unconstrained_params" ~ (&sep | EOI))+)
-    ~ "unconstrained_params" ~ ("=" ~ path)?
+    !(_unconstrained_params ~ (sep+ ~ _unconstrained_params ~ (&sep | EOI))+)
+    ~ _unconstrained_params ~ ("=" ~ path)?
 }
 constrained_params          = ${
-    !("constrained_params" ~ (sep+ ~ "constrained_params" ~ (&sep | EOI))+)
-    ~ "constrained_params" ~ ("=" ~ path)?
+    !(_constrained_params ~ (sep+ ~ _constrained_params ~ (&sep | EOI))+)
+    ~ _constrained_params ~ ("=" ~ path)?
 }
+
+_unconstrained_params = _{ "unconstrained_params" }
+_constrained_params = _{ "constrained_params" }

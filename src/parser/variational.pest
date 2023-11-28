@@ -1,8 +1,8 @@
 // Declaration of a sum type, with CmdStan's rule two declarations without a body
 // must not be adjacent
 variational_algorithm = {
-    !("algorithm" ~ (sep+ ~ "algorithm" ~ &sep)+)
-    ~ "algorithm" ~ ("=" ~ (meanfield | fullrank))
+    !(_algorithm ~ (sep+ ~ _algorithm ~ &sep)+)
+    ~ _algorithm ~ ("=" ~ (meanfield | fullrank))
 }
 variational_algorithm_as_type = { SOI ~ variational_algorithm ~ &EOI }
 
@@ -12,9 +12,9 @@ fullrank = { "fullrank" }
 // Declaration of a product type, with CmdStan's rule that
 // declarations of the same product type, with or without a body, must not be adjacent
 variational_adapt = {
-    !("adapt" ~ (sep+ ~ variational_adapt_pair)*
-        ~ (sep+ ~ ("adapt" ~ (sep+ ~ variational_adapt_pair)*))+)
-    ~ "adapt" ~ (sep+ ~ variational_adapt_pair)*
+    !(_adapt ~ (sep+ ~ variational_adapt_pair)*
+        ~ (sep+ ~ (_adapt ~ (sep+ ~ variational_adapt_pair)*))+)
+    ~ _adapt ~ (sep+ ~ variational_adapt_pair)*
 }
 variational_adapt_as_type = { SOI ~ variational_adapt ~ &EOI }
 
@@ -27,24 +27,24 @@ variational_adapt_pair = {
 // Two or more of the same field, directly adjacent and without a
 // value, is an error.
 grad_samples       = ${
-    !("grad_samples" ~ (sep+ ~ "grad_samples" ~ (&sep | EOI))+)
-    ~ "grad_samples" ~ ("=" ~ integer)?
+    !(_grad_samples ~ (sep+ ~ _grad_samples ~ (&sep | EOI))+)
+    ~ _grad_samples ~ ("=" ~ integer)?
 }
 elbo_samples       = ${
-    !("elbo_samples" ~ (sep+ ~ "elbo_samples" ~ (&sep | EOI))+)
-    ~ "elbo_samples" ~ ("=" ~ integer)?
+    !(_elbo_samples ~ (sep+ ~ _elbo_samples ~ (&sep | EOI))+)
+    ~ _elbo_samples ~ ("=" ~ integer)?
 }
 eta       = ${
-    !("eta" ~ (sep+ ~ "eta" ~ (&sep | EOI))+)
-    ~ "eta" ~ ("=" ~ float)?
+    !(_eta ~ (sep+ ~ _eta ~ (&sep | EOI))+)
+    ~ _eta ~ ("=" ~ float)?
 }
 eval_elbo       = ${
-    !("eval_elbo" ~ (sep+ ~ "eval_elbo" ~ (&sep | EOI))+)
-    ~ "eval_elbo" ~ ("=" ~ integer)?
+    !(_eval_elbo ~ (sep+ ~ _eval_elbo ~ (&sep | EOI))+)
+    ~ _eval_elbo ~ ("=" ~ integer)?
 }
 output_samples       = ${
-    !("output_samples" ~ (sep+ ~ "output_samples" ~ (&sep | EOI))+)
-    ~ "output_samples" ~ ("=" ~ integer)?
+    !(_output_samples ~ (sep+ ~ _output_samples ~ (&sep | EOI))+)
+    ~ _output_samples ~ ("=" ~ integer)?
 }
 
 // Body of a sum type, non-unit variant
@@ -60,4 +60,11 @@ variational_term = { variational_algorithm
     | eval_elbo
     | output_samples
 }
+
+_grad_samples = _{ "grad_samples" }
+_elbo_samples = _{ "elbo_samples" }
+_eta = _{ "eta " }
+_eval_elbo = _{ "eval_elbo " }
+_output_samples = _{ "output_samples" }
+
 

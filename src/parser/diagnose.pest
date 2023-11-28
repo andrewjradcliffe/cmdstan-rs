@@ -1,7 +1,7 @@
 // Declaration of a sum type
 diagnose_test = {
-    !("test" ~ (sep+ ~ "test" ~ (&sep | EOI))+)
-    ~ "test" ~ ("=" ~ gradient)?
+    !(_test ~ (sep+ ~ _test ~ (&sep | EOI))+)
+    ~ _test ~ ("=" ~ gradient)?
 }
 
 diagnose_test_as_type = { SOI ~ diagnose_test ~ &EOI }
@@ -15,10 +15,14 @@ diagnose = { "diagnose" ~ (sep+ ~ diagnose_term)* }
 diagnose_term = { diagnose_test }
 
 epsilon          = ${
-    !("epsilon" ~ (sep+ ~ "epsilon" ~ (&sep | EOI))+)
-    ~ "epsilon" ~ ("=" ~ float)?
+    !(_epsilon ~ (sep+ ~ _epsilon ~ (&sep | EOI))+)
+    ~ _epsilon ~ ("=" ~ float)?
 }
 error          = ${
-    !("error" ~ (sep+ ~ "error" ~ (&sep | EOI))+)
-    ~ "error" ~ ("=" ~ float)?
+    !(_error ~ (sep+ ~ _error ~ (&sep | EOI))+)
+    ~ _error ~ ("=" ~ float)?
 }
+
+_test = _{ "test" }
+_epsilon = _{ "epsilon" }
+_error = _{ "error" }

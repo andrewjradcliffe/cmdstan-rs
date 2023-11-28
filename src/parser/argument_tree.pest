@@ -2,18 +2,18 @@
 // The declaration can appear twice, but only if it is an empty declaration
 // directly adjacent to a declaration with associated value
 id = {
-    !("id" ~ (sep+ ~ "id" ~ (&sep | EOI))+)
-    ~ ("id" ~ ((sep+ ~ "id" ~ "=" ~ integer) | ("=" ~ integer)?))
+    !(_id ~ (sep+ ~ _id ~ (&sep | EOI))+)
+    ~ (_id ~ ((sep+ ~ _id ~ "=" ~ integer) | ("=" ~ integer)?))
 }
 
 init = {
-    !("init" ~ (sep+ ~ "init" ~ (&sep | EOI))+)
-    ~ ("init" ~ ((sep+ ~ "init" ~ "=" ~ (float | path)) | ("=" ~ (float | path))?))
+    !(_init ~ (sep+ ~ _init ~ (&sep | EOI))+)
+    ~ (_init ~ ((sep+ ~ _init ~ "=" ~ (float | path)) | ("=" ~ (float | path))?))
 }
 
 num_threads = {
-    !("num_threads" ~ (sep+ ~ "num_threads" ~ (&sep | EOI))+)
-    ~ ("num_threads" ~ ((sep+ ~ "num_threads" ~ "=" ~ signed_integer) | ("=" ~ signed_integer)?))
+    !(_num_threads ~ (sep+ ~ _num_threads ~ (&sep | EOI))+)
+    ~ (_num_threads ~ ((sep+ ~ _num_threads ~ "=" ~ signed_integer) | ("=" ~ signed_integer)?))
 }
 
 argument_tree = {
@@ -29,3 +29,8 @@ argument_tree = {
     )+
     ~ EOI
 }
+
+
+_id = _{ "id" }
+_init = _{ "init" }
+_num_threads = _{ "num_threads" }

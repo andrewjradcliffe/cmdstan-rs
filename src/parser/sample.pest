@@ -1,9 +1,9 @@
 // Declaration of a product type, with CmdStan's rule that
 // declarations of the same product type, with or without a body, must not be adjacent
 sample_adapt = {
-    !("adapt" ~ (sep+ ~ sample_adapt_pair)*
-        ~ (sep+ ~ ("adapt" ~ (sep+ ~ sample_adapt_pair)*))+)
-    ~ "adapt" ~ (sep+ ~ sample_adapt_pair)*
+    !(_adapt ~ (sep+ ~ sample_adapt_pair)*
+        ~ (sep+ ~ (_adapt ~ (sep+ ~ sample_adapt_pair)*))+)
+    ~ _adapt ~ (sep+ ~ sample_adapt_pair)*
 }
 sample_adapt_as_type = { SOI ~ sample_adapt ~ EOI }
 
@@ -21,38 +21,38 @@ sample_adapt_pair = {
 // Two or more of the same field, directly adjacent and without a
 // value, is an error.
 gamma       = ${
-    !("gamma" ~ (sep+ ~ "gamma" ~ (&sep | EOI))+)
-    ~ "gamma" ~ ("=" ~ float)?
+    !(_gamma ~ (sep+ ~ _gamma ~ (&sep | EOI))+)
+    ~ _gamma ~ ("=" ~ float)?
 }
 delta       = ${
-    !("delta" ~ (sep+ ~ "delta" ~ (&sep | EOI))+)
-    ~ "delta" ~ ("=" ~ float)?
+    !(_delta ~ (sep+ ~ _delta ~ (&sep | EOI))+)
+    ~ _delta ~ ("=" ~ float)?
 }
 kappa       = ${
-    !("kappa" ~ (sep+ ~ "kappa" ~ (&sep | EOI))+)
-    ~ "kappa" ~ ("=" ~ float)?
+    !(_kappa ~ (sep+ ~ _kappa ~ (&sep | EOI))+)
+    ~ _kappa ~ ("=" ~ float)?
 }
 t0          = ${
-    !("t0" ~ (sep+ ~ "t0" ~ (&sep | EOI))+)
-    ~ "t0" ~ ("=" ~ float)?
+    !(_t0 ~ (sep+ ~ _t0 ~ (&sep | EOI))+)
+    ~ _t0 ~ ("=" ~ float)?
 }
 init_buffer = ${
-    !("init_buffer" ~ (sep+ ~ "init_buffer" ~ (&sep | EOI))+)
-    ~ "init_buffer" ~ ("=" ~ integer)?
+    !(_init_buffer ~ (sep+ ~ _init_buffer ~ (&sep | EOI))+)
+    ~ _init_buffer ~ ("=" ~ integer)?
 }
 term_buffer = ${
-    !("term_buffer" ~ (sep+ ~ "term_buffer" ~ (&sep | EOI))+)
-    ~ "term_buffer" ~ ("=" ~ integer)?
+    !(_term_buffer ~ (sep+ ~ _term_buffer ~ (&sep | EOI))+)
+    ~ _term_buffer ~ ("=" ~ integer)?
 }
 window      = ${
-    !("window" ~ (sep+ ~ "window" ~ (&sep | EOI))+)
-    ~ "window" ~ ("=" ~ integer)?
+    !(_window ~ (sep+ ~ _window ~ (&sep | EOI))+)
+    ~ _window ~ ("=" ~ integer)?
 }
 
 // Declaration of a sum type
 sample_algorithm = {
-    !("algorithm" ~ (sep+ ~ "algorithm" ~ (&sep | EOI))+)
-    ~ "algorithm" ~ ("=" ~ (hmc | fixed_param))?
+    !(_algorithm ~ (sep+ ~ _algorithm ~ (&sep | EOI))+)
+    ~ _algorithm ~ ("=" ~ (hmc | fixed_param))?
 }
 sample_algorithm_as_type = { SOI ~ sample_algorithm ~ &EOI }
 
@@ -65,23 +65,23 @@ hmc = { "hmc" ~ (sep+ ~ hmc_term)* }
 hmc_term = { engine | metric_file | metric | stepsize_jitter | stepsize }
 
 stepsize = {
-    !("stepsize" ~ (sep+ ~ "stepsize" ~ (&sep | EOI))+)
-    ~ "stepsize" ~ ("=" ~ float)?
+    !(_stepsize ~ (sep+ ~ _stepsize ~ (&sep | EOI))+)
+    ~ _stepsize ~ ("=" ~ float)?
 }
 
 stepsize_jitter = {
-    !("stepsize_jitter" ~ (sep+ ~ "stepsize_jitter" ~ (&sep | EOI))+)
-    ~ "stepsize_jitter" ~ ("=" ~ float)?
+    !(_stepsize_jitter ~ (sep+ ~ _stepsize_jitter ~ (&sep | EOI))+)
+    ~ _stepsize_jitter ~ ("=" ~ float)?
 }
 
 metric_file = {
-    !("metric_file" ~ (sep+ ~ "metric_file" ~ (&sep | EOI))+)
-    ~ "metric_file" ~ ("=" ~ path)?
+    !(_metric_file ~ (sep+ ~ _metric_file ~ (&sep | EOI))+)
+    ~ _metric_file ~ ("=" ~ path)?
 }
 
 metric = {
-    !("metric" ~ (sep+ ~ "metric" ~ (&sep | EOI))+)
-    ~ "metric" ~ ("=" ~ (unit_e | diag_e | dense_e))?
+    !(_metric ~ (sep+ ~ _metric ~ (&sep | EOI))+)
+    ~ _metric ~ ("=" ~ (unit_e | diag_e | dense_e))?
 }
 metric_as_type = ${ SOI ~ metric ~ &EOI }
 
@@ -91,8 +91,8 @@ dense_e = { "dense_e" }
 
 // Declaration of a sum type
 engine = {
-    !("engine" ~ (sep+ ~ "engine" ~ (&sep | EOI))+)
-    ~ "engine" ~ ("=" ~ (nuts | static))?
+    !(_engine ~ (sep+ ~ _engine ~ (&sep | EOI))+)
+    ~ _engine ~ ("=" ~ (nuts | static))?
 }
 engine_as_type = ${ SOI ~ engine ~ &EOI }
 
@@ -100,18 +100,17 @@ engine_as_type = ${ SOI ~ engine ~ &EOI }
 nuts = { "nuts" ~ (sep+ ~ max_depth)* }
 
 max_depth     = ${
-    !("max_depth" ~ (sep+ ~ "max_depth" ~ (&sep | EOI))+)
-    ~ ("max_depth" ~ ("=" ~ integer)?)
+    !(_max_depth ~ (sep+ ~ _max_depth ~ (&sep | EOI))+)
+    ~ _max_depth ~ ("=" ~ integer)?
 }
 
 // Body of a sum type, non-unit variant
 static = { "static" ~ (sep+ ~ int_time)* }
 
 int_time     = ${
-    !("int_time" ~ (sep+ ~ "int_time" ~ (&sep | EOI))+)
-    ~ "int_time" ~ ("=" ~ float)?
+    !(_int_time ~ (sep+ ~ _int_time ~ (&sep | EOI))+)
+    ~ _int_time ~ ("=" ~ float)?
 }
-
 
 // Body of a sum type, non-unit variant
 sample = { "sample" ~ (sep+ ~ sample_term)* }
@@ -126,22 +125,45 @@ sample_term = { num_samples
 }
 
 num_samples          = ${
-    !("num_samples" ~ (sep+ ~ "num_samples" ~ (&sep | EOI))+)
-    ~ "num_samples" ~ ("=" ~ integer)?
+    !(_num_samples ~ (sep+ ~ _num_samples ~ (&sep | EOI))+)
+    ~ _num_samples ~ ("=" ~ integer)?
 }
 num_warmup          = ${
-    !("num_warmup" ~ (sep+ ~ "num_warmup" ~ (&sep | EOI))+)
-    ~ "num_warmup" ~ ("=" ~ integer)?
+    !(_num_warmup ~ (sep+ ~ _num_warmup ~ (&sep | EOI))+)
+    ~ _num_warmup ~ ("=" ~ integer)?
 }
 thin          = ${
-    !("thin" ~ (sep+ ~ "thin" ~ (&sep | EOI))+)
-    ~ "thin" ~ ("=" ~ integer)?
+    !(_thin ~ (sep+ ~ _thin ~ (&sep | EOI))+)
+    ~ _thin ~ ("=" ~ integer)?
 }
 num_chains          = ${
-    !("num_chains" ~ (sep+ ~ "num_chains" ~ (&sep | EOI))+)
-    ~ "num_chains" ~ ("=" ~ integer)?
+    !(_num_chains ~ (sep+ ~ _num_chains ~ (&sep | EOI))+)
+    ~ _num_chains ~ ("=" ~ integer)?
 }
 save_warmup     = ${
-    !("save_warmup" ~ (sep+ ~ "save_warmup" ~ (&sep | EOI))+)
-    ~ "save_warmup" ~ ("=" ~ (false | true))?
+    !(_save_warmup ~ (sep+ ~ _save_warmup ~ (&sep | EOI))+)
+    ~ _save_warmup ~ ("=" ~ (false | true))?
 }
+
+
+_gamma = _{ "gamma" }
+_delta = _{ "delta" }
+_kappa = _{ "kappa" }
+_t0 = _{ "t0" }
+_init_buffer = _{ "init_buffer" }
+_term_buffer = _{ "term_buffer" }
+_window = _{ "window" }
+
+_engine = _{ "engine" }
+_max_depth = _{ "max_depth" }
+_int_time = _{ "int_time" }
+_stepsize = _{ "stepsize" }
+_stepsize_jitter = _{ "stepsize_jitter" }
+_metric_file = _{ "metric_file" }
+_metric = _{ "metric" }
+
+_num_samples = _{ "num_samples" }
+_num_warmup = _{ "num_warmup" }
+_thin = _{ "thin" }
+_num_chains = _{ "num_chains" }
+_save_warmup = _{ "save_warmup" }

@@ -1,12 +1,16 @@
 // Declaration of a product type, with CmdStan's rule that
 // declarations of the same product type, with or without a body, must not be adjacent
 random = {
-    !("random" ~ (sep+ ~ seed)* ~ (sep+ ~ ("random" ~ (sep+ ~ seed)*))+)
-    ~ ("random" ~ (sep+ ~ seed)*)
+    !(_random ~ (sep+ ~ seed)* ~ (sep+ ~ (_random ~ (sep+ ~ seed)*))+)
+    ~ _random ~ (sep+ ~ seed)*
 }
 random_as_type = { SOI ~ random ~ &EOI }
 
 seed = ${
-    !("seed" ~ (sep+ ~ "seed" ~ (&sep | EOI))+)
-    ~ "seed" ~ ("=" ~ signed_integer)?
+    !(_seed ~ (sep+ ~ _seed ~ (&sep | EOI))+)
+    ~ _seed ~ ("=" ~ signed_integer)?
 }
+
+
+_random = _{ "random" }
+_seed = _{ "seed" }
