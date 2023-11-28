@@ -6,6 +6,7 @@ pathfinder_term = {
   | tol_obj
   | tol_rel_obj
   | tol_grad
+  | tol_rel_grad
   | tol_param
   | history_size
   | num_psis_draws

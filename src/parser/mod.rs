@@ -78,3 +78,4 @@ mod method;
 mod optimize;
 mod sample;
 mod variational;
+mod pathfinder;
