@@ -74,8 +74,9 @@ macro_rules! path_arm {
 
 mod diagnose;
 mod generate_quantities;
+mod logprob;
 mod method;
 mod optimize;
+mod pathfinder;
 mod sample;
 mod variational;
-mod pathfinder;
