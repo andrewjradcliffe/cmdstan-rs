@@ -28,6 +28,7 @@ pub enum ParseGrammarError {
     OptimizeAlgorithmError(String),
     VariationalAdaptError(String),
     VariationalAlgorithmError(String),
+    DiagnoseTestError(String),
     MethodError(String),
     RuleError(String),
 }
@@ -71,6 +72,7 @@ macro_rules! path_arm {
     };
 }
 
+mod diagnose;
 mod method;
 mod optimize;
 mod sample;

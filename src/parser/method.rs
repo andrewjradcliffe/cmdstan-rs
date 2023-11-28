@@ -1,4 +1,5 @@
 use crate::method::Method;
+use crate::parser::diagnose::try_diagnose_from_pair;
 use crate::parser::optimize::try_optimize_from_pair;
 use crate::parser::sample::try_sample_from_pair;
 use crate::parser::variational::try_variational_from_pair;
@@ -14,6 +15,7 @@ impl Method {
                         Rule::sample => try_sample_from_pair(pair),
                         Rule::optimize => try_optimize_from_pair(pair),
                         Rule::variational => try_variational_from_pair(pair),
+                        Rule::diagnose => try_diagnose_from_pair(pair),
                         _ => todo!(),
                     }
                 }
