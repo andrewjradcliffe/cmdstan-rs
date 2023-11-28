@@ -30,6 +30,9 @@ pub enum ParseGrammarError {
     VariationalAlgorithmError(String),
     DiagnoseTestError(String),
     MethodError(String),
+    OutputError(String),
+    RandomError(String),
+    DataError(String),
     RuleError(String),
 }
 use ParseGrammarError::*;
@@ -72,6 +75,7 @@ macro_rules! path_arm {
     };
 }
 
+mod argument_tree;
 mod diagnose;
 mod generate_quantities;
 mod laplace;
