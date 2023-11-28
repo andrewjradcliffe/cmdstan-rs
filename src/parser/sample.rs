@@ -472,6 +472,7 @@ mod tests {
                     format!("{quot}foo.csv{quot}"),
                     format!("{quot}foo    .csv{quot}"),
                     format!("{quot}foo    bar.csv{quot}"),
+                    format!("{quot}f o o\t bar.csv{quot}"),
                     format!("{quot}{quot}"),
                 ];
                 files.into_iter().for_each(|file| {

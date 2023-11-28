@@ -171,6 +171,30 @@ mod tests {
                 .history_size(100)
                 .build();
             assert_eq!(lhs, rhs);
+
+            let s = "algorithm";
+            assert_eq!(
+                s.parse::<OptimizeAlgorithm>().unwrap(),
+                LbfgsBuilder::new().build()
+            );
+
+            let s = "algorithm=newton";
+            assert_eq!(
+                s.parse::<OptimizeAlgorithm>().unwrap(),
+                OptimizeAlgorithm::Newton
+            );
+
+            let s = "algorithm=bfgs init_alpha init_alpha=0.01 init_alpha=0.02 tol_obj=5 tol_obj tol_rel_obj=10 tol_obj=10 tol_param=20 tol_rel_grad=30 tol_grad=40";
+            let lhs = s.parse::<OptimizeAlgorithm>().unwrap();
+            let rhs = BfgsBuilder::new()
+                .init_alpha(0.02)
+                .tol_obj(10.0)
+                .tol_rel_obj(10.0)
+                .tol_param(20.0)
+                .tol_rel_grad(30.0)
+                .tol_grad(40.0)
+                .build();
+            assert_eq!(lhs, rhs);
         }
     }
 
@@ -180,13 +204,28 @@ mod tests {
         #[test]
         fn from_str() {
             let rhs = OptimizeBuilder::new().build();
-            // assert_eq!(lhs, rhs);
+            assert_eq!("optimize".parse::<Method>().unwrap(), rhs);
+            assert_eq!("method=optimize".parse::<Method>().unwrap(), rhs);
 
-            let lhs = "optimize".parse::<Method>().unwrap();
-            assert_eq!(lhs, rhs);
+            assert!("method=optimize optimize".parse::<Method>().is_err());
+            assert!("method= optimize".parse::<Method>().is_err());
 
-            let lhs = "method=optimize".parse::<Method>().unwrap();
-            assert_eq!(lhs, rhs);
+            let rhs = OptimizeBuilder::new()
+                .algorithm(BfgsBuilder::new().init_alpha(0.1))
+                .build();
+            let s = "method=optimize algorithm=bfgs init_alpha=0.1 algorithm=lbfgs algorithm=newton algorithm=bfgs";
+            assert_eq!(s.parse::<Method>().unwrap(), rhs);
+            let s = "method=optimize algorithm=bfgs init_alpha=0.1 algorithm=lbfgs init_alpha=0.2 algorithm=newton algorithm=bfgs";
+            assert_eq!(s.parse::<Method>().unwrap(), rhs);
+
+            let rhs = OptimizeBuilder::new()
+                .algorithm(BfgsBuilder::new())
+                .jacobian(true)
+                .iter(10)
+                .save_iterations(true)
+                .build();
+            let s = "method=optimize algorithm=lbfgs init_alpha=0.2 iter algorithm=bfgs algorithm iter=10 save_iterations=+1 jacobian=-0 jacobian=+0 jacobian=+1 jacobian save_iterations jacobian save_iterations";
+            assert_eq!(s.parse::<Method>().unwrap(), rhs);
         }
     }
 }
