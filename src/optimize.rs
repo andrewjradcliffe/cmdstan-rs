@@ -125,6 +125,7 @@ use OptimizeAlgorithm::*;
 /// Options builder for [`OptimizeAlgorithm::Bfgs`].
 /// For any option left unspecified, the default value indicated
 /// on `OptimizeAlgorithm::Bfgs` will be supplied.
+#[derive(Debug, Clone, PartialEq)]
 pub struct BfgsBuilder {
     init_alpha: Option<f64>,
     tol_obj: Option<f64>,
@@ -178,6 +179,7 @@ impl From<BfgsBuilder> for OptimizeAlgorithm {
 /// Options builder for [`OptimizeAlgorithm::Lbfgs`].
 /// For any option left unspecified, the default value indicated
 /// on `OptimizeAlgorithm::Lbfgs` will be supplied.
+#[derive(Debug, Clone, PartialEq)]
 pub struct LbfgsBuilder {
     init_alpha: Option<f64>,
     tol_obj: Option<f64>,

@@ -4,6 +4,7 @@ use crate::optimize;
 /// Options builder for [`Method::Pathfinder`].
 /// For any option left unspecified, the default value indicated
 /// on `Method::Pathfinder` will be supplied.
+#[derive(Debug, Clone, PartialEq)]
 pub struct PathfinderBuilder {
     init_alpha: Option<f64>,
     tol_obj: Option<f64>,

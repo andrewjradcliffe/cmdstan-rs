@@ -4,6 +4,7 @@ use std::ffi::OsString;
 /// Options builder for [`Method::Laplace`].
 /// For any option left unspecified, the default value indicated
 /// on `Method::Laplace` will be supplied.
+#[derive(Debug, Clone, PartialEq)]
 pub struct LaplaceBuilder {
     mode: Option<OsString>,
     jacobian: Option<bool>,

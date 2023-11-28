@@ -189,6 +189,7 @@ impl SampleAdaptBuilder {
 /// Options builder for [`SampleAlgorithm::Hmc`].
 /// For any option left unspecified, the default value indicated
 /// on `SampleAlgorithm::Hmc` will be supplied.
+#[derive(Debug, Clone, PartialEq)]
 pub struct HmcBuilder {
     engine: Option<Engine>,
     metric: Option<Metric>,
