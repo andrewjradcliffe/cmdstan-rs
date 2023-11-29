@@ -9,7 +9,6 @@ pub(crate) fn try_generate_quantities_from_pair(
         Rule::generate_quantities => {
             let builder = pair
                 .into_inner()
-                .filter_map(|fitted_params| fitted_params.into_inner().next())
                 .last()
                 .map(|pair| GenerateQuantitiesBuilder::new().fitted_params(pair.as_str()))
                 .unwrap_or_else(|| GenerateQuantitiesBuilder::new());

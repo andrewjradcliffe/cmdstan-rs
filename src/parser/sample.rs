@@ -64,14 +64,13 @@ impl FromStr for Engine {
 // `Pair` which produces 0 or more Rule::int_time `Pair`s
 fn unify_int_time(pair: Pair<'_, Rule>) -> Option<f64> {
     pair.into_inner()
-        .filter_map(|p| p.into_inner().next())
         .last()
         .map(|p| p.as_str().parse::<f64>().unwrap())
 }
 // It would be nice to skip parsing of n-1 integers, but we
 // have no other way to check that each value is < 2^31
 fn unify_max_depth(pair: Pair<'_, Rule>) -> Result<Option<i32>, ParseGrammarError> {
-    let pairs = pair.into_inner().filter_map(|p| p.into_inner().next());
+    let pairs = pair.into_inner();
     let mut max_depth: Option<i32> = None;
     for pair in pairs {
         match pair.as_str().parse::<i32>() {

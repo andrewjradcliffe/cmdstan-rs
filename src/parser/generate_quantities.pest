@@ -1,7 +1,8 @@
 // Body of a sum type, non-unit variant
 generate_quantities = { "generate_quantities" ~ (sep+ ~ fitted_params)* }
 
-fitted_params = {
+// Silent since there is only one valid declaration within the generate_quantities variant
+fitted_params = _{
     !(_fitted_params ~ (sep+ ~ _fitted_params ~ (&sep | EOI))+) ~ _fitted_params ~ ("=" ~ path)?
 }
 

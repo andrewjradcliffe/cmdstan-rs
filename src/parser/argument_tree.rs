@@ -44,9 +44,7 @@ impl Random {
     fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
         match pair.as_rule() {
             Rule::random => {
-                let pairs = pair
-                    .into_inner()
-                    .filter_map(|seed| seed.into_inner().next());
+                let pairs = pair.into_inner();
                 // We can simplify due to the grammar structure.
                 let mut seed: Option<i64> = None;
                 for pair in pairs {

@@ -92,15 +92,15 @@ engine_as_type = ${ SOI ~ engine ~ &EOI }
 
 // Body of a sum type, non-unit variant
 nuts = { "nuts" ~ (sep+ ~ max_depth)* }
-
-max_depth = ${
+// Silent since there is only one valid declaration within the nuts engine variant
+max_depth = _{
     !(_max_depth ~ (sep+ ~ _max_depth ~ (&sep | EOI))+) ~ _max_depth ~ ("=" ~ integer)?
 }
 
 // Body of a sum type, non-unit variant
 static = { "static" ~ (sep+ ~ int_time)* }
-
-int_time = ${
+// Silent since there is only one valid declaration within the static engine variant
+int_time = _{
     !(_int_time ~ (sep+ ~ _int_time ~ (&sep | EOI))+) ~ _int_time ~ ("=" ~ float)?
 }
 
