@@ -7,17 +7,12 @@ pub(crate) fn try_generate_quantities_from_pair(
 ) -> Result<Method, ParseGrammarError> {
     match pair.as_rule() {
         Rule::generate_quantities => {
-            let mut builder = GenerateQuantitiesBuilder::new();
-            match pair
+            let builder = pair
                 .into_inner()
                 .filter_map(|fitted_params| fitted_params.into_inner().next())
                 .last()
-            {
-                Some(pair) => {
-                    builder = builder.fitted_params(pair.as_str());
-                }
-                _ => (),
-            }
+                .map(|pair| GenerateQuantitiesBuilder::new().fitted_params(pair.as_str()))
+                .unwrap_or_else(|| GenerateQuantitiesBuilder::new());
             Ok(builder.build())
         }
         r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
