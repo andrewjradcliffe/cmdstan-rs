@@ -369,6 +369,9 @@ mod tests {
             assert!("engine=static int_time int_time=3 int_time int_time"
                 .parse::<Engine>()
                 .is_err());
+
+            let s = "engine=nuts max_depth=9999999999";
+            assert!(s.parse::<Engine>().is_err());
         }
     }
 

@@ -4,7 +4,7 @@ sample_adapt         = {
     !(_adapt ~ (sep+ ~ sample_adapt_term)* ~ (sep+ ~ (_adapt ~ (sep+ ~ sample_adapt_term)*))+)
     ~ _adapt ~ (sep+ ~ sample_adapt_term)*
 }
-sample_adapt_as_type = { SOI ~ sample_adapt ~ EOI }
+sample_adapt_as_type = { SOI ~ sample_adapt ~ &EOI }
 
 sample_adapt_term = _{
     engaged
