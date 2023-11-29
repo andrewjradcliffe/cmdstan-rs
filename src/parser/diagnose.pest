@@ -7,11 +7,11 @@ diagnose_test_as_type = { SOI ~ diagnose_test ~ &EOI }
 
 // Body of a sum type, non-unit variant
 gradient      = { "gradient" ~ (sep+ ~ gradient_term)* }
-gradient_term = { epsilon | error }
+gradient_term = _{ epsilon | error }
 
 // Body of a sum type, non-unit variant
 diagnose      = { "diagnose" ~ (sep+ ~ diagnose_term)* }
-diagnose_term = { diagnose_test }
+diagnose_term = _{ diagnose_test }
 
 epsilon = ${
     !(_epsilon ~ (sep+ ~ _epsilon ~ (&sep | EOI))+) ~ _epsilon ~ ("=" ~ float)?

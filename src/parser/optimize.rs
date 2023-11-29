@@ -17,9 +17,7 @@ impl FromStr for OptimizeAlgorithm {
 
 macro_rules! unify_bfgs_terms {
     ($B:ident, $bfgs:ident) => {
-        let pairs = $bfgs
-            .into_inner()
-            .map(|bfgs_term| bfgs_term.into_inner().next().unwrap());
+        let pairs = $bfgs.into_inner();
         for pair in pairs {
             match pair.as_rule() {
                 Rule::init_alpha => number_arm!($B, pair, init_alpha, f64),
@@ -35,9 +33,7 @@ macro_rules! unify_bfgs_terms {
 }
 macro_rules! unify_lbfgs_terms {
     ($B:ident, $lbfgs:ident) => {
-        let pairs = $lbfgs
-            .into_inner()
-            .map(|lbfgs_term| lbfgs_term.into_inner().next().unwrap());
+        let pairs = $lbfgs.into_inner();
         for pair in pairs {
             match pair.as_rule() {
                 Rule::init_alpha => number_arm!($B, pair, init_alpha, f64),
@@ -84,7 +80,6 @@ impl OptimizeAlgorithm {
 pub(crate) fn try_optimize_from_pair(pair: Pair<'_, Rule>) -> Result<Method, ParseGrammarError> {
     match pair.as_rule() {
         Rule::optimize => {
-            let optimize = pair;
             // We need 3 states to handle the 3 variants.
             // 0 => Bfgs, 1 => Lbfgs, 2 => Newton
             let mut alg_state: u8 = 1;
@@ -93,9 +88,7 @@ pub(crate) fn try_optimize_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Par
             let mut lbfgs_builder = LbfgsBuilder::new();
             // We use another builder to hold state for the method variant
             let mut opt_builder = OptimizeBuilder::new();
-            let pairs = optimize
-                .into_inner()
-                .map(|optimize_term| optimize_term.into_inner().next().unwrap());
+            let pairs = pair.into_inner();
             for pair in pairs {
                 match pair.as_rule() {
                     Rule::optimize_algorithm => match pair.into_inner().next() {

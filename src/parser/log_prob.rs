@@ -5,9 +5,7 @@ use crate::parser::*;
 pub(crate) fn try_log_prob_from_pair(pair: Pair<'_, Rule>) -> Result<Method, ParseGrammarError> {
     match pair.as_rule() {
         Rule::log_prob => {
-            let pairs = pair
-                .into_inner()
-                .map(|log_prob_term| log_prob_term.into_inner().next().unwrap());
+            let pairs = pair.into_inner();
             // We use the builder to hold state during unification.
             let mut builder = LogProbBuilder::new();
             for pair in pairs {

@@ -17,7 +17,7 @@ impl FromStr for VariationalAdapt {
 
 macro_rules! unify_variational_adapt_terms {
     ($B:ident, $P:ident) => {
-        let pairs = $P.into_inner().map(|p| p.into_inner().next().unwrap());
+        let pairs = $P.into_inner();
         for pair in pairs {
             match pair.as_rule() {
                 Rule::engaged => boolean_arm!($B, pair, engaged),
@@ -84,9 +84,7 @@ impl VariationalAlgorithm {
 pub(crate) fn try_variational_from_pair(pair: Pair<'_, Rule>) -> Result<Method, ParseGrammarError> {
     match pair.as_rule() {
         Rule::variational => {
-            let pairs = pair
-                .into_inner()
-                .map(|variational_term| variational_term.into_inner().next().unwrap());
+            let pairs = pair.into_inner();
             // We set default states prior to unification
             let mut adapt_builder = VariationalAdapt::builder();
             let mut alg_state = VariationalAlgorithm::default();

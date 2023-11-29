@@ -1,12 +1,12 @@
 // Declaration of a product type, with CmdStan's rule that
 // declarations of the same product type, with or without a body, must not be adjacent
 sample_adapt         = {
-    !(_adapt ~ (sep+ ~ sample_adapt_pair)* ~ (sep+ ~ (_adapt ~ (sep+ ~ sample_adapt_pair)*))+)
-    ~ _adapt ~ (sep+ ~ sample_adapt_pair)*
+    !(_adapt ~ (sep+ ~ sample_adapt_term)* ~ (sep+ ~ (_adapt ~ (sep+ ~ sample_adapt_term)*))+)
+    ~ _adapt ~ (sep+ ~ sample_adapt_term)*
 }
 sample_adapt_as_type = { SOI ~ sample_adapt ~ EOI }
 
-sample_adapt_pair = {
+sample_adapt_term = _{
     engaged
   | gamma
   | delta
@@ -54,7 +54,7 @@ fixed_param = { "fixed_param" }
 // Body of a sum type, non-unit variant
 hmc = { "hmc" ~ (sep+ ~ hmc_term)* }
 
-hmc_term = { engine | metric_file | metric | stepsize_jitter | stepsize }
+hmc_term = _{ engine | metric_file | metric | stepsize_jitter | stepsize }
 
 stepsize = {
     !(_stepsize ~ (sep+ ~ _stepsize ~ (&sep | EOI))+) ~ _stepsize ~ ("=" ~ float)?
@@ -70,13 +70,19 @@ metric_file = {
 }
 
 metric         =  {
-    !(_metric ~ (sep+ ~ _metric ~ (&sep | EOI))+) ~ _metric ~ ("=" ~ (unit_e | diag_e | dense_e))?
+    !(_metric ~ (sep+ ~ _metric ~ (&sep | EOI))+) ~ _metric ~ ("=" ~ metric_variant)?
 }
 metric_as_type = ${ SOI ~ metric ~ &EOI }
 
 unit_e  = { "unit_e" }
 diag_e  = { "diag_e" }
 dense_e = { "dense_e" }
+
+metric_variant = _{
+    unit_e
+  | diag_e
+  | dense_e
+}
 
 // Declaration of a sum type
 engine         =  {
@@ -101,7 +107,7 @@ int_time = ${
 // Body of a sum type, non-unit variant
 sample = { "sample" ~ (sep+ ~ sample_term)* }
 
-sample_term = {
+sample_term = _{
     num_samples
   | num_warmup
   | save_warmup

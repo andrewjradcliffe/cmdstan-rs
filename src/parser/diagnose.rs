@@ -3,9 +3,7 @@ use crate::method::Method;
 use crate::parser::*;
 
 fn unify_gradient_fields(pair: Pair<'_, Rule>) -> (Option<f64>, Option<f64>) {
-    let pairs = pair
-        .into_inner()
-        .map(|gradient_term| gradient_term.into_inner().next().unwrap());
+    let pairs = pair.into_inner();
     let mut epsilon: Option<f64> = None;
     let mut error: Option<f64> = None;
     for pair in pairs {
@@ -80,9 +78,7 @@ impl DiagnoseTest {
 pub(crate) fn try_diagnose_from_pair(pair: Pair<'_, Rule>) -> Result<Method, ParseGrammarError> {
     match pair.as_rule() {
         Rule::diagnose => {
-            let pairs = pair
-                .into_inner()
-                .map(|diagnose_term| diagnose_term.into_inner().next().unwrap());
+            let pairs = pair.into_inner();
 
             // We set default states prior to unification.
             // Only a single variant exists on the sum type, thus, we simplify.

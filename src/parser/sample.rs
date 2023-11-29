@@ -117,9 +117,7 @@ impl Engine {
 
 macro_rules! unify_sample_adapt_terms {
     ($B:ident, $sample_adapt:ident) => {
-        let pairs = $sample_adapt
-            .into_inner()
-            .map(|sample_adapt_pair| sample_adapt_pair.into_inner().next().unwrap());
+        let pairs = $sample_adapt.into_inner();
         for pair in pairs {
             match pair.as_rule() {
                 Rule::engaged => boolean_arm!($B, pair, engaged),
@@ -168,9 +166,7 @@ impl FromStr for SampleAdapt {
 
 macro_rules! unify_hmc_terms {
     ($B:ident, $hmc:ident, $state:ident, $max_depth:ident, $int_time:ident) => {
-        let pairs = $hmc
-            .into_inner()
-            .map(|hmc_term| hmc_term.into_inner().next().unwrap());
+        let pairs = $hmc.into_inner();
         for pair in pairs {
             match pair.as_rule() {
                 Rule::stepsize => number_arm!($B, pair, stepsize, f64),
@@ -274,7 +270,6 @@ impl FromStr for SampleAlgorithm {
 pub(crate) fn try_sample_from_pair(pair: Pair<'_, Rule>) -> Result<Method, ParseGrammarError> {
     match pair.as_rule() {
         Rule::sample => {
-            let sample = pair;
             // We use a builder to hold state during adapt unification
             let mut adapt_builder = SampleAdapt::builder();
             // Here, we need an extra state to store the algorithm type
@@ -291,9 +286,7 @@ pub(crate) fn try_sample_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Parse
             // during unification
             let mut builder = SampleBuilder::new();
 
-            let pairs = sample
-                .into_inner()
-                .map(|sample_term| sample_term.into_inner().next().unwrap());
+            let pairs = pair.into_inner();
             for pair in pairs {
                 match pair.as_rule() {
                     Rule::sample_algorithm => match pair.into_inner().next() {

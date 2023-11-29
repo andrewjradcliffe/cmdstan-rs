@@ -3,11 +3,18 @@
 random         = {
     !(_random ~ (sep+ ~ seed)* ~ (sep+ ~ (_random ~ (sep+ ~ seed)*))+) ~ _random ~ (sep+ ~ seed)*
 }
+random_silent         = {
+    !(_random ~ (sep+ ~ seed)* ~ (sep+ ~ (_random ~ (sep+ ~ seed)*))+) ~ _random ~ (sep+ ~ seed_silent)*
+}
 random_as_type = { SOI ~ random ~ &EOI }
 
 seed = ${
     !(_seed ~ (sep+ ~ _seed ~ (&sep | EOI))+) ~ _seed ~ ("=" ~ signed_integer)?
 }
+seed_silent = _{
+    !(_seed ~ (sep+ ~ _seed ~ (&sep | EOI))+) ~ _seed ~ ("=" ~ signed_integer)?
+}
+
 
 _random = _{ "random" }
 _seed   = _{ "seed" }

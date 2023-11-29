@@ -6,7 +6,7 @@ method         = {
 }
 method_as_type = { SOI ~ method ~ &EOI }
 
-method_variant = {
+method_variant = _{
     sample
   | optimize
   | variational

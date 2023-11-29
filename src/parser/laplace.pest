@@ -1,6 +1,6 @@
 laplace = { "laplace" ~ (sep+ ~ laplace_term)* }
 
-laplace_term = {
+laplace_term = _{
     mode
   | jacobian
   | draws

@@ -10,23 +10,20 @@ use crate::parser::variational::try_variational_from_pair;
 use crate::parser::*;
 
 impl Method {
-    fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
+    pub(crate) fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
         match pair.as_rule() {
-            Rule::method => match pair.into_inner().next() {
-                Some(pair) => {
-                    let pair = pair.into_inner().next().unwrap();
-                    match pair.as_rule() {
-                        Rule::sample => try_sample_from_pair(pair),
-                        Rule::optimize => try_optimize_from_pair(pair),
-                        Rule::variational => try_variational_from_pair(pair),
-                        Rule::diagnose => try_diagnose_from_pair(pair),
-                        Rule::generate_quantities => try_generate_quantities_from_pair(pair),
-                        Rule::pathfinder => try_pathfinder_from_pair(pair),
-                        Rule::log_prob => try_log_prob_from_pair(pair),
-                        Rule::laplace => try_laplace_from_pair(pair),
-                        _ => todo!(),
-                    }
-                }
+            Rule::method | Rule::method_special_case => match pair.into_inner().next() {
+                Some(pair) => match pair.as_rule() {
+                    Rule::sample => try_sample_from_pair(pair),
+                    Rule::optimize => try_optimize_from_pair(pair),
+                    Rule::variational => try_variational_from_pair(pair),
+                    Rule::diagnose => try_diagnose_from_pair(pair),
+                    Rule::generate_quantities => try_generate_quantities_from_pair(pair),
+                    Rule::pathfinder => try_pathfinder_from_pair(pair),
+                    Rule::log_prob => try_log_prob_from_pair(pair),
+                    Rule::laplace => try_laplace_from_pair(pair),
+                    _ => unreachable!(),
+                },
                 _ => Ok(Self::default()),
             },
             r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),

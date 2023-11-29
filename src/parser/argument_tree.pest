@@ -17,7 +17,17 @@ num_threads = {
 }
 
 argument_tree = {
-    SOI ~ (method_special_case | init | data | random | output | id | num_threads)+ ~ EOI
+    SOI ~ argument_tree_term+ ~ &EOI
+}
+
+argument_tree_term = _{
+    method_special_case
+  | init
+  | data
+  | random
+  | output
+  | id
+  | num_threads
 }
 
 _id          = _{ "id" }

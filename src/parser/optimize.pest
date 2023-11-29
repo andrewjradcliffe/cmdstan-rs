@@ -9,7 +9,7 @@ bfgs   = { "bfgs" ~ (sep+ ~ bfgs_term)* }
 lbfgs  = { "lbfgs" ~ (sep+ ~ lbfgs_term)* }
 newton = { "newton" }
 
-bfgs_term = {
+bfgs_term = _{
     init_alpha
   | tol_obj
   | tol_rel_obj
@@ -18,7 +18,7 @@ bfgs_term = {
   | tol_param
 }
 
-lbfgs_term = {
+lbfgs_term = _{
     init_alpha
   | tol_obj
   | tol_rel_obj
@@ -30,7 +30,7 @@ lbfgs_term = {
 
 optimize = { "optimize" ~ (sep+ ~ optimize_term)* }
 
-optimize_term = {
+optimize_term = _{
     optimize_algorithm
   | jacobian
   | iter

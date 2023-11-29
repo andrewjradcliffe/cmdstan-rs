@@ -5,9 +5,7 @@ use crate::parser::*;
 pub(crate) fn try_laplace_from_pair(pair: Pair<'_, Rule>) -> Result<Method, ParseGrammarError> {
     match pair.as_rule() {
         Rule::laplace => {
-            let pairs = pair
-                .into_inner()
-                .map(|laplace_term| laplace_term.into_inner().next().unwrap());
+            let pairs = pair.into_inner();
             // We use the builder to hold state during unification.
             let mut builder = LaplaceBuilder::new();
             for pair in pairs {

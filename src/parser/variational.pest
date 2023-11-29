@@ -16,7 +16,7 @@ variational_adapt         = {
 }
 variational_adapt_as_type = { SOI ~ variational_adapt ~ &EOI }
 
-variational_adapt_pair = {
+variational_adapt_pair = _{
     engaged
   | iter
 }
@@ -43,7 +43,7 @@ output_samples = ${
 // Body of a sum type, non-unit variant
 variational = { "variational" ~ (sep+ ~ variational_term)* }
 
-variational_term = {
+variational_term = _{
     variational_algorithm
   | iter
   | grad_samples

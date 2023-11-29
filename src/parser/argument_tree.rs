@@ -1,4 +1,5 @@
 use crate::argument_tree::*;
+use crate::method::Method;
 use crate::parser::*;
 use std::ffi::OsString;
 
@@ -6,9 +7,7 @@ impl Output {
     fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
         match pair.as_rule() {
             Rule::output => {
-                let pairs = pair
-                    .into_inner()
-                    .map(|output_term| output_term.into_inner().next().unwrap());
+                let pairs = pair.into_inner();
                 // We unify terms, storing state in a builder
                 let mut builder = Self::builder();
                 for pair in pairs {

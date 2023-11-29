@@ -1,7 +1,7 @@
 // Body of a sum type, non-unit variant
 pathfinder = { "pathfinder" ~ (sep+ ~ pathfinder_term)* }
 
-pathfinder_term = {
+pathfinder_term = _{
     init_alpha
   | tol_obj
   | tol_rel_obj

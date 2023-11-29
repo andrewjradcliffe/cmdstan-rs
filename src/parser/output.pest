@@ -7,7 +7,7 @@ output = {
 
 output_as_type = { SOI ~ output ~ &EOI }
 
-output_term = {
+output_term = _{
     file
   | diagnostic_file
   | profile_file
