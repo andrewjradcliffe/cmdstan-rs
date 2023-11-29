@@ -33,6 +33,7 @@ pub enum ParseGrammarError {
     OutputError(String),
     RandomError(String),
     DataError(String),
+    ArgumentTreeError(String),
     RuleError(String),
 }
 use ParseGrammarError::*;
