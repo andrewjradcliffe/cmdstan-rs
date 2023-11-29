@@ -17,7 +17,7 @@ num_threads = {
 }
 
 argument_tree = {
-    SOI ~ argument_tree_term+ ~ &EOI
+    SOI ~ argument_tree_term ~ (sep+ ~ argument_tree_term)* ~ &EOI
 }
 
 argument_tree_term = _{
