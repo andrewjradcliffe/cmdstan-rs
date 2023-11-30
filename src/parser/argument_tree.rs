@@ -2,6 +2,9 @@ use crate::argument_tree::*;
 use crate::method::Method;
 use crate::parser::*;
 use std::ffi::OsString;
+use std::fs::File;
+use std::io::{self, BufRead, BufReader, Read};
+use std::path::Path;
 
 impl Output {
     fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
@@ -216,6 +219,82 @@ impl ArgumentTree {
             }
             r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
         }
+    }
+
+    pub fn try_from_stan_csv<P: AsRef<Path>>(
+        path: P,
+    ) -> io::Result<Result<Self, ParseGrammarError>> {
+        let file = File::open(path)?;
+        Self::from_reader(file)
+    }
+
+    pub fn from_reader<R: Read>(rdr: R) -> io::Result<Result<Self, ParseGrammarError>> {
+        fn remove_newline(s: &mut String) {
+            if s.ends_with('\n') {
+                s.pop();
+                if s.ends_with('\r') {
+                    s.pop();
+                }
+            }
+        }
+        fn consume(s: &mut String, line: &str) -> bool {
+            let l = line
+                .trim_start_matches('#')
+                .trim_start()
+                .trim_end_matches("(Default)");
+            if let Some((prefix, suffix)) = l.split_once(" = ") {
+                s.push_str(prefix);
+                s.push('=');
+                s.push_str(suffix);
+                s.push(' ');
+            } else {
+                if !s.trim().ends_with(l.trim_end()) {
+                    s.push_str(l);
+                    s.push(' ');
+                }
+            }
+            // Are we done?
+            // The stop symbol is num_threads, at least under the current Stan format.
+            l.starts_with("num_threads")
+        }
+        let mut file = BufReader::new(rdr);
+
+        // For lines which do not contain values, 256 bytes should be sufficient
+        // even for very long paths. Add 64 bytes for the long keywords.
+        let mut l = String::with_capacity(320);
+        // Worst case scenario: 5 paths at 256 bytes each = 1280 bytes,
+        // leaves us 768 bytes for the remaining input.
+        let mut s = String::with_capacity(2048);
+
+        // Read until start
+        // We try our best to find the start symbol, at the risk
+        // of reading arbitrarily large inputs.
+        loop {
+            if file.read_line(&mut l)? == 0
+                || l.trim_start_matches('#').trim_start().starts_with("method")
+            {
+                break;
+            }
+            l.clear();
+        }
+        remove_newline(&mut l);
+        consume(&mut s, &l);
+        l.clear();
+        // Then read until we hit the end of meaningful input
+        // If we have iterated through 255 lines, then something is clearly wrong.
+        let mut stop = false;
+        let mut n: u8 = 0;
+        loop {
+            if stop | (n == 255) || file.read_line(&mut l)? == 0 {
+                break;
+            } else {
+                remove_newline(&mut l);
+                stop = consume(&mut s, &l);
+            }
+            n += 1;
+            l.clear();
+        }
+        Ok(s.trim().parse::<Self>())
     }
 }
 
