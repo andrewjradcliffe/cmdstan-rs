@@ -115,11 +115,11 @@ impl FromStr for Data {
 }
 
 macro_rules! once_branch {
-    ($B:ident, $P:ident, $state:ident, $T:ident, $F:ident, $msg:expr) => {
+    ($B:ident, $P:ident, $state:ident, $T:ident, $F:ident) => {
         if $state {
             return Err(ArgumentTreeError(format!(
                 "{} declared more than once",
-                $msg
+                stringify!($F)
             )));
         } else {
             $B = $B.$F($T::try_from_pair($P)?);
@@ -129,11 +129,11 @@ macro_rules! once_branch {
 }
 
 macro_rules! once_branch_parse_i32 {
-    ($B:ident, $P:ident, $state:ident, $F:ident, $msg:expr) => {
+    ($B:ident, $P:ident, $state:ident, $F:ident) => {
         if $state {
             return Err(ArgumentTreeError(format!(
                 "{} declared more than once",
-                $msg
+                stringify!($F)
             )));
         } else {
             match $P.into_inner().next() {
@@ -170,7 +170,7 @@ impl ArgumentTree {
                 for pair in pairs {
                     match pair.as_rule() {
                         Rule::method_special_case => {
-                            once_branch!(builder, pair, st_method, Method, method, "method");
+                            once_branch!(builder, pair, st_method, Method, method);
                         }
                         Rule::init => {
                             if st_init {
@@ -188,25 +188,19 @@ impl ArgumentTree {
                             st_init = true;
                         }
                         Rule::data => {
-                            once_branch!(builder, pair, st_data, Data, data, "data");
+                            once_branch!(builder, pair, st_data, Data, data);
                         }
                         Rule::random => {
-                            once_branch!(builder, pair, st_random, Random, random, "random");
+                            once_branch!(builder, pair, st_random, Random, random);
                         }
                         Rule::output => {
-                            once_branch!(builder, pair, st_output, Output, output, "output");
+                            once_branch!(builder, pair, st_output, Output, output);
                         }
                         Rule::id => {
-                            once_branch_parse_i32!(builder, pair, st_id, id, "id");
+                            once_branch_parse_i32!(builder, pair, st_id, id);
                         }
                         Rule::num_threads => {
-                            once_branch_parse_i32!(
-                                builder,
-                                pair,
-                                st_num_threads,
-                                num_threads,
-                                "num_threads"
-                            );
+                            once_branch_parse_i32!(builder, pair, st_num_threads, num_threads);
                         }
                         _ => unreachable!(),
                     }
