@@ -65,6 +65,12 @@ impl VariationalBuilder {
     }
 }
 
+impl Default for VariationalBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Variational inference algorithm. Defaults to `MeanField`.
 #[derive(Debug, Default, PartialEq, Clone)]
 pub enum VariationalAlgorithm {
@@ -146,6 +152,12 @@ impl VariationalAdaptBuilder {
         let engaged = self.engaged.unwrap_or(true);
         let iter = self.iter.unwrap_or(50);
         VariationalAdapt { engaged, iter }
+    }
+}
+
+impl Default for VariationalAdaptBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -244,7 +256,7 @@ mod tests {
                 .engaged(false)
                 .iter(200)
                 .build();
-            assert_eq!(x.engaged, false);
+            assert!(!x.engaged);
             assert_eq!(x.iter, 200);
         }
 

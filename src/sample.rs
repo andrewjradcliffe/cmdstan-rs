@@ -57,6 +57,12 @@ impl SampleBuilder {
     }
 }
 
+impl Default for SampleBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Warmup Adaptation
 #[derive(Debug, PartialEq, Clone)]
 pub struct SampleAdapt {
@@ -186,6 +192,12 @@ impl SampleAdaptBuilder {
     }
 }
 
+impl Default for SampleAdaptBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Options builder for [`SampleAlgorithm::Hmc`].
 /// For any option left unspecified, the default value indicated
 /// on `SampleAlgorithm::Hmc` will be supplied.
@@ -229,6 +241,12 @@ impl HmcBuilder {
             stepsize,
             stepsize_jitter,
         }
+    }
+}
+
+impl Default for HmcBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -377,6 +395,12 @@ impl StaticBuilder {
     }
 }
 
+impl Default for StaticBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Options builder for [`Engine::Nuts`].
 /// For any option left unspecified, the default value indicated
 /// on `Engine::Nuts` will be supplied.
@@ -394,6 +418,12 @@ impl NutsBuilder {
     pub fn build(self) -> Engine {
         let max_depth = self.max_depth.unwrap_or(10);
         Engine::Nuts { max_depth }
+    }
+}
+
+impl Default for NutsBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -516,7 +546,7 @@ mod tests {
                 .term_buffer(2)
                 .window(3)
                 .build();
-            assert_eq!(x.engaged, false);
+            assert!(!x.engaged);
             assert_eq!(x.gamma, 0.1);
             assert_eq!(x.delta, 0.2);
             assert_eq!(x.kappa, 0.3);

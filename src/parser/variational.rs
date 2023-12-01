@@ -91,12 +91,11 @@ pub(crate) fn try_variational_from_pair(pair: Pair<'_, Rule>) -> Result<Method, 
             let mut var_builder = VariationalBuilder::new();
             for pair in pairs {
                 match pair.as_rule() {
-                    Rule::variational_algorithm => match pair.into_inner().next() {
-                        Some(pair) => {
+                    Rule::variational_algorithm => {
+                        if let Some(pair) = pair.into_inner().next() {
                             alg_state = VariationalAlgorithm::classify_prechecked(pair);
                         }
-                        _ => (),
-                    },
+                    }
                     Rule::variational_adapt => {
                         unify_variational_adapt_terms!(adapt_builder, pair);
                     }

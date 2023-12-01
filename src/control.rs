@@ -30,9 +30,9 @@ pub enum CompilationError {
 use CompilationError::*;
 
 #[cfg(unix)]
-static MAKE: &'static str = "make";
+static MAKE: &str = "make";
 #[cfg(windows)]
-static MAKE: &'static str = "mingw32-make";
+static MAKE: &str = "mingw32-make";
 
 impl Control {
     /// Construct a new instance from a path (`cmdstan`) to a
@@ -78,7 +78,7 @@ impl Control {
         if self.is_workspace_dirty() {
             self.try_remove_executable()?;
         }
-        let _ = self.validate_cmdstan()?;
+        self.validate_cmdstan()?;
         self.make(args)
     }
 
@@ -88,7 +88,7 @@ impl Control {
     }
     /// Try to remove the executable file.
     fn try_remove_executable(&self) -> Result<(), CompilationError> {
-        fs::remove_file(&self.model).map_err(|e| DirtyWorkspaceError(e))
+        fs::remove_file(&self.model).map_err(DirtyWorkspaceError)
     }
 
     /// Assuming that `self.cmdstan` is a working `CmdStan` installation,
@@ -143,53 +143,52 @@ impl Control {
             .output()
     }
 
-    /// Read in and analyze the output of one or more Markov chains to
-    /// check for potential problems.  See
-    /// <https://mc-stan.org/docs/cmdstan-guide/diagnose.html> for
-    /// more information.
-    ///
-    /// Most likely, this is not the behavior you were looking for.
-    /// In contrast to the method on `CmdStanOutput`, which
-    /// attempts to use absolute paths by inspection of the `ArgumentTree`
-    /// and context which produced the `CmdStanOutput`, this
-    /// blindly uses the `ArgumentTree`.
+    // /// Read in and analyze the output of one or more Markov chains to
+    // /// check for potential problems.  See
+    // /// <https://mc-stan.org/docs/cmdstan-guide/diagnose.html> for
+    // /// more information.
+    // ///
+    // /// Most likely, this is not the behavior you were looking for.
+    // /// In contrast to the method on `CmdStanOutput`, which
+    // /// attempts to use absolute paths by inspection of the `ArgumentTree`
+    // /// and context which produced the `CmdStanOutput`, this
+    // /// blindly uses the `ArgumentTree`.
+    // fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
+    //     let files = arg_tree.output_files();
+    //     let mut path = PathBuf::from(&self.cmdstan);
+    //     path.push("bin");
+    //     path.push("diagnose");
+    //     Command::new(path).args(files).output()
+    // }
 
-    fn diagnose(&self, arg_tree: &ArgumentTree) -> Result<process::Output, io::Error> {
-        let files = arg_tree.output_files();
-        let mut path = PathBuf::from(&self.cmdstan);
-        path.push("bin");
-        path.push("diagnose");
-        Command::new(path).args(files).output()
-    }
+    // /// Report statistics for one or more Stan csv files from a HMC
+    // /// sampler run.  See
+    // /// <https://mc-stan.org/docs/cmdstan-guide/stansummary.html> for
+    // /// more information.
+    // ///
+    // /// Most likely, this is not the behavior you were looking for.
+    // /// In contrast to the method on `CmdStanOutput`, which
+    // /// attempts to use absolute paths by inspection of the `ArgumentTree`
+    // /// and context which produced the `CmdStanOutput`, this
+    // /// blindly uses the `ArgumentTree`.
+    // fn stansummary(
+    //     &self,
+    //     arg_tree: &ArgumentTree,
+    //     opts: Option<StanSummaryOptions>,
+    // ) -> Result<process::Output, io::Error> {
+    //     let files = arg_tree.output_files();
+    //     let mut path = PathBuf::from(&self.cmdstan);
+    //     path.push("bin");
+    //     path.push("stansummary");
+    //     let mut cmd = Command::new(path);
+    //     cmd.args(files);
+    //     match opts {
+    //         Some(opts) => cmd.args(opts.command_fragment()).output(),
+    //         None => cmd.output(),
+    //     }
+    // }
 
-    /// Report statistics for one or more Stan csv files from a HMC
-    /// sampler run.  See
-    /// <https://mc-stan.org/docs/cmdstan-guide/stansummary.html> for
-    /// more information.
-    ///
-    /// Most likely, this is not the behavior you were looking for.
-    /// In contrast to the method on `CmdStanOutput`, which
-    /// attempts to use absolute paths by inspection of the `ArgumentTree`
-    /// and context which produced the `CmdStanOutput`, this
-    /// blindly uses the `ArgumentTree`.
-    fn stansummary(
-        &self,
-        arg_tree: &ArgumentTree,
-        opts: Option<StanSummaryOptions>,
-    ) -> Result<process::Output, io::Error> {
-        let files = arg_tree.output_files();
-        let mut path = PathBuf::from(&self.cmdstan);
-        path.push("bin");
-        path.push("stansummary");
-        let mut cmd = Command::new(path);
-        cmd.args(files);
-        match opts {
-            Some(opts) => cmd.args(opts.command_fragment()).output(),
-            None => cmd.output(),
-        }
-    }
-
-    pub(crate) fn cmdstan<'a>(&'a self) -> &'a Path {
+    pub(crate) fn cmdstan(&self) -> &Path {
         &self.cmdstan
     }
 }
@@ -238,7 +237,7 @@ impl StanSummaryOptions {
             if let Some(p) = values.next() {
                 s.push(format!("{}", p));
             }
-            while let Some(p) = values.next() {
+            for p in values {
                 s.push(",");
                 s.push(format!("{}", p));
             }

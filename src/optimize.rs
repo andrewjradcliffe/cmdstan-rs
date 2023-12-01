@@ -41,6 +41,12 @@ impl OptimizeBuilder {
     }
 }
 
+impl Default for OptimizeBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // Common defaults.
 pub(crate) const INIT_ALPHA: f64 = 0.001;
 pub(crate) const TOL_OBJ: f64 = 1e-12;
@@ -170,9 +176,16 @@ impl BfgsBuilder {
         }
     }
 }
+
 impl From<BfgsBuilder> for OptimizeAlgorithm {
     fn from(x: BfgsBuilder) -> Self {
         x.build()
+    }
+}
+
+impl Default for BfgsBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -233,6 +246,12 @@ impl LbfgsBuilder {
 impl From<LbfgsBuilder> for OptimizeAlgorithm {
     fn from(x: LbfgsBuilder) -> Self {
         x.build()
+    }
+}
+
+impl Default for LbfgsBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

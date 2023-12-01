@@ -20,6 +20,11 @@ impl DiagnoseBuilder {
         Method::Diagnose { test }
     }
 }
+impl Default for DiagnoseBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 /// Diagnostic test. Defaults to `Gradient`.
 #[derive(Debug, PartialEq, Clone)]
@@ -85,6 +90,11 @@ impl GradientBuilder {
         let epsilon = self.epsilon.unwrap_or(1e-6);
         let error = self.error.unwrap_or(1e-6);
         DiagnoseTest::Gradient { epsilon, error }
+    }
+}
+impl Default for GradientBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

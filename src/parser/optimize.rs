@@ -91,23 +91,24 @@ pub(crate) fn try_optimize_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Par
             let pairs = pair.into_inner();
             for pair in pairs {
                 match pair.as_rule() {
-                    Rule::optimize_algorithm => match pair.into_inner().next() {
-                        Some(pair) => match pair.as_rule() {
-                            Rule::bfgs => {
-                                alg_state = 0;
-                                unify_bfgs_terms!(bfgs_builder, pair);
+                    Rule::optimize_algorithm => {
+                        if let Some(pair) = pair.into_inner().next() {
+                            match pair.as_rule() {
+                                Rule::bfgs => {
+                                    alg_state = 0;
+                                    unify_bfgs_terms!(bfgs_builder, pair);
+                                }
+                                Rule::lbfgs => {
+                                    alg_state = 1;
+                                    unify_lbfgs_terms!(lbfgs_builder, pair);
+                                }
+                                Rule::newton => {
+                                    alg_state = 2;
+                                }
+                                _ => unreachable!(),
                             }
-                            Rule::lbfgs => {
-                                alg_state = 1;
-                                unify_lbfgs_terms!(lbfgs_builder, pair);
-                            }
-                            Rule::newton => {
-                                alg_state = 2;
-                            }
-                            _ => unreachable!(),
-                        },
-                        _ => (),
-                    },
+                        }
+                    }
                     Rule::jacobian => boolean_arm!(opt_builder, pair, jacobian),
                     Rule::iter => number_arm!(opt_builder, pair, iter, i32),
                     Rule::save_iterations => boolean_arm!(opt_builder, pair, save_iterations),

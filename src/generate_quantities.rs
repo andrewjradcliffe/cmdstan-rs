@@ -22,6 +22,11 @@ impl GenerateQuantitiesBuilder {
         Method::GenerateQuantities { fitted_params }
     }
 }
+impl Default for GenerateQuantitiesBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 #[cfg(test)]
 mod tests {

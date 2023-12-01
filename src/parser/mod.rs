@@ -41,37 +41,28 @@ use ParseGrammarError::*;
 // Common macros
 macro_rules! number_arm {
     ($B:ident, $P:ident, $F:ident, $T:ty) => {
-        match $P.into_inner().next() {
-            Some(pair) => {
-                let value = pair.as_str().parse::<$T>().unwrap();
-                $B = $B.$F(value);
-            }
-            _ => (),
+        if let Some(pair) = $P.into_inner().next() {
+            let value = pair.as_str().parse::<$T>().unwrap();
+            $B = $B.$F(value);
         }
     };
 }
 macro_rules! boolean_arm {
     ($B:ident, $P:ident, $F:ident) => {
-        match $P.into_inner().next() {
-            Some(pair) => {
-                let value = match pair.as_rule() {
-                    Rule::r#true => true,
-                    Rule::r#false => false,
-                    _ => unreachable!(),
-                };
-                $B = $B.$F(value);
-            }
-            _ => (),
+        if let Some(pair) = $P.into_inner().next() {
+            let value = match pair.as_rule() {
+                Rule::r#true => true,
+                Rule::r#false => false,
+                _ => unreachable!(),
+            };
+            $B = $B.$F(value);
         }
     };
 }
 macro_rules! path_arm {
     ($B:ident, $P:ident, $F:ident) => {
-        match $P.into_inner().next() {
-            Some(pair) => {
-                $B = $B.$F(pair.as_str());
-            }
-            _ => (),
+        if let Some(pair) = $P.into_inner().next() {
+            $B = $B.$F(pair.as_str());
         }
     };
 }

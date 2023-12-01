@@ -11,7 +11,7 @@ pub(crate) fn try_generate_quantities_from_pair(
                 .into_inner()
                 .last()
                 .map(|pair| GenerateQuantitiesBuilder::new().fitted_params(pair.as_str()))
-                .unwrap_or_else(|| GenerateQuantitiesBuilder::new());
+                .unwrap_or_default();
             Ok(builder.build())
         }
         r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),

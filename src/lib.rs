@@ -31,9 +31,9 @@ use crate::control::Control;
 pub use crate::control::{CompilationError, StanSummaryOptions};
 
 #[cfg(unix)]
-static OS_EXTENSION: &'static str = "";
+static OS_EXTENSION: &str = "";
 #[cfg(windows)]
-static OS_EXTENSION: &'static str = "exe";
+static OS_EXTENSION: &str = "exe";
 
 /// A high level interface to construct a model
 pub struct CmdStanModel {
@@ -170,7 +170,7 @@ impl CmdStanOutput {
 
     /// Return an immutable reference to console output associated
     /// with the `CmdStan` call.
-    pub fn output<'a>(&'a self) -> &'a process::Output {
+    pub fn output(&self) -> &process::Output {
         &self.output
     }
 
@@ -202,18 +202,18 @@ impl CmdStanOutput {
 
     /// Return a reference to the `CmdStan` installation associated
     /// the call.
-    pub fn cmdstan<'a>(&'a self) -> &'a Path {
+    pub fn cmdstan(&self) -> &Path {
         &self.cmdstan
     }
     /// Return a reference to the current working directory at the
     /// time of the call.
-    pub fn cwd_at_call<'a>(&'a self) -> &'a Path {
+    pub fn cwd_at_call(&self) -> &Path {
         &self.cwd_at_call
     }
 
     /// Return a reference to the argument tree with which the call
     /// was made.
-    pub fn argument_tree<'a>(&'a self) -> &'a ArgumentTree {
+    pub fn argument_tree(&self) -> &ArgumentTree {
         &self.argument_tree
     }
 

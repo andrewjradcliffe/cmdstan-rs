@@ -8,20 +8,18 @@ fn unify_gradient_fields(pair: Pair<'_, Rule>) -> (Option<f64>, Option<f64>) {
     let mut error: Option<f64> = None;
     for pair in pairs {
         match pair.as_rule() {
-            Rule::epsilon => match pair.into_inner().next() {
-                Some(pair) => {
+            Rule::epsilon => {
+                if let Some(pair) = pair.into_inner().next() {
                     let value = pair.as_str().parse::<f64>().unwrap();
                     epsilon = Some(value);
                 }
-                _ => (),
-            },
-            Rule::error => match pair.into_inner().next() {
-                Some(pair) => {
+            }
+            Rule::error => {
+                if let Some(pair) = pair.into_inner().next() {
                     let value = pair.as_str().parse::<f64>().unwrap();
                     error = Some(value);
                 }
-                _ => (),
-            },
+            }
             _ => unreachable!(),
         }
     }
@@ -85,15 +83,16 @@ pub(crate) fn try_diagnose_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Par
             let mut builder = GradientBuilder::new();
             for pair in pairs {
                 match pair.as_rule() {
-                    Rule::diagnose_test => match pair.into_inner().next() {
-                        Some(pair) => match pair.as_rule() {
-                            Rule::gradient => {
-                                unify_gradient_terms!(builder, pair);
+                    Rule::diagnose_test => {
+                        if let Some(pair) = pair.into_inner().next() {
+                            match pair.as_rule() {
+                                Rule::gradient => {
+                                    unify_gradient_terms!(builder, pair);
+                                }
+                                _ => unreachable!(),
                             }
-                            _ => unreachable!(),
-                        },
-                        _ => (),
-                    },
+                        }
+                    }
                     _ => unreachable!(),
                 }
             }

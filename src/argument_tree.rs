@@ -59,7 +59,7 @@ impl ArgumentTree {
         if let Some(x) = iter.next() {
             s.push(x);
         }
-        while let Some(x) = iter.next() {
+        for x in iter {
             s.push(" ");
             s.push(x);
         }
@@ -75,7 +75,7 @@ impl ArgumentTree {
         F: Fn(&ArgumentTree) -> &OsStr,
     {
         let mut files: Vec<OsString> = Vec::new();
-        let file = f(&self);
+        let file = f(self);
         let bytes = file.as_encoded_bytes();
         let mut iter = bytes.rsplitn(2, |b| *b == b'.');
 
@@ -97,7 +97,7 @@ impl ArgumentTree {
         };
         match &self.method {
             Method::Sample { num_chains, .. } if *num_chains != 1 => {
-                let id = self.id.clone();
+                let id = self.id;
                 (id..id + num_chains).for_each(|id| {
                     let mut s = prefix.to_os_string();
                     s.push(format!("_{id}."));
@@ -203,7 +203,7 @@ impl ArgumentTree {
                         _ => file,
                     };
                     if *num_paths != 1 {
-                        let id = self.id.clone();
+                        let id = self.id;
                         (id..id + num_paths).for_each(|id| {
                             let mut s1 = prefix.to_os_string();
                             s1.push(format!("_path_{id}."));
@@ -282,6 +282,12 @@ impl ArgumentTreeBuilder {
             output,
             num_threads,
         }
+    }
+}
+
+impl Default for ArgumentTreeBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -445,6 +451,11 @@ impl OutputBuilder {
             sig_figs,
             profile_file,
         }
+    }
+}
+impl Default for OutputBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

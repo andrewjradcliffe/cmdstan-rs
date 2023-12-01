@@ -10,14 +10,17 @@ float          = @{
 // Valid separators in this language are space or tab
 sep = _{ " " | "\t" }
 
+// Pervasive pattern for ill-formed input
+sep_eoi = _{ &sep | EOI }
+
 // Obviously, this needs more thought. In the end, it might be easiest to provide
 // it with `cfg_attr` and a `grammar_inline` attribute
 non_ws            = _{ !(" " | "\t") ~ ANY }
 non_single_quote  = _{ !"'" ~ ANY }
 non_double_quote  = _{ !"\"" ~ ANY }
-regular_path      = ${ non_ws* }
-single_quote_path = ${ "'" ~ non_single_quote* ~ "'" }
-double_quote_path = ${ "\"" ~ non_double_quote* ~ "\"" }
+regular_path      = @{ non_ws* }
+single_quote_path = @{ "'" ~ non_single_quote* ~ "'" }
+double_quote_path = @{ "\"" ~ non_double_quote* ~ "\"" }
 path              =  { single_quote_path | double_quote_path | regular_path }
 
 // And some common items

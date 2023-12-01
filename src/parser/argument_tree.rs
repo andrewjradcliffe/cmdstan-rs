@@ -177,13 +177,8 @@ impl ArgumentTree {
                                 return Err(ArgumentTreeError(
                                     "init declared more than once".into(),
                                 ));
-                            } else {
-                                match pair.into_inner().next() {
-                                    Some(pair) => {
-                                        builder = builder.init(pair.as_str());
-                                    }
-                                    _ => (),
-                                }
+                            } else if let Some(pair) = pair.into_inner().next() {
+                                builder = builder.init(pair.as_str());
                             }
                             st_init = true;
                         }
@@ -241,11 +236,9 @@ impl ArgumentTree {
                 s.push('=');
                 s.push_str(suffix);
                 s.push(' ');
-            } else {
-                if !s.trim().ends_with(l.trim_end()) {
-                    s.push_str(l);
-                    s.push(' ');
-                }
+            } else if !s.trim().ends_with(l.trim_end()) {
+                s.push_str(l);
+                s.push(' ');
             }
             // Are we done?
             // The stop symbol is num_threads, at least under the current Stan format.

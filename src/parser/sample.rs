@@ -77,7 +77,13 @@ fn unify_max_depth(pair: Pair<'_, Rule>) -> Result<Option<i32>, ParseGrammarErro
             Ok(value) => {
                 max_depth = Some(value);
             }
-            Err(e) => return Err(EngineError(format!("{e:#?}"))),
+            Err(e) => {
+                // return Err(EngineError(format!(
+                //     "0 < max_depth < 2147483648, got {}",
+                //     pair.as_str()
+                // )))
+                return Err(EngineError(format!("{e:#?}")));
+            }
         }
     }
     Ok(max_depth)
@@ -288,25 +294,26 @@ pub(crate) fn try_sample_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Parse
             let pairs = pair.into_inner();
             for pair in pairs {
                 match pair.as_rule() {
-                    Rule::sample_algorithm => match pair.into_inner().next() {
-                        Some(pair) => match pair.as_rule() {
-                            Rule::fixed_param => {
-                                alg_state = false;
+                    Rule::sample_algorithm => {
+                        if let Some(pair) = pair.into_inner().next() {
+                            match pair.as_rule() {
+                                Rule::fixed_param => {
+                                    alg_state = false;
+                                }
+                                Rule::hmc => {
+                                    alg_state = true;
+                                    unify_hmc_terms!(
+                                        hmc_builder,
+                                        pair,
+                                        engine_state,
+                                        max_depth,
+                                        int_time
+                                    );
+                                }
+                                _ => unreachable!(),
                             }
-                            Rule::hmc => {
-                                alg_state = true;
-                                unify_hmc_terms!(
-                                    hmc_builder,
-                                    pair,
-                                    engine_state,
-                                    max_depth,
-                                    int_time
-                                );
-                            }
-                            _ => unreachable!(),
-                        },
-                        _ => (),
-                    },
+                        }
+                    }
                     Rule::sample_adapt => {
                         unify_sample_adapt_terms!(adapt_builder, pair);
                     }

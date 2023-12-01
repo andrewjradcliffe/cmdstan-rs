@@ -35,6 +35,12 @@ impl LaplaceBuilder {
     }
 }
 
+impl Default for LaplaceBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
