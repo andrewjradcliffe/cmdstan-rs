@@ -361,6 +361,8 @@ mod tests {
 
     mod argument_tree {
         use super::*;
+        use crate::optimize::*;
+        use crate::variational::*;
 
         #[test]
         fn from_str() {
@@ -371,6 +373,7 @@ mod tests {
             assert_eq!("method".parse::<ArgumentTree>().unwrap(), rhs);
 
             // Simple error: method unspecified
+            assert!("".parse::<ArgumentTree>().is_err());
             assert!("id".parse::<ArgumentTree>().is_err());
             assert!("init".parse::<ArgumentTree>().is_err());
             assert!("random".parse::<ArgumentTree>().is_err());
@@ -391,6 +394,65 @@ mod tests {
                 let t = m.parse::<ArgumentTree>().unwrap();
                 assert_ne!(t, rhs);
             }
+
+            let s = "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.050000000000000003 delta=0.80000000000000004 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e metric_file= stepsize=1 stepsize_jitter=0 num_chains=1 id=1 data file=bernoulli.data.json init=2 random seed=589886520 output file=output.csv diagnostic_file= refresh=100 sig_figs=-1 profile_file=profile.csv num_threads=1";
+            let lhs = s.parse::<ArgumentTree>().unwrap();
+            let rhs = ArgumentTree::builder()
+                .data(Data {
+                    file: "bernoulli.data.json".into(),
+                })
+                .random(Random { seed: 589886520 })
+                .output(Output::builder().profile_file("profile.csv"))
+                .build();
+            assert_eq!(lhs, rhs);
+
+            let s = "method=variational iter=1000 adapt engaged=0 iter=42";
+            assert!(s.parse::<ArgumentTree>().is_ok());
+
+            let s = "id=2 data file=bernoulli.data.json output file=foo.csv diagnostic_file=bar.csv profile_file=baz.csv num_threads=123 method=variational iter=1000 algorithm=fullrank algorithm=meanfield algorithm=fullrank adapt engaged eta=2 grad_samples=10 elbo_samples=20 iter=123 output_samples=50";
+            let lhs = s.parse::<ArgumentTree>().unwrap();
+            let rhs = ArgumentTree::builder()
+                .id(2)
+                .data(Data {
+                    file: "bernoulli.data.json".into(),
+                })
+                .output(
+                    Output::builder()
+                        .file("foo.csv")
+                        .diagnostic_file("bar.csv")
+                        .profile_file("baz.csv"),
+                )
+                .num_threads(123)
+                .method(
+                    VariationalBuilder::new()
+                        .algorithm(VariationalAlgorithm::FullRank)
+                        .eta(2.0)
+                        .grad_samples(10)
+                        .elbo_samples(20)
+                        .iter(123)
+                        .output_samples(50),
+                )
+                .build();
+            assert_eq!(lhs, rhs);
+
+            let s = "id=10 data file=bernoulli.data.json output file= optimize algorithm=lbfgs init_alpha=10 iter=1234 save_iterations=+1 jacobian=-0 num_threads=42";
+            let lhs = s.parse::<ArgumentTree>().unwrap();
+            let rhs = ArgumentTree::builder()
+                .id(10)
+                .data(Data {
+                    file: "bernoulli.data.json".into(),
+                })
+                .output(Output::builder().file(""))
+                .num_threads(42)
+                .method(
+                    OptimizeBuilder::new()
+                        .algorithm(LbfgsBuilder::new().init_alpha(10.0))
+                        .save_iterations(true)
+                        .jacobian(false)
+                        .iter(1234),
+                )
+                .build();
+            assert_eq!(lhs, rhs);
         }
     }
 }
