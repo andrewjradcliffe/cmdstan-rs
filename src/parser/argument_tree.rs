@@ -271,13 +271,9 @@ impl ArgumentTree {
         // If we have iterated through 255 lines, then something is clearly wrong.
         let mut stop = false;
         let mut n: u8 = 0;
-        loop {
-            if stop | (n == 255) || file.read_line(&mut l)? == 0 {
-                break;
-            } else {
-                remove_newline(&mut l);
-                stop = consume(&mut s, &l);
-            }
+        while !stop & (n != 255) && file.read_line(&mut l)? != 0 {
+            remove_newline(&mut l);
+            stop = consume(&mut s, &l);
             n += 1;
             l.clear();
         }
