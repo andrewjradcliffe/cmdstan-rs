@@ -35,10 +35,11 @@ impl VariationalAlgorithm {
     fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
         match pair.as_rule() {
             Rule::variational_algorithm => {
-                let variant = match pair.into_inner().next() {
-                    Some(pair) => Self::classify_prechecked(pair),
-                    _ => Self::default(),
-                };
+                let variant = pair
+                    .into_inner()
+                    .next()
+                    .map(Self::classify_prechecked)
+                    .unwrap_or_default();
                 Ok(variant)
             }
             r => Err(RuleError(r)),

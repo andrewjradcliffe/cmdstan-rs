@@ -45,11 +45,7 @@ impl Random {
                     let value = pair.as_str().parse::<i64>()?;
                     seed = Some(value);
                 }
-                let x = match seed {
-                    Some(seed) => Random { seed },
-                    _ => Random::default(),
-                };
-                Ok(x)
+                Ok(seed.map(|seed| Random { seed }).unwrap_or_default())
             }
             r => Err(RuleError(r)),
         }
@@ -60,14 +56,14 @@ impl Data {
     fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
         match pair.as_rule() {
             Rule::data => {
-                let pairs = pair
+                let x = pair
                     .into_inner()
-                    .filter_map(|file| file.into_inner().next());
-                // We can simplify due to the grammar structure.
-                let x = match pairs.last().map(|pair| OsString::from(pair.as_str())) {
-                    Some(file) => Data { file },
-                    _ => Data::default(),
-                };
+                    .filter_map(|file| file.into_inner().next())
+                    .last()
+                    .map(|pair| Data {
+                        file: OsString::from(pair.as_str()),
+                    })
+                    .unwrap_or_default();
                 Ok(x)
             }
             r => Err(RuleError(r)),
@@ -92,12 +88,6 @@ macro_rules! once_branch_parse_i32 {
             return Err(TopLevelDuplicate(stringify!($F)));
         } else {
             if let Some(pair) = $P.into_inner().next() {
-                // match pair.as_str().parse::<i32>() {
-                //     Ok(value) => {
-                //         $B = $B.$F(value);
-                //     }
-                //     Err(e) => return Err($E(e)),
-                // }
                 let value = pair.as_str().parse::<i32>()?;
                 $B = $B.$F(value);
             }
