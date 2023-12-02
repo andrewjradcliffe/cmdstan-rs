@@ -176,24 +176,25 @@ macro_rules! unify_hmc_terms {
                         $B = $B.metric(value);
                     }
                 }
-                Rule::engine => match pair.into_inner().next() {
-                    Some(pair) => match pair.as_rule() {
-                        Rule::nuts => {
-                            if let Some(value) = unify_max_depth(pair)? {
-                                $max_depth = Some(value);
+                Rule::engine => {
+                    if let Some(pair) = pair.into_inner().next() {
+                        match pair.as_rule() {
+                            Rule::nuts => {
+                                if let Some(value) = unify_max_depth(pair)? {
+                                    $max_depth = Some(value);
+                                }
+                                $state = true;
                             }
-                            $state = true;
-                        }
-                        Rule::r#static => {
-                            if let Some(value) = unify_int_time(pair) {
-                                $int_time = Some(value);
+                            Rule::r#static => {
+                                if let Some(value) = unify_int_time(pair) {
+                                    $int_time = Some(value);
+                                }
+                                $state = false;
                             }
-                            $state = false;
+                            _ => unreachable!(),
                         }
-                        _ => unreachable!(),
-                    },
-                    _ => (),
-                },
+                    }
+                }
                 _ => unreachable!(),
             }
         }
