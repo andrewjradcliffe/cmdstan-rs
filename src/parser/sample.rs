@@ -10,7 +10,7 @@ impl FromStr for Metric {
                 let pair = pair.next().unwrap().into_inner().next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(MetricError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, MetricError),
         }
     }
 }
@@ -25,7 +25,7 @@ impl Metric {
                 };
                 Ok(variant)
             }
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 
@@ -51,7 +51,7 @@ impl FromStr for Engine {
                 let pair = pair.next().unwrap().into_inner().next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(EngineError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, EngineError),
         }
     }
 }
@@ -73,18 +73,8 @@ fn unify_max_depth(pair: Pair<'_, Rule>) -> Result<Option<i32>, ParseGrammarErro
     let pairs = pair.into_inner();
     let mut max_depth: Option<i32> = None;
     for pair in pairs {
-        match pair.as_str().parse::<i32>() {
-            Ok(value) => {
-                max_depth = Some(value);
-            }
-            Err(e) => {
-                // return Err(EngineError(format!(
-                //     "0 < max_depth < 2147483648, got {}",
-                //     pair.as_str()
-                // )))
-                return Err(EngineError(format!("{e:#?}")));
-            }
-        }
+        let value = pair.as_str().parse::<i32>()?;
+        max_depth = Some(value);
     }
     Ok(max_depth)
 }
@@ -115,7 +105,7 @@ impl Engine {
                 };
                 Ok(variant)
             }
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 }
@@ -151,7 +141,7 @@ impl SampleAdapt {
                 unify_sample_adapt_terms!(builder, pair);
                 Ok(builder.build())
             }
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 }
@@ -164,7 +154,7 @@ impl FromStr for SampleAdapt {
                 let pair = pair.next().unwrap().into_inner().next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(SampleAdaptError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, SampleAdaptError),
         }
     }
 }
@@ -181,12 +171,9 @@ macro_rules! unify_hmc_terms {
                 Rule::metric_file => path_arm!($B, pair, metric_file),
                 Rule::metric => {
                     // We need to avoid the default, else we could use `Metric::try_from_pair`
-                    match pair.into_inner().next() {
-                        Some(pair) => {
-                            let value = Metric::classify_prechecked(pair);
-                            $B = $B.metric(value);
-                        }
-                        _ => (),
+                    if let Some(pair) = pair.into_inner().next() {
+                        let value = Metric::classify_prechecked(pair);
+                        $B = $B.metric(value);
                     }
                 }
                 Rule::engine => match pair.into_inner().next() {
@@ -254,7 +241,7 @@ impl SampleAlgorithm {
                 }
             }
 
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 }
@@ -267,7 +254,7 @@ impl FromStr for SampleAlgorithm {
                 let pair = pair.next().unwrap().into_inner().next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(SampleAlgorithmError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, SampleAlgorithmError),
         }
     }
 }
@@ -336,7 +323,7 @@ pub(crate) fn try_sample_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Parse
 
             Ok(builder.algorithm(algorithm).adapt(adapt).build())
         }
-        r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+        r => Err(RuleError(r)),
     }
 }
 

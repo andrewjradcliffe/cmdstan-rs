@@ -10,7 +10,7 @@ impl FromStr for VariationalAdapt {
                 let pair = pairs.next().unwrap().into_inner().next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(VariationalAdaptError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, VariationalAdaptError),
         }
     }
 }
@@ -36,7 +36,7 @@ impl VariationalAdapt {
                 unify_variational_adapt_terms!(builder, pair);
                 Ok(builder.build())
             }
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 }
@@ -49,7 +49,7 @@ impl FromStr for VariationalAlgorithm {
                 let pair = pair.next().unwrap().into_inner().next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(VariationalAlgorithmError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, VariationalAlgorithmError),
         }
     }
 }
@@ -64,7 +64,7 @@ impl VariationalAlgorithm {
                 };
                 Ok(variant)
             }
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 
@@ -114,7 +114,7 @@ pub(crate) fn try_variational_from_pair(pair: Pair<'_, Rule>) -> Result<Method, 
                 .adapt(adapt_builder)
                 .build())
         }
-        r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+        r => Err(RuleError(r)),
     }
 }
 

@@ -1,5 +1,6 @@
-use pest::iterators::Pair;
-use pest::Parser;
+use pest::{error::InputLocation, iterators::Pair, Parser};
+use std::fmt;
+use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 
 #[derive(pest_derive::Parser)]
@@ -21,28 +22,84 @@ pub struct GrammarParser;
 
 #[derive(Debug, PartialEq)]
 pub enum ParseGrammarError {
-    MetricError(String),
-    EngineError(String),
-    SampleAdaptError(String),
-    SampleAlgorithmError(String),
-    OptimizeAlgorithmError(String),
-    VariationalAdaptError(String),
-    VariationalAlgorithmError(String),
-    DiagnoseTestError(String),
-    MethodError(String),
-    OutputError(String),
-    RandomError(String),
-    DataError(String),
-    ArgumentTreeError(String),
-    RuleError(String),
+    IntError(ParseIntError),
+    FloatError(ParseFloatError),
+    MetricError(usize),
+    EngineError(usize),
+    SampleAdaptError(usize),
+    SampleAlgorithmError(usize),
+    OptimizeAlgorithmError(usize),
+    VariationalAdaptError(usize),
+    VariationalAlgorithmError(usize),
+    DiagnoseTestError(usize),
+    MethodError(usize),
+    OutputError(usize),
+    RandomError(usize),
+    DataError(usize),
+    ArgumentTreeError(usize),
+    TopLevelDuplicate(&'static str),
+    MethodNotSpecified,
+    RuleError(Rule),
 }
 use ParseGrammarError::*;
+
+impl From<ParseIntError> for ParseGrammarError {
+    fn from(e: ParseIntError) -> Self {
+        IntError(e)
+    }
+}
+impl From<ParseFloatError> for ParseGrammarError {
+    fn from(e: ParseFloatError) -> Self {
+        FloatError(e)
+    }
+}
+
+impl fmt::Display for ParseGrammarError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let (word, pos) = match self {
+            MetricError(n) => ("method", n),
+            EngineError(n) => ("engine", n),
+            SampleAdaptError(n) => ("(sample) adapt", n),
+            SampleAlgorithmError(n) => ("(sample) algorithm", n),
+            OptimizeAlgorithmError(n) => ("(optimize) algorithm", n),
+            VariationalAdaptError(n) => ("(variational) adapt", n),
+            VariationalAlgorithmError(n) => ("(variational) algorithm", n),
+            DiagnoseTestError(n) => ("test", n),
+            MethodError(n) => ("method", n),
+            OutputError(n) => ("output", n),
+            RandomError(n) => ("random", n),
+            DataError(n) => ("data", n),
+            ArgumentTreeError(n) => ("top-level", n),
+            RuleError(r) => {
+                return write!(f, "internal parsing error: {:?}", r);
+            }
+            TopLevelDuplicate(s) => {
+                return write!(f, "{} was declared more than once", s);
+            }
+            MethodNotSpecified => {
+                return write!(f, "A method must be specified!");
+            }
+            IntError(e) => {
+                return write!(f, "{}", e);
+            }
+            FloatError(e) => {
+                return write!(f, "{}", e);
+            }
+        };
+        write!(
+            f,
+            "{} does not conform to grammar at position {}",
+            word, pos
+        )
+    }
+}
+impl std::error::Error for ParseGrammarError {}
 
 // Common macros
 macro_rules! number_arm {
     ($B:ident, $P:ident, $F:ident, $T:ty) => {
         if let Some(pair) = $P.into_inner().next() {
-            let value = pair.as_str().parse::<$T>().unwrap();
+            let value = pair.as_str().parse::<$T>()?;
             $B = $B.$F(value);
         }
     };
@@ -63,6 +120,15 @@ macro_rules! path_arm {
     ($B:ident, $P:ident, $F:ident) => {
         if let Some(pair) = $P.into_inner().next() {
             $B = $B.$F(pair.as_str());
+        }
+    };
+}
+
+macro_rules! error_position {
+    ($e:ident, $E:ident) => {
+        match $e.location {
+            InputLocation::Pos(r) => Err($E(r)),
+            InputLocation::Span((_, r)) => Err($E(r)),
         }
     };
 }

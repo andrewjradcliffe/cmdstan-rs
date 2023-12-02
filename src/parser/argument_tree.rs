@@ -25,7 +25,7 @@ impl Output {
                 }
                 Ok(builder.build())
             }
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 }
@@ -38,7 +38,7 @@ impl FromStr for Output {
                 let pair = pairs.next().unwrap().into_inner().next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(OutputError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, OutputError),
         }
     }
 }
@@ -51,12 +51,8 @@ impl Random {
                 // We can simplify due to the grammar structure.
                 let mut seed: Option<i64> = None;
                 for pair in pairs {
-                    match pair.as_str().parse::<i64>() {
-                        Ok(value) => {
-                            seed = Some(value);
-                        }
-                        Err(e) => return Err(RandomError(format!("{e:#?}"))),
-                    }
+                    let value = pair.as_str().parse::<i64>()?;
+                    seed = Some(value);
                 }
                 let x = match seed {
                     Some(seed) => Random { seed },
@@ -64,7 +60,7 @@ impl Random {
                 };
                 Ok(x)
             }
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 }
@@ -77,7 +73,7 @@ impl FromStr for Random {
                 let pair = pairs.next().unwrap().into_inner().next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(RandomError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, RandomError),
         }
     }
 }
@@ -96,7 +92,7 @@ impl Data {
                 };
                 Ok(x)
             }
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 }
@@ -109,7 +105,7 @@ impl FromStr for Data {
                 let pair = pairs.next().unwrap().into_inner().next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(DataError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, DataError),
         }
     }
 }
@@ -117,10 +113,7 @@ impl FromStr for Data {
 macro_rules! once_branch {
     ($B:ident, $P:ident, $state:ident, $T:ident, $F:ident) => {
         if $state {
-            return Err(ArgumentTreeError(format!(
-                "{} declared more than once",
-                stringify!($F)
-            )));
+            return Err(TopLevelDuplicate(stringify!($F)));
         } else {
             $B = $B.$F($T::try_from_pair($P)?);
             $state = true;
@@ -129,21 +122,19 @@ macro_rules! once_branch {
 }
 
 macro_rules! once_branch_parse_i32 {
-    ($B:ident, $P:ident, $state:ident, $F:ident) => {
+    ($B:ident, $P:ident, $state:ident, $F:ident, $E:ident) => {
         if $state {
-            return Err(ArgumentTreeError(format!(
-                "{} declared more than once",
-                stringify!($F)
-            )));
+            return Err(TopLevelDuplicate(stringify!($F)));
         } else {
-            match $P.into_inner().next() {
-                Some(pair) => match pair.as_str().parse::<i32>() {
-                    Ok(value) => {
-                        $B = $B.$F(value);
-                    }
-                    Err(e) => return Err(ArgumentTreeError(format!("{e:#?}"))),
-                },
-                _ => (),
+            if let Some(pair) = $P.into_inner().next() {
+                // match pair.as_str().parse::<i32>() {
+                //     Ok(value) => {
+                //         $B = $B.$F(value);
+                //     }
+                //     Err(e) => return Err($E(e)),
+                // }
+                let value = pair.as_str().parse::<i32>()?;
+                $B = $B.$F(value);
             }
             $state = true;
         }
@@ -174,9 +165,7 @@ impl ArgumentTree {
                         }
                         Rule::init => {
                             if st_init {
-                                return Err(ArgumentTreeError(
-                                    "init declared more than once".into(),
-                                ));
+                                return Err(TopLevelDuplicate("init"));
                             } else if let Some(pair) = pair.into_inner().next() {
                                 builder = builder.init(pair.as_str());
                             }
@@ -192,10 +181,16 @@ impl ArgumentTree {
                             once_branch!(builder, pair, st_output, Output, output);
                         }
                         Rule::id => {
-                            once_branch_parse_i32!(builder, pair, st_id, id);
+                            once_branch_parse_i32!(builder, pair, st_id, id, IdError);
                         }
                         Rule::num_threads => {
-                            once_branch_parse_i32!(builder, pair, st_num_threads, num_threads);
+                            once_branch_parse_i32!(
+                                builder,
+                                pair,
+                                st_num_threads,
+                                num_threads,
+                                NumThreadsError
+                            );
                         }
                         _ => unreachable!(),
                     }
@@ -203,10 +198,10 @@ impl ArgumentTree {
                 if st_method {
                     Ok(builder.build())
                 } else {
-                    Err(ArgumentTreeError("A method must be specified!".into()))
+                    Err(MethodNotSpecified)
                 }
             }
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 
@@ -289,7 +284,7 @@ impl FromStr for ArgumentTree {
                 let pair = pairs.next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(ArgumentTreeError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, ArgumentTreeError),
         }
     }
 }

@@ -46,7 +46,7 @@ impl FromStr for DiagnoseTest {
                 let pair = pairs.next().unwrap().into_inner().next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(DiagnoseTestError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, DiagnoseTestError),
         }
     }
 }
@@ -68,7 +68,7 @@ impl DiagnoseTest {
                 };
                 Ok(variant)
             }
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 }
@@ -98,7 +98,7 @@ pub(crate) fn try_diagnose_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Par
             }
             Ok(DiagnoseBuilder::new().test(builder).build())
         }
-        r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+        r => Err(RuleError(r)),
     }
 }
 

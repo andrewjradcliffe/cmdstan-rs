@@ -28,7 +28,7 @@ pub(crate) fn try_pathfinder_from_pair(pair: Pair<'_, Rule>) -> Result<Method, P
             }
             Ok(builder.build())
         }
-        r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+        r => Err(RuleError(r)),
     }
 }
 

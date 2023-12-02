@@ -10,7 +10,7 @@ impl FromStr for OptimizeAlgorithm {
                 let pair = pair.next().unwrap().into_inner().next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(OptimizeAlgorithmError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, OptimizeAlgorithmError),
         }
     }
 }
@@ -72,7 +72,7 @@ impl OptimizeAlgorithm {
                     _ => unreachable!(),
                 }
             }
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 }
@@ -125,7 +125,7 @@ pub(crate) fn try_optimize_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Par
 
             Ok(opt_builder.algorithm(algorithm).build())
         }
-        r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+        r => Err(RuleError(r)),
     }
 }
 

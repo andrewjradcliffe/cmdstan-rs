@@ -14,7 +14,7 @@ pub(crate) fn try_generate_quantities_from_pair(
                 .unwrap_or_default();
             Ok(builder.build())
         }
-        r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+        r => Err(RuleError(r)),
     }
 }
 

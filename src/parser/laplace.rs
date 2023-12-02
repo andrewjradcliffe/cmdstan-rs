@@ -20,7 +20,7 @@ pub(crate) fn try_laplace_from_pair(pair: Pair<'_, Rule>) -> Result<Method, Pars
             }
             Ok(builder.build())
         }
-        r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+        r => Err(RuleError(r)),
     }
 }
 

@@ -26,7 +26,7 @@ impl Method {
                 },
                 _ => Ok(Self::default()),
             },
-            r => Err(RuleError(format!("Cannot construct from rule: {r:?}"))),
+            r => Err(RuleError(r)),
         }
     }
 }
@@ -39,7 +39,7 @@ impl FromStr for Method {
                 let pair = pairs.next().unwrap().into_inner().next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => Err(MethodError(format!("{e:#?}"))),
+            Err(e) => error_position!(e, MethodError),
         }
     }
 }
