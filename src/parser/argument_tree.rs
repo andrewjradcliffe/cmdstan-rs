@@ -6,6 +6,10 @@ use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read};
 use std::path::Path;
 
+impl_from_str! { Output, OutputError, output_as_type }
+impl_from_str! { Data, DataError, data_as_type }
+impl_from_str! { Random, RandomError, random_as_type }
+
 impl Output {
     fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
         match pair.as_rule() {
@@ -26,19 +30,6 @@ impl Output {
                 Ok(builder.build())
             }
             r => Err(RuleError(r)),
-        }
-    }
-}
-
-impl FromStr for Output {
-    type Err = ParseGrammarError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match GrammarParser::parse(Rule::output_as_type, s) {
-            Ok(mut pairs) => {
-                let pair = pairs.next().unwrap().into_inner().next().unwrap();
-                Self::try_from_pair(pair)
-            }
-            Err(e) => error_position!(e, OutputError),
         }
     }
 }
@@ -65,19 +56,6 @@ impl Random {
     }
 }
 
-impl FromStr for Random {
-    type Err = ParseGrammarError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match GrammarParser::parse(Rule::random_as_type, s) {
-            Ok(mut pairs) => {
-                let pair = pairs.next().unwrap().into_inner().next().unwrap();
-                Self::try_from_pair(pair)
-            }
-            Err(e) => error_position!(e, RandomError),
-        }
-    }
-}
-
 impl Data {
     fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
         match pair.as_rule() {
@@ -93,19 +71,6 @@ impl Data {
                 Ok(x)
             }
             r => Err(RuleError(r)),
-        }
-    }
-}
-
-impl FromStr for Data {
-    type Err = ParseGrammarError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match GrammarParser::parse(Rule::data_as_type, s) {
-            Ok(mut pairs) => {
-                let pair = pairs.next().unwrap().into_inner().next().unwrap();
-                Self::try_from_pair(pair)
-            }
-            Err(e) => error_position!(e, DataError),
         }
     }
 }

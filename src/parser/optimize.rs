@@ -2,18 +2,7 @@ use crate::method::Method;
 use crate::optimize::*;
 use crate::parser::*;
 
-impl FromStr for OptimizeAlgorithm {
-    type Err = ParseGrammarError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match GrammarParser::parse(Rule::optimize_algorithm_as_type, s) {
-            Ok(mut pair) => {
-                let pair = pair.next().unwrap().into_inner().next().unwrap();
-                Self::try_from_pair(pair)
-            }
-            Err(e) => error_position!(e, OptimizeAlgorithmError),
-        }
-    }
-}
+impl_from_str! { OptimizeAlgorithm, OptimizeAlgorithmError, optimize_algorithm_as_type }
 
 macro_rules! unify_bfgs_terms {
     ($B:ident, $bfgs:ident) => {

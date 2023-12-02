@@ -2,18 +2,10 @@ use crate::method::Method;
 use crate::parser::*;
 use crate::sample::*;
 
-impl FromStr for Metric {
-    type Err = ParseGrammarError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match GrammarParser::parse(Rule::metric_as_type, s) {
-            Ok(mut pair) => {
-                let pair = pair.next().unwrap().into_inner().next().unwrap();
-                Self::try_from_pair(pair)
-            }
-            Err(e) => error_position!(e, MetricError),
-        }
-    }
-}
+impl_from_str! { Metric, MetricError, metric_as_type }
+impl_from_str! { Engine, EngineError, engine_as_type }
+impl_from_str! { SampleAdapt, SampleAdaptError, sample_adapt_as_type }
+impl_from_str! { SampleAlgorithm, SampleAlgorithmError, sample_algorithm_as_type }
 
 impl Metric {
     fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
@@ -39,19 +31,6 @@ impl Metric {
             Rule::diag_e => Metric::DiagE,
             Rule::dense_e => Metric::DenseE,
             _ => unreachable!(),
-        }
-    }
-}
-
-impl FromStr for Engine {
-    type Err = ParseGrammarError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match GrammarParser::parse(Rule::engine_as_type, s) {
-            Ok(mut pair) => {
-                let pair = pair.next().unwrap().into_inner().next().unwrap();
-                Self::try_from_pair(pair)
-            }
-            Err(e) => error_position!(e, EngineError),
         }
     }
 }
@@ -146,19 +125,6 @@ impl SampleAdapt {
     }
 }
 
-impl FromStr for SampleAdapt {
-    type Err = ParseGrammarError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match GrammarParser::parse(Rule::sample_adapt_as_type, s) {
-            Ok(mut pair) => {
-                let pair = pair.next().unwrap().into_inner().next().unwrap();
-                Self::try_from_pair(pair)
-            }
-            Err(e) => error_position!(e, SampleAdaptError),
-        }
-    }
-}
-
 macro_rules! unify_hmc_terms {
     ($B:ident, $hmc:ident, $state:ident, $max_depth:ident, $int_time:ident) => {
         let pairs = $hmc.into_inner();
@@ -243,19 +209,6 @@ impl SampleAlgorithm {
             }
 
             r => Err(RuleError(r)),
-        }
-    }
-}
-
-impl FromStr for SampleAlgorithm {
-    type Err = ParseGrammarError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match GrammarParser::parse(Rule::sample_algorithm_as_type, s) {
-            Ok(mut pair) => {
-                let pair = pair.next().unwrap().into_inner().next().unwrap();
-                Self::try_from_pair(pair)
-            }
-            Err(e) => error_position!(e, SampleAlgorithmError),
         }
     }
 }

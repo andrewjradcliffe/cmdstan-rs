@@ -2,18 +2,8 @@ use crate::method::Method;
 use crate::parser::*;
 use crate::variational::*;
 
-impl FromStr for VariationalAdapt {
-    type Err = ParseGrammarError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match GrammarParser::parse(Rule::variational_adapt_as_type, s) {
-            Ok(mut pairs) => {
-                let pair = pairs.next().unwrap().into_inner().next().unwrap();
-                Self::try_from_pair(pair)
-            }
-            Err(e) => error_position!(e, VariationalAdaptError),
-        }
-    }
-}
+impl_from_str! { VariationalAdapt, VariationalAdaptError, variational_adapt_as_type }
+impl_from_str! { VariationalAlgorithm, VariationalAlgorithmError, variational_algorithm_as_type }
 
 macro_rules! unify_variational_adapt_terms {
     ($B:ident, $P:ident) => {
@@ -37,19 +27,6 @@ impl VariationalAdapt {
                 Ok(builder.build())
             }
             r => Err(RuleError(r)),
-        }
-    }
-}
-
-impl FromStr for VariationalAlgorithm {
-    type Err = ParseGrammarError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match GrammarParser::parse(Rule::variational_algorithm_as_type, s) {
-            Ok(mut pair) => {
-                let pair = pair.next().unwrap().into_inner().next().unwrap();
-                Self::try_from_pair(pair)
-            }
-            Err(e) => error_position!(e, VariationalAlgorithmError),
         }
     }
 }

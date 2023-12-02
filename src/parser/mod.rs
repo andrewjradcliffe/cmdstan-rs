@@ -133,6 +133,23 @@ macro_rules! error_position {
     };
 }
 
+macro_rules! impl_from_str {
+    { $T:ident, $E:ident, $R:ident } => {
+        impl FromStr for $T {
+            type Err = ParseGrammarError;
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                match GrammarParser::parse(Rule::$R, s) {
+                    Ok(mut pair) => {
+                        let pair = pair.next().unwrap().into_inner().next().unwrap();
+                        Self::try_from_pair(pair)
+                    }
+                    Err(e) => error_position!(e, $E),
+                }
+            }
+        }
+    }
+}
+
 mod argument_tree;
 mod diagnose;
 mod generate_quantities;

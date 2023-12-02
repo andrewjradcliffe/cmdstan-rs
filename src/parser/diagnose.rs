@@ -2,6 +2,8 @@ use crate::diagnose::*;
 use crate::method::Method;
 use crate::parser::*;
 
+impl_from_str! { DiagnoseTest, DiagnoseTestError, diagnose_test_as_type }
+
 fn unify_gradient_fields(pair: Pair<'_, Rule>) -> (Option<f64>, Option<f64>) {
     let pairs = pair.into_inner();
     let mut epsilon: Option<f64> = None;
@@ -36,19 +38,6 @@ macro_rules! unify_gradient_terms {
             $B = $B.error(error);
         }
     };
-}
-
-impl FromStr for DiagnoseTest {
-    type Err = ParseGrammarError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match GrammarParser::parse(Rule::diagnose_test_as_type, s) {
-            Ok(mut pairs) => {
-                let pair = pairs.next().unwrap().into_inner().next().unwrap();
-                Self::try_from_pair(pair)
-            }
-            Err(e) => error_position!(e, DiagnoseTestError),
-        }
-    }
 }
 
 impl DiagnoseTest {
