@@ -65,6 +65,9 @@ impl ArgumentTree {
         }
         s
     }
+    pub fn command_string_lossy(&self) -> String {
+        self.command_os_string().to_string_lossy().to_string()
+    }
     /// Return a builder with all options unspecified.
     pub fn builder() -> ArgumentTreeBuilder {
         ArgumentTreeBuilder::new()
@@ -132,11 +135,7 @@ impl ArgumentTree {
     /// Return the profile file path(s), as implied by the configuration of `self`.
     /// Typically, these will not be literal files on the filesystem.
     pub fn profile_files(&self) -> Vec<OsString> {
-        vec![if self.output.profile_file.is_empty() {
-            "profile.csv".into()
-        } else {
-            self.output.profile_file.clone()
-        }]
+        vec![self.output.profile_file.clone()]
     }
     /// Return the single-path pathfinder file path(s), if
     /// appropriate, as implied by the configuration of `self`.
@@ -363,7 +362,7 @@ pub struct Output {
     pub sig_figs: i32,
     /// File to store profiling information.
     /// Valid values: Valid path and write access to the folder.
-    /// Defaults to `""`.
+    /// Defaults to `"profile.csv"`.
     pub profile_file: OsString,
 }
 
@@ -389,12 +388,10 @@ impl Output {
         }
         v.push(format!("refresh={}", self.refresh).into());
         v.push(format!("sig_figs={}", self.sig_figs).into());
-        if !self.profile_file.is_empty() {
-            let mut s = OsString::with_capacity(13 + self.profile_file.len());
-            s.push("profile_file=");
-            s.push(&self.profile_file);
-            v.push(s);
-        }
+        let mut s = OsString::with_capacity(13 + self.profile_file.len());
+        s.push("profile_file=");
+        s.push(&self.profile_file);
+        v.push(s);
         v
     }
     /// Return a builder with all options unspecified.
@@ -443,7 +440,7 @@ impl OutputBuilder {
         let diagnostic_file = self.diagnostic_file.unwrap_or_else(|| "".into());
         let refresh = self.refresh.unwrap_or(100);
         let sig_figs = self.sig_figs.unwrap_or(-1);
-        let profile_file = self.profile_file.unwrap_or_else(|| "".into());
+        let profile_file = self.profile_file.unwrap_or_else(|| "profile.csv".into());
         Output {
             file,
             diagnostic_file,
@@ -520,7 +517,7 @@ mod tests {
                 diagnostic_file: "".into(),
                 refresh: 100,
                 sig_figs: -1,
-                profile_file: "".into(),
+                profile_file: "profile.csv".into(),
             };
             let num_threads = 1;
             assert_eq!(
@@ -540,7 +537,7 @@ mod tests {
         #[test]
         fn command_os_string() {
             let x = ArgumentTree::default();
-            assert_eq!(x.command_os_string(), "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=1 id=1 init=2 random seed=-1 output file=output.csv refresh=100 sig_figs=-1 num_threads=1");
+            assert_eq!(x.command_os_string(), "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=1 id=1 init=2 random seed=-1 output file=output.csv refresh=100 sig_figs=-1 profile_file=profile.csv num_threads=1");
 
             let method = SampleBuilder::new()
                 .num_chains(10)
@@ -754,7 +751,7 @@ mod tests {
                     diagnostic_file: "".into(),
                     refresh: 100,
                     sig_figs: -1,
-                    profile_file: "".into(),
+                    profile_file: "profile.csv".into(),
                 }
             );
         }
@@ -764,7 +761,13 @@ mod tests {
             let mut x = Output::default();
             assert_eq!(
                 x.command_fragment(),
-                vec!["output", "file=output.csv", "refresh=100", "sig_figs=-1"]
+                vec![
+                    "output",
+                    "file=output.csv",
+                    "refresh=100",
+                    "sig_figs=-1",
+                    "profile_file=profile.csv"
+                ]
             );
 
             x.diagnostic_file.push("my_file.txt");
@@ -775,11 +778,12 @@ mod tests {
                     "file=output.csv",
                     "diagnostic_file=my_file.txt",
                     "refresh=100",
-                    "sig_figs=-1"
+                    "sig_figs=-1",
+                    "profile_file=profile.csv",
                 ]
             );
 
-            x.profile_file.push("my_other_file.txt");
+            x.profile_file = "my_other_file.txt".into();
             assert_eq!(
                 x.command_fragment(),
                 vec![
