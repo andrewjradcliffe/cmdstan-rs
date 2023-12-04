@@ -83,7 +83,7 @@ macro_rules! once_branch {
 }
 
 macro_rules! once_branch_parse_i32 {
-    ($B:ident, $P:ident, $state:ident, $F:ident, $E:ident) => {
+    ($B:ident, $P:ident, $state:ident, $F:ident) => {
         if $state {
             return Err(TopLevelDuplicate(stringify!($F)));
         } else {
@@ -136,16 +136,10 @@ impl ArgumentTree {
                             once_branch!(builder, pair, st_output, Output, output);
                         }
                         Rule::id => {
-                            once_branch_parse_i32!(builder, pair, st_id, id, IdError);
+                            once_branch_parse_i32!(builder, pair, st_id, id);
                         }
                         Rule::num_threads => {
-                            once_branch_parse_i32!(
-                                builder,
-                                pair,
-                                st_num_threads,
-                                num_threads,
-                                NumThreadsError
-                            );
+                            once_branch_parse_i32!(builder, pair, st_num_threads, num_threads);
                         }
                         _ => unreachable!(),
                     }
