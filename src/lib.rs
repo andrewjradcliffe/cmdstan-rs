@@ -11,6 +11,7 @@ use std::{
 mod internal_macros;
 
 pub mod argument_tree;
+mod base;
 mod control;
 pub mod diagnose;
 pub mod generate_quantities;
