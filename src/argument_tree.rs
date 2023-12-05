@@ -660,6 +660,9 @@ mod tests {
                 vec!["abc.._2.", "abc.._3.", "abc.._4."]
             );
 
+            let x = b.clone().output(Output::builder().file("foo..")).build();
+            assert_eq!(x.output_files(), vec!["foo._2.", "foo._3.", "foo._4."]);
+
             let x = b
                 .clone()
                 .output(Output::builder().file(",,").diagnostic_file(","))
@@ -673,6 +676,13 @@ mod tests {
                 .build();
             assert_eq!(x.output_files(), vec!["_2.xyz", "_3.xyz", "_4.xyz"]);
             assert_eq!(x.diagnostic_files(), vec!["_2.txt", "_3.txt", "_4.txt"]);
+
+            let x = b.clone().output(Output::builder().file(".")).build();
+            assert_eq!(x.output_files(), vec!["_2.", "_3.", "_4."]);
+            let x = b.clone().output(Output::builder().file("..")).build();
+            assert_eq!(x.output_files(), vec!["._2.", "._3.", "._4."]);
+            let x = b.clone().output(Output::builder().file("...")).build();
+            assert_eq!(x.output_files(), vec![".._2.", ".._3.", ".._4."]);
         }
     }
 
