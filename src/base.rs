@@ -7,11 +7,16 @@ use std::{
     io::{self, Write},
     path::{Path, PathBuf},
     process::{self, Command},
+    sync::{Arc, RwLock},
 };
 
 /// Try to determine if the file exists by attempting to open it in read-only mode.
 fn try_open<P: AsRef<Path>>(path: P) -> Result<(), io::Error> {
     File::open(path).map(|_| ())
+}
+
+fn try_exec<S: AsRef<OsStr>>(path: S) -> Result<process::Output, io::Error> {
+    Command::new(path).output()
 }
 
 #[derive(Debug)]
@@ -53,50 +58,198 @@ impl TryFrom<&Path> for StanProgram {
     }
 }
 
+static BERNOULLI: &str = "bernoulli";
+static STANC: &str = "stanc";
+static STANSUMMARY: &str = "stansummary";
+static DIAGNOSE: &str = "diagnose";
+
 #[cfg(unix)]
 static MAKE: &str = "make";
 #[cfg(windows)]
 static MAKE: &str = "mingw32-make";
 
 #[cfg(unix)]
-static OS_EXTENSION: &str = "";
+static OS_EXE_EXT: &str = "";
 #[cfg(windows)]
-static OS_EXTENSION: &str = "exe";
+static OS_EXE_EXT: &str = "exe";
 
 #[cfg(unix)]
-static BERNOULLI: &str = "examples/bernoulli/bernoulli";
+static MAKE_BERNOULLI: &str = "examples/bernoulli/bernoulli";
 #[cfg(windows)]
-static BERNOULLI: &str = "examples/bernoulli/bernoulli.exe";
+static MAKE_BERNOULLI: &str = "examples/bernoulli/bernoulli.exe";
 
+#[cfg(unix)]
+static MAKE_STANC: &str = "bin/stanc";
+#[cfg(windows)]
+static MAKE_STANC: &str = "bin/stanc.exe";
+
+#[cfg(unix)]
+static MAKE_STANSUMMARY: &str = "bin/stansummary";
+#[cfg(windows)]
+static MAKE_STANSUMMARY: &str = "bin/stansummary.exe";
+
+#[cfg(unix)]
+static MAKE_DIAGNOSE: &str = "bin/diagnose";
+#[cfg(windows)]
+static MAKE_DIAGNOSE: &str = "bin/diagnose.exe";
+
+#[derive(Debug)]
 pub enum CmdStanError {
-    Io(io::Error),
-    BernoulliExample,
+    Make,
+    StanC(io::Error),
     StanSummary(io::Error),
     Diagnose(io::Error),
+    BernoulliExample,
+    Io(io::Error),
 }
 
+// pub enum ErrorKind {
+//     Make,
+//     StanC,
+//     StanSummary,
+//     Diagnose,
+//     BernoulliExample,
+//     Compilation,
+//     InvalidExecutable,
+//     Io,
+// }
+
+// pub struct Error {
+//     kind: ErrorKind,
+//     io: Option<io::Error>,
+//     proc: Option<process::Output>,
+// }
+
+/// Path to CmdStan (`root`) directory and paths to binary utilities.
+/// This is necessary for locking of the public-facing resources
+/// (see `CmdStan` type).
+/// It also provides a means for separation of concerns, which helps reduce code
+/// repetition. Perhaps perhaps more importantly, it enables the methods and
+/// associated functions of the `CmdStan` type to be written with clarity,
+/// since any operation must acquire this resource.
 #[derive(Debug, Clone, PartialEq)]
-pub struct CmdStan {
-    path: PathBuf,
+struct CmdStanInner {
+    root: PathBuf,
+    stanc: PathBuf,
+    stansummary: PathBuf,
+    diagnose: PathBuf,
 }
 
-impl TryFrom<&Path> for CmdStan {
+/// Operations to be called only from within a `CmdStan` instance where
+/// one has write access to the `inner` field.
+/// Alternatively, during `CmdStan::try_from`.
+impl CmdStanInner {
+    fn try_ensure(&self, bin: &Path, target: &str) -> Result<(), io::Error> {
+        match try_open(bin) {
+            Ok(_) => Ok(()),
+            Err(_) => {
+                self.make(target)?;
+                try_open(bin)
+            }
+        }
+    }
+    fn try_ensure_stanc(&self) -> Result<(), io::Error> {
+        self.try_ensure(&self.stanc, MAKE_STANC)
+    }
+    fn try_ensure_stansummary(&self) -> Result<(), io::Error> {
+        self.try_ensure(&self.stansummary, MAKE_STANSUMMARY)
+    }
+    fn try_ensure_diagnose(&self) -> Result<(), io::Error> {
+        self.try_ensure(&self.diagnose, MAKE_DIAGNOSE)
+    }
+
+    fn make<S: AsRef<OsStr>>(&self, arg: S) -> io::Result<process::Output> {
+        Command::new(MAKE).current_dir(&self.root).arg(arg).output()
+    }
+}
+
+impl TryFrom<&Path> for CmdStanInner {
     type Error = CmdStanError;
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
         // A reliable way to determine if the directory exists
         // and is accessible
         fs::read_dir(path).map_err(Self::Error::Io)?;
 
+        // Superficial check for make
+        let output = Command::new(MAKE)
+            .current_dir(path)
+            .output()
+            .map_err(CmdStanError::Io)?;
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout[..]);
+            if !stdout.contains("Build CmdStan utilities") {
+                return Err(Self::Error::Make);
+            };
+        } else {
+            return Err(Self::Error::Make);
+        }
+
+        // Since things appear to work on the surface, initialize
+        // and use the stock methods to verify.
+        let root = path.to_path_buf();
+
+        let mut stanc = root.clone();
+        stanc.push("bin");
+        stanc.push(STANC);
+        stanc.set_extension(OS_EXE_EXT);
+
+        let mut stansummary = stanc.clone();
+        stansummary.pop();
+        stansummary.push(STANSUMMARY);
+        stansummary.set_extension(OS_EXE_EXT);
+
+        let mut diagnose = stanc.clone();
+        diagnose.pop();
+        diagnose.push(DIAGNOSE);
+        diagnose.set_extension(OS_EXE_EXT);
+
+        let inner = Self {
+            root,
+            stanc,
+            stansummary,
+            diagnose,
+        };
+
+        inner.try_ensure_stanc().map_err(Self::Error::StanC)?;
+
+        inner
+            .try_ensure_stansummary()
+            .map_err(Self::Error::StanSummary)?;
+
+        inner.try_ensure_diagnose().map_err(Self::Error::Diagnose)?;
+
+        Ok(inner)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CmdStan {
+    inner: Arc<RwLock<CmdStanInner>>,
+}
+
+impl TryFrom<&Path> for CmdStan {
+    type Error = CmdStanError;
+    fn try_from(path: &Path) -> Result<Self, Self::Error> {
+        // This includes a few weaker checks
+        let mut inner = CmdStanInner::try_from(path)?;
+
         // Rather than verify individual files, a simple way to
         // verify CmdStan works is to build and run the bernoulli example
-        Self::make_internal(path, BERNOULLI).map_err(Self::Error::Io)?;
-        try_open(path.join(BERNOULLI)).map_err(Self::Error::Io)?;
+        inner.make(MAKE_BERNOULLI).map_err(Self::Error::Io)?;
 
-        let output = Command::new(BERNOULLI)
+        // Then, we abuse the root buffer to save an allocation
+        let root = &mut inner.root;
+        root.push("examples");
+        root.push(BERNOULLI);
+        root.push(BERNOULLI);
+        root.set_extension(OS_EXE_EXT);
+        try_open(root).map_err(Self::Error::Io)?;
+
+        let output = Command::new(root)
             .current_dir(path)
             .arg("sample")
             .arg("data")
-            .arg("file=examples/bernoulli/bernoulli.data.R")
+            .arg("file=examples/bernoulli/bernoulli.data.json")
             .output()
             .map_err(Self::Error::Io)?;
 
@@ -105,10 +258,12 @@ impl TryFrom<&Path> for CmdStan {
             return Err(Self::Error::BernoulliExample);
         };
 
-        Self::try_ensure_stansummary(path)?;
-        Self::try_ensure_diagnose(path)?;
+        // Then, we restore the root to its previous state
+        root.pop();
+        root.pop();
+        root.pop();
 
-        let output = Command::new("bin/stansummary")
+        let output = Command::new(&inner.stansummary)
             .current_dir(path)
             .arg("output.csv")
             .output()
@@ -128,7 +283,7 @@ impl TryFrom<&Path> for CmdStan {
             return Err(Self::Error::BernoulliExample);
         }
 
-        let output = Command::new("bin/diagnose")
+        let output = Command::new(&inner.diagnose)
             .current_dir(path)
             .arg("output.csv")
             .output()
@@ -138,46 +293,57 @@ impl TryFrom<&Path> for CmdStan {
             return Err(Self::Error::BernoulliExample);
         }
 
-        fs::remove_file(path.join("output.csv")).map_err(Self::Error::Io)?;
-
         Ok(Self {
-            path: path.to_path_buf(),
+            inner: Arc::new(RwLock::new(inner)),
         })
     }
 }
 
 impl CmdStan {
-    fn try_ensure_stansummary(path: &Path) -> Result<(), CmdStanError> {
-        let mut bin = path.to_path_buf();
-        bin.push("bin");
-        bin.push("stansummary");
-        match try_open(&bin) {
-            Ok(_) => Ok(()),
-            Err(_) => {
-                match Self::make_internal(path, "bin/stansummary") {
-                    Ok(_) => (),
-                    Err(e) => return Err(CmdStanError::StanSummary(e)),
-                };
-                try_open(&bin).map_err(CmdStanError::StanSummary)
-            }
-        }
-    }
+    // fn try_ensure(root: &Path, bin: &Path, target: &str) -> Result<(), io::Error> {
+    //     match try_open(bin) {
+    //         Ok(_) => Ok(()),
+    //         Err(_) => {
+    //             Self::make_internal(root, target)?;
+    //             try_open(bin)
+    //         }
+    //     }
+    // }
+    // fn try_ensure_stansummary(path: &Path) -> Result<(), CmdStanError> {
+    //     let mut bin = path.to_path_buf();
+    //     bin.push("bin");
+    //     bin.push("stansummary");
+    //     bin.set_extension(OS_EXE_EXT);
+    //     match try_open(&bin) {
+    //         Ok(_) => Ok(()),
+    //         Err(_) => {
+    //             // match Self::make_internal(path, "bin/stansummary") {
+    //             //     Ok(_) => (),
+    //             //     Err(e) => return Err(CmdStanError::StanSummary(e)),
+    //             // };
+    //             Self::make_internal(path, MAKE_STANSUMMARY).map_err(CmdStanError::StanSummary)?;
+    //             try_open(&bin).map_err(CmdStanError::StanSummary)
+    //         }
+    //     }
+    // }
 
-    fn try_ensure_diagnose(path: &Path) -> Result<(), CmdStanError> {
-        let mut bin = path.to_path_buf();
-        bin.push("bin");
-        bin.push("diagnose");
-        match try_open(&bin) {
-            Ok(_) => Ok(()),
-            Err(_) => {
-                match Self::make_internal(path, "bin/diagnose") {
-                    Ok(_) => (),
-                    Err(e) => return Err(CmdStanError::Diagnose(e)),
-                };
-                try_open(&bin).map_err(CmdStanError::Diagnose)
-            }
-        }
-    }
+    // fn try_ensure_diagnose(path: &Path) -> Result<(), CmdStanError> {
+    //     let mut bin = path.to_path_buf();
+    //     bin.push("bin");
+    //     bin.push("diagnose");
+    //     bin.set_extension(OS_EXE_EXT);
+    //     match try_open(&bin) {
+    //         Ok(_) => Ok(()),
+    //         Err(_) => {
+    //             // match Self::make_internal(path, "bin/diagnose") {
+    //             //     Ok(_) => (),
+    //             //     Err(e) => return Err(CmdStanError::Diagnose(e)),
+    //             // };
+    //             Self::make_internal(path, MAKE_DIAGNOSE).map_err(CmdStanError::Diagnose)?;
+    //             try_open(&bin).map_err(CmdStanError::Diagnose)
+    //         }
+    //     }
+    // }
 
     /// Call `make` with the supplied arguments from the root of the
     /// `CmdStan` directory.
@@ -188,19 +354,24 @@ impl CmdStan {
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        Command::new(MAKE)
-            .current_dir(&self.path)
+        let guard = self.inner.write().unwrap();
+
+        let output = Command::new(MAKE)
+            .current_dir(&guard.root)
             .args(args)
-            .output()
+            .output();
+        // Then, we need to make sure that all the components still work
+
+        output
     }
 
-    fn make_internal<P, S>(path: P, arg: S) -> io::Result<process::Output>
-    where
-        P: AsRef<Path>,
-        S: AsRef<OsStr>,
-    {
-        Command::new(MAKE).current_dir(path).arg(arg).output()
-    }
+    // fn make_internal<P, S>(path: P, arg: S) -> io::Result<process::Output>
+    // where
+    //     P: AsRef<Path>,
+    //     S: AsRef<OsStr>,
+    // {
+    //     Command::new(MAKE).current_dir(path).arg(arg).output()
+    // }
 
     pub fn compile<I, S>(
         &self,
@@ -212,21 +383,41 @@ impl CmdStan {
         S: AsRef<OsStr>,
     {
         let mut exec = prog.path.clone();
-        exec.set_extension(OS_EXTENSION);
+        exec.set_extension(OS_EXE_EXT);
+
+        // Compilation has the potential to touch all of the files in
+        // the CmdStan directory.
+        let guard = self.inner.write().unwrap();
+
+        // We need to detect whether the diagnose and stansummary utilities
+        // are deleted. If combined with invalid unicode, it will be difficult
+        // to detect whether `clean-all` is actually passed to make --
+        // we would hope that make fails.
+        let mut state = false;
+        let args = args.into_iter().inspect(|os| {
+            state |= os
+                .as_ref()
+                .to_str()
+                .is_some_and(|s| s.trim() == "clean-all")
+        });
 
         // This is lazy, but, not unreasonable given the myriad ways in which
         // things can fail.
         let mut cmd = Command::new(MAKE);
-        cmd.current_dir(&self.path).args(args).arg(&exec);
+        cmd.current_dir(&guard.root).args(args).arg(&exec);
 
         let output = cmd.output().map_err(CompilationError::Io)?;
-        let output2 = cmd.output().map_err(CompilationError::Io)?;
-        // If the first attempt was successful, then make will return
-        // a message to the effect of "... is up to date." in standard output.
-        let stdout = String::from_utf8_lossy(&output2.stdout[..]);
-        if !stdout.trim_end().ends_with("is up to date.") {
-            return Err(CompilationError::StanCompiler(output));
+
+        // If everything was cleaned, then we need to re-build the utilities
+        // in order to maintain the invariants.
+        if state {
+            guard.try_ensure_stanc().map_err(CompilationError::Io)?;
+            guard
+                .try_ensure_stansummary()
+                .map_err(CompilationError::Io)?;
+            guard.try_ensure_diagnose().map_err(CompilationError::Io)?;
         }
+
         // Then, we subject the binary to the same tests as are required
         // to construct directly from a path.
         CmdStanModel::try_from(exec.as_ref()).map_err(|e| match e {
@@ -235,58 +426,6 @@ impl CmdStan {
         })
     }
 }
-
-// pub struct StanSummaryUtil {
-//     path: PathBuf,
-// }
-
-// impl TryFrom<&CmdStan> for StanSummaryUtil {
-//     type Error = CmdStanError;
-//     fn try_from(cmdstan: &CmdStan) -> Result<Self, Self::Error> {
-//         let mut bin = cmdstan.path.clone();
-//         bin.push("bin");
-//         bin.push("stansummary");
-//         match try_open(&bin) {
-//             Ok(_) => Ok(Self { path: bin }),
-//             Err(_) => {
-//                 match cmdstan.make(&["bin/stansummary"]) {
-//                     Ok(_) => (),
-//                     Err(e) => return Err(CmdStanError::StanSummary(e)),
-//                 };
-//                 match try_open(&bin) {
-//                     Ok(_) => Ok(Self { path: bin }),
-//                     Err(e) => Err(CmdStanError::StanSummary(e)),
-//                 }
-//             }
-//         }
-//     }
-// }
-
-// pub struct DiagnoseUtil {
-//     path: PathBuf,
-// }
-
-// impl TryFrom<&CmdStan> for DiagnoseUtil {
-//     type Error = CmdStanError;
-//     fn try_from(cmdstan: &CmdStan) -> Result<Self, Self::Error> {
-//         let mut bin = cmdstan.path.clone();
-//         bin.push("bin");
-//         bin.push("diagnose");
-//         match try_open(&bin) {
-//             Ok(_) => Ok(Self { path: bin }),
-//             Err(_) => {
-//                 match cmdstan.make(&["bin/diagnose"]) {
-//                     Ok(_) => (),
-//                     Err(e) => return Err(CmdStanError::Diagnose(e)),
-//                 };
-//                 match try_open(&bin) {
-//                     Ok(_) => Ok(Self { path: bin }),
-//                     Err(e) => Err(CmdStanError::Diagnose(e)),
-//                 }
-//             }
-//         }
-//     }
-// }
 
 #[derive(Debug)]
 pub enum CompilationError {
