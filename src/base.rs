@@ -9,6 +9,7 @@ use std::{
     process::{self, Command},
     sync::{Arc, RwLock},
 };
+use thiserror::Error;
 
 /// Try to determine if the file exists by attempting to open it in read-only mode.
 fn try_open<P: AsRef<Path>>(path: P) -> Result<(), io::Error> {
@@ -17,6 +18,22 @@ fn try_open<P: AsRef<Path>>(path: P) -> Result<(), io::Error> {
 
 fn try_exec<S: AsRef<OsStr>>(path: S) -> Result<process::Output, io::Error> {
     Command::new(path).output()
+}
+
+fn success_and_contains(
+    output: process::Output,
+    needle: &'static str,
+    kind: ErrorKind,
+) -> Result<(), Error> {
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout[..]);
+        if !stdout.contains(needle) {
+            return Err(Error::new_empty(kind));
+        };
+        Ok(())
+    } else {
+        return Err(Error::new_empty(kind));
+    }
 }
 
 #[derive(Debug)]
@@ -94,31 +111,34 @@ static MAKE_DIAGNOSE: &str = "bin/diagnose";
 static MAKE_DIAGNOSE: &str = "bin/diagnose.exe";
 
 #[derive(Debug)]
-pub enum CmdStanError {
+pub enum ErrorKind {
     Make,
-    StanC(io::Error),
-    StanSummary(io::Error),
-    Diagnose(io::Error),
-    BernoulliExample,
-    Io(io::Error),
+    StanC,
+    StanSummary,
+    Diagnose,
+    Bernoulli,
+    Compilation,
+    Install,
+    InvalidExecutable,
 }
 
-// pub enum ErrorKind {
-//     Make,
-//     StanC,
-//     StanSummary,
-//     Diagnose,
-//     BernoulliExample,
-//     Compilation,
-//     InvalidExecutable,
-//     Io,
-// }
-
-// pub struct Error {
-//     kind: ErrorKind,
-//     io: Option<io::Error>,
-//     proc: Option<process::Output>,
-// }
+#[derive(Debug, Error)]
+#[error("error related to {:?}", .kind)]
+pub struct Error {
+    kind: ErrorKind,
+    #[source]
+    source: Option<io::Error>,
+}
+impl Error {
+    fn new(kind: ErrorKind, source: Option<io::Error>) -> Self {
+        Self { kind, source }
+    }
+    /// Convenience constructor; same effect as `From<ErrorKind>`, but
+    /// not exposed in public API.
+    fn new_empty(kind: ErrorKind) -> Self {
+        Self::new(kind, None)
+    }
+}
 
 /// Path to CmdStan (`root`) directory and paths to binary utilities.
 /// This is necessary for locking of the public-facing resources
@@ -148,14 +168,17 @@ impl CmdStanInner {
             }
         }
     }
-    fn try_ensure_stanc(&self) -> Result<(), io::Error> {
+    fn try_ensure_stanc(&self) -> Result<(), Error> {
         self.try_ensure(&self.stanc, MAKE_STANC)
+            .map_err(|e| Error::new(ErrorKind::StanC, Some(e)))
     }
-    fn try_ensure_stansummary(&self) -> Result<(), io::Error> {
+    fn try_ensure_stansummary(&self) -> Result<(), Error> {
         self.try_ensure(&self.stansummary, MAKE_STANSUMMARY)
+            .map_err(|e| Error::new(ErrorKind::StanSummary, Some(e)))
     }
-    fn try_ensure_diagnose(&self) -> Result<(), io::Error> {
+    fn try_ensure_diagnose(&self) -> Result<(), Error> {
         self.try_ensure(&self.diagnose, MAKE_DIAGNOSE)
+            .map_err(|e| Error::new(ErrorKind::Diagnose, Some(e)))
     }
 
     fn make<S: AsRef<OsStr>>(&self, arg: S) -> io::Result<process::Output> {
@@ -164,24 +187,28 @@ impl CmdStanInner {
 }
 
 impl TryFrom<&Path> for CmdStanInner {
-    type Error = CmdStanError;
+    type Error = Error;
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
         // A reliable way to determine if the directory exists
         // and is accessible
-        fs::read_dir(path).map_err(Self::Error::Io)?;
+        fs::read_dir(path).map_err(|e| Self::Error {
+            kind: ErrorKind::Install,
+            source: Some(e),
+        })?;
 
         // Superficial check for make
         let output = Command::new(MAKE)
             .current_dir(path)
             .output()
-            .map_err(CmdStanError::Io)?;
+            .map_err(|e| Self::Error::new(ErrorKind::Make, Some(e)))?;
+        // success_and_contains(output, "Build CmdStan utilities", ErrorKind::Make)?
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout[..]);
             if !stdout.contains("Build CmdStan utilities") {
-                return Err(Self::Error::Make);
+                return Err(Self::Error::new_empty(ErrorKind::Make));
             };
         } else {
-            return Err(Self::Error::Make);
+            return Err(Self::Error::new_empty(ErrorKind::Make));
         }
 
         // Since things appear to work on the surface, initialize
@@ -210,13 +237,9 @@ impl TryFrom<&Path> for CmdStanInner {
             diagnose,
         };
 
-        inner.try_ensure_stanc().map_err(Self::Error::StanC)?;
-
-        inner
-            .try_ensure_stansummary()
-            .map_err(Self::Error::StanSummary)?;
-
-        inner.try_ensure_diagnose().map_err(Self::Error::Diagnose)?;
+        inner.try_ensure_stanc()?;
+        inner.try_ensure_stansummary()?;
+        inner.try_ensure_diagnose()?;
 
         Ok(inner)
     }
@@ -228,14 +251,19 @@ pub struct CmdStan {
 }
 
 impl TryFrom<&Path> for CmdStan {
-    type Error = CmdStanError;
+    type Error = Error;
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
         // This includes a few weaker checks
         let mut inner = CmdStanInner::try_from(path)?;
 
         // Rather than verify individual files, a simple way to
         // verify CmdStan works is to build and run the bernoulli example
-        inner.make(MAKE_BERNOULLI).map_err(Self::Error::Io)?;
+        let output = inner
+            .make(MAKE_BERNOULLI)
+            .map_err(|e| Self::Error::new(ErrorKind::Bernoulli, Some(e)))?;
+        if !output.status.success() {
+            return Err(Self::Error::new_empty(ErrorKind::Bernoulli));
+        }
 
         // Then, we abuse the root buffer to save an allocation
         let root = &mut inner.root;
@@ -243,20 +271,24 @@ impl TryFrom<&Path> for CmdStan {
         root.push(BERNOULLI);
         root.push(BERNOULLI);
         root.set_extension(OS_EXE_EXT);
-        try_open(root).map_err(Self::Error::Io)?;
+        try_open(&root).map_err(|e| Self::Error::new(ErrorKind::Bernoulli, Some(e)))?;
 
-        let output = Command::new(root)
+        let output = Command::new(&root)
             .current_dir(path)
             .arg("sample")
             .arg("data")
             .arg("file=examples/bernoulli/bernoulli.data.json")
             .output()
-            .map_err(Self::Error::Io)?;
+            .map_err(|e| Self::Error::new(ErrorKind::Bernoulli, Some(e)))?;
 
-        let stdout = String::from_utf8_lossy(&output.stdout[..]);
-        if !stdout.contains("Adjust your expectations accordingly!") {
-            return Err(Self::Error::BernoulliExample);
-        };
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout[..]);
+            if !stdout.contains("Adjust your expectations accordingly!") {
+                return Err(Self::Error::new_empty(ErrorKind::Bernoulli));
+            };
+        } else {
+            return Err(Self::Error::new_empty(ErrorKind::Bernoulli));
+        }
 
         // Then, we restore the root to its previous state
         root.pop();
@@ -267,7 +299,11 @@ impl TryFrom<&Path> for CmdStan {
             .current_dir(path)
             .arg("output.csv")
             .output()
-            .map_err(Self::Error::StanSummary)?;
+            .map_err(|e| Self::Error::new(ErrorKind::StanSummary, Some(e)))?;
+
+        if !output.status.success() {
+            return Err(Self::Error::new_empty(ErrorKind::StanSummary));
+        }
 
         let stdout = String::from_utf8_lossy(&output.stdout[..]);
         if let Some(line) = stdout.lines().find(|l| l.starts_with("theta")) {
@@ -277,20 +313,23 @@ impl TryFrom<&Path> for CmdStan {
             let stddev = iter.nth(1).and_then(f);
             match (mean, stddev) {
                 (Some(mean), Some(stddev)) if mean - stddev < 0.2 && 0.2 < mean + stddev => (),
-                _ => return Err(Self::Error::BernoulliExample),
+                _ => return Err(Self::Error::new_empty(ErrorKind::Bernoulli)),
             }
         } else {
-            return Err(Self::Error::BernoulliExample);
+            return Err(Self::Error::new_empty(ErrorKind::Bernoulli));
         }
 
         let output = Command::new(&inner.diagnose)
             .current_dir(path)
             .arg("output.csv")
             .output()
-            .map_err(Self::Error::Diagnose)?;
+            .map_err(|e| Self::Error::new(ErrorKind::Diagnose, Some(e)))?;
+        if !output.status.success() {
+            return Err(Self::Error::new_empty(ErrorKind::Diagnose));
+        }
         let stdout = String::from_utf8_lossy(&output.stdout[..]);
         if !stdout.contains("Processing complete, no problems detected") {
-            return Err(Self::Error::BernoulliExample);
+            return Err(Self::Error::new_empty(ErrorKind::Bernoulli));
         }
 
         Ok(Self {
@@ -300,84 +339,7 @@ impl TryFrom<&Path> for CmdStan {
 }
 
 impl CmdStan {
-    // fn try_ensure(root: &Path, bin: &Path, target: &str) -> Result<(), io::Error> {
-    //     match try_open(bin) {
-    //         Ok(_) => Ok(()),
-    //         Err(_) => {
-    //             Self::make_internal(root, target)?;
-    //             try_open(bin)
-    //         }
-    //     }
-    // }
-    // fn try_ensure_stansummary(path: &Path) -> Result<(), CmdStanError> {
-    //     let mut bin = path.to_path_buf();
-    //     bin.push("bin");
-    //     bin.push("stansummary");
-    //     bin.set_extension(OS_EXE_EXT);
-    //     match try_open(&bin) {
-    //         Ok(_) => Ok(()),
-    //         Err(_) => {
-    //             // match Self::make_internal(path, "bin/stansummary") {
-    //             //     Ok(_) => (),
-    //             //     Err(e) => return Err(CmdStanError::StanSummary(e)),
-    //             // };
-    //             Self::make_internal(path, MAKE_STANSUMMARY).map_err(CmdStanError::StanSummary)?;
-    //             try_open(&bin).map_err(CmdStanError::StanSummary)
-    //         }
-    //     }
-    // }
-
-    // fn try_ensure_diagnose(path: &Path) -> Result<(), CmdStanError> {
-    //     let mut bin = path.to_path_buf();
-    //     bin.push("bin");
-    //     bin.push("diagnose");
-    //     bin.set_extension(OS_EXE_EXT);
-    //     match try_open(&bin) {
-    //         Ok(_) => Ok(()),
-    //         Err(_) => {
-    //             // match Self::make_internal(path, "bin/diagnose") {
-    //             //     Ok(_) => (),
-    //             //     Err(e) => return Err(CmdStanError::Diagnose(e)),
-    //             // };
-    //             Self::make_internal(path, MAKE_DIAGNOSE).map_err(CmdStanError::Diagnose)?;
-    //             try_open(&bin).map_err(CmdStanError::Diagnose)
-    //         }
-    //     }
-    // }
-
-    /// Call `make` with the supplied arguments from the root of the
-    /// `CmdStan` directory.
-    /// the time between the creation of `self` and this call that the
-    /// files on disk have not been irreparably changed.
-    fn make<I, S>(&self, args: I) -> io::Result<process::Output>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        let guard = self.inner.write().unwrap();
-
-        let output = Command::new(MAKE)
-            .current_dir(&guard.root)
-            .args(args)
-            .output();
-        // Then, we need to make sure that all the components still work
-
-        output
-    }
-
-    // fn make_internal<P, S>(path: P, arg: S) -> io::Result<process::Output>
-    // where
-    //     P: AsRef<Path>,
-    //     S: AsRef<OsStr>,
-    // {
-    //     Command::new(MAKE).current_dir(path).arg(arg).output()
-    // }
-
-    pub fn compile<I, S>(
-        &self,
-        prog: &StanProgram,
-        args: I,
-    ) -> Result<CmdStanModel, CompilationError>
+    pub fn compile<I, S>(&self, prog: &StanProgram, args: I) -> Result<CmdStanModel, Error>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
@@ -406,37 +368,26 @@ impl CmdStan {
         let mut cmd = Command::new(MAKE);
         cmd.current_dir(&guard.root).args(args).arg(&exec);
 
-        let output = cmd.output().map_err(CompilationError::Io)?;
+        let output = cmd
+            .output()
+            .map_err(|e| Error::new(ErrorKind::Compilation, Some(e)))?;
+
+        if !output.status.success() {
+            return Err(Error::new_empty(ErrorKind::Compilation));
+        }
 
         // If everything was cleaned, then we need to re-build the utilities
         // in order to maintain the invariants.
         if state {
-            guard.try_ensure_stanc().map_err(CompilationError::Io)?;
-            guard
-                .try_ensure_stansummary()
-                .map_err(CompilationError::Io)?;
-            guard.try_ensure_diagnose().map_err(CompilationError::Io)?;
+            guard.try_ensure_stanc()?;
+            guard.try_ensure_stansummary()?;
+            guard.try_ensure_diagnose()?;
         }
 
         // Then, we subject the binary to the same tests as are required
         // to construct directly from a path.
-        CmdStanModel::try_from(exec.as_ref()).map_err(|e| match e {
-            ModelError::Io(e) => CompilationError::Io(e),
-            ModelError::InvalidExecutable => CompilationError::InvalidExecutable,
-        })
+        CmdStanModel::try_from(exec.as_ref())
     }
-}
-
-#[derive(Debug)]
-pub enum CompilationError {
-    Io(io::Error),
-    StanCompiler(process::Output),
-    InvalidExecutable,
-}
-
-pub enum ModelError {
-    Io(io::Error),
-    InvalidExecutable,
 }
 
 pub struct CmdStanModel {
@@ -444,19 +395,24 @@ pub struct CmdStanModel {
 }
 
 impl TryFrom<&Path> for CmdStanModel {
-    type Error = ModelError;
+    type Error = Error;
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
-        try_open(path).map_err(ModelError::Io)?;
+        try_open(path).map_err(|e| Self::Error::new(ErrorKind::InvalidExecutable, Some(e)))?;
 
         let output = Command::new(path)
             .arg("help")
             .output()
-            .map_err(ModelError::Io)?;
+            .map_err(|e| Self::Error::new(ErrorKind::InvalidExecutable, Some(e)))?;
 
-        let stdout = String::from_utf8_lossy(&output.stdout[..]);
-        if !stdout.contains("Bayesian inference with Markov Chain Monte Carlo") {
-            return Err(ModelError::InvalidExecutable);
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout[..]);
+            if !stdout.contains("Bayesian inference with Markov Chain Monte Carlo") {
+                return Err(Self::Error::new_empty(ErrorKind::InvalidExecutable));
+            }
+        } else {
+            return Err(Self::Error::new_empty(ErrorKind::InvalidExecutable));
         }
+
         Ok(Self {
             exec: path.to_path_buf(),
         })
