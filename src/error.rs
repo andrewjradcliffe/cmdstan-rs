@@ -1,3 +1,4 @@
+use crate::constants::*;
 use std::{
     error, fmt,
     hash::Hash,
@@ -67,15 +68,15 @@ impl ErrorKind {
     fn as_str(&self) -> &'static str {
         use ErrorKind::*;
         match self {
-            Bernoulli => "examples/bernoulli/bernoulli",
-            Compilation => "make (compilation)",
-            Diagnose => "bin/diagnose",
+            Bernoulli => MAKE_BERNOULLI,
+            Compilation => MAKE,
+            Diagnose => MAKE_DIAGNOSE,
             Executable => "model executable",
             Install => "cmdstan install",
-            Make => "make",
+            Make => MAKE,
             ModelFile => "model file",
-            StanC => "bin/stanc",
-            StanSummary => "bin/stansummary",
+            StanC => MAKE_STANC,
+            StanSummary => MAKE_STANSUMMARY,
         }
     }
     /// Not every kind has a meaningful needle with which to probe

@@ -12,6 +12,7 @@ mod internal_macros;
 
 pub mod argument_tree;
 mod base;
+mod constants;
 mod control;
 pub mod diagnose;
 pub mod error;

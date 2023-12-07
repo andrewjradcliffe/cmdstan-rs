@@ -1,3 +1,4 @@
+use crate::constants::*;
 use crate::error::*;
 use std::{
     convert::TryFrom,
@@ -49,41 +50,6 @@ impl TryFrom<&Path> for StanProgram {
         })
     }
 }
-
-static BERNOULLI: &str = "bernoulli";
-static STANC: &str = "stanc";
-static STANSUMMARY: &str = "stansummary";
-static DIAGNOSE: &str = "diagnose";
-
-#[cfg(unix)]
-static MAKE: &str = "make";
-#[cfg(windows)]
-static MAKE: &str = "mingw32-make";
-
-#[cfg(unix)]
-static OS_EXE_EXT: &str = "";
-#[cfg(windows)]
-static OS_EXE_EXT: &str = "exe";
-
-#[cfg(unix)]
-static MAKE_BERNOULLI: &str = "examples/bernoulli/bernoulli";
-#[cfg(windows)]
-static MAKE_BERNOULLI: &str = "examples/bernoulli/bernoulli.exe";
-
-#[cfg(unix)]
-static MAKE_STANC: &str = "bin/stanc";
-#[cfg(windows)]
-static MAKE_STANC: &str = "bin/stanc.exe";
-
-#[cfg(unix)]
-static MAKE_STANSUMMARY: &str = "bin/stansummary";
-#[cfg(windows)]
-static MAKE_STANSUMMARY: &str = "bin/stansummary.exe";
-
-#[cfg(unix)]
-static MAKE_DIAGNOSE: &str = "bin/diagnose";
-#[cfg(windows)]
-static MAKE_DIAGNOSE: &str = "bin/diagnose.exe";
 
 /// Path to CmdStan (`root`) directory and paths to binary utilities.
 /// This is necessary for locking of the public-facing resources
@@ -164,17 +130,14 @@ impl TryFrom<&Path> for CmdStanInner {
         let mut stanc = root.clone();
         stanc.push("bin");
         stanc.push(STANC);
-        stanc.set_extension(OS_EXE_EXT);
 
         let mut stansummary = stanc.clone();
         stansummary.pop();
         stansummary.push(STANSUMMARY);
-        stansummary.set_extension(OS_EXE_EXT);
 
         let mut diagnose = stanc.clone();
         diagnose.pop();
         diagnose.push(DIAGNOSE);
-        diagnose.set_extension(OS_EXE_EXT);
 
         let inner = Self {
             root,
@@ -214,8 +177,8 @@ impl TryFrom<&Path> for CmdStan {
         // Then, we abuse the root buffer to save an allocation
         let root = &mut inner.root;
         root.push("examples");
-        root.push(BERNOULLI);
-        root.push(BERNOULLI);
+        root.push("bernoulli");
+        root.push("bernoulli");
         root.set_extension(OS_EXE_EXT);
         try_open(&root).map_err(|e| Self::Error::new(ErrorKind::Bernoulli, e.into()))?;
 
