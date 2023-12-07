@@ -14,6 +14,7 @@ pub mod argument_tree;
 mod base;
 mod control;
 pub mod diagnose;
+pub mod error;
 pub mod generate_quantities;
 pub mod laplace;
 pub mod log_prob;
