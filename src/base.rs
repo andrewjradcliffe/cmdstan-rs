@@ -111,22 +111,6 @@ macro_rules! impl_try_ensure {
     };
 }
 
-// use paste::paste;
-// macro_rules! impl_try_ensure2 {
-//     ($F:ident) => {
-//         paste! {
-//             fn [<try_ensure $F:lower>](&self) -> Result<(), Error> {
-//                 self.try_ensure(&self.[<$F:lower>], [<MAKE_ $F:upper>])
-//                     .map_err(|e| Error::new(ErrorKind::$F, e.into()))?;
-//                 let output = Command::new(&self.[<$F:lower>])
-//                     .output()
-//                     .map_err(|e| Error::new(ErrorKind::$F, e.into()))?;
-//                 Error::appears_ok(ErrorKind::$F, output)
-//             }
-//         }
-//     };
-// }
-
 /// Operations to be called only from within a `CmdStan` instance where
 /// one has write access to the `inner` field.
 /// Alternatively, during `CmdStan::try_from`.
