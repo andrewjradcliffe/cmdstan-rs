@@ -42,12 +42,21 @@ impl TryFrom<&Path> for StanProgram {
                 ));
             }
         }
-        // Open is the most reliable way to determine if the file exists
-        // and can be read.
-        File::open(path).map_err(|e| Self::Error::new(ErrorKind::ModelFile, e.into()))?;
-        Ok(Self {
-            path: path.to_path_buf(),
-        })
+        let op = |e: io::Error| Self::Error::new(ErrorKind::ModelFile, e.into());
+        // The file must exist at the time of construction, not be
+        // a hypothetical path at which a file might later appear.
+        // Certainly, to compile the Stan program, the absolute path is necessary.
+        // If not canonicalized at the point of creation, then the only other
+        // point at which it would be canonicalized is `CmdStan::compile`,
+        // but the current directory of the thread when `CmdStan::compile`
+        // is called may be different (changed by user, not this library)
+        // from the current directory when this instance is created.
+        // It is far easier to reason about when the path is frozen (canonicalized)
+        // at the point of creation. If a user understand this, then they can plan
+        // their relative path shenanigans accordingly.
+        let path = fs::canonicalize(path).map_err(op)?;
+        try_open(&path).map_err(op)?;
+        Ok(Self { path })
     }
 }
 
@@ -297,6 +306,8 @@ impl TryFrom<&Path> for CmdStanModel {
     type Error = Error;
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
         let op = |e: io::Error| Self::Error::new(ErrorKind::Executable, e.into());
+        // The executable must exist at the time of construction, not be
+        // a hypothetical path at which an executable might later appear.
         let exec = fs::canonicalize(path).map_err(op)?;
         let output = try_exec(&exec).map_err(op)?;
         Error::appears_ok(ErrorKind::Executable, output)?;
