@@ -79,9 +79,9 @@ macro_rules! impl_try_ensure {
 
 /// Operations to be called only from within a `CmdStan` instance where
 /// one has write access to the `inner` field.
-/// Alternatively, during `CmdStan::try_from`.
+/// Alternatively, during `CmdStanInner::try_from` or `CmdStan::try_from`
 impl CmdStanInner {
-    fn try_ensure(&self, bin: &Path, target: &str) -> Result<process::Output, io::Error> {
+    fn try_ensure(&self, bin: &Path, target: &'static str) -> Result<process::Output, io::Error> {
         match try_exec(bin) {
             Ok(x) => Ok(x),
             Err(_) => {
@@ -112,21 +112,26 @@ impl CmdStanInner {
 impl TryFrom<&Path> for CmdStanInner {
     type Error = Error;
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
+        let install_err = |e: io::Error| Self::Error::new(ErrorKind::Install, e.into());
+        // A key invariant is that `CmdStan` can work from anywhere,
+        // thus, we need an absolute path for the proposed root.
+        // All subsequent invariants will be established on the basis
+        // of the root, thus, we must first obtain a canonicalized absolute pathname.
+        let root = fs::canonicalize(path).map_err(install_err)?;
+
         // A reliable way to determine if the directory exists
-        // and is accessible
-        fs::read_dir(path).map_err(|e| Self::Error::new(ErrorKind::Install, e.into()))?;
+        // and is accessible is to attempt to read it.
+        fs::read_dir(&root).map_err(install_err)?;
 
         // Superficial check for make
         let output = Command::new(MAKE)
-            .current_dir(path)
+            .current_dir(&root)
             .output()
             .map_err(|e| Self::Error::new(ErrorKind::Make, e.into()))?;
         Self::Error::appears_ok(ErrorKind::Make, output)?;
 
         // Since things appear to work on the surface, initialize
         // and use the stock methods to verify.
-        let root = path.to_path_buf();
-
         let mut stanc = root.clone();
         stanc.push("bin");
         stanc.push(STANC);
@@ -163,7 +168,7 @@ impl TryFrom<&Path> for CmdStan {
     type Error = Error;
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
         // This includes a few weaker checks
-        let mut inner = CmdStanInner::try_from(path)?;
+        let inner = CmdStanInner::try_from(path)?;
 
         // Rather than verify individual files, a simple way to
         // verify CmdStan works is to build and run the bernoulli example
@@ -174,31 +179,24 @@ impl TryFrom<&Path> for CmdStan {
             return Err(Self::Error::new(ErrorKind::Bernoulli, output.into()));
         }
 
-        // Then, we abuse the root buffer to save an allocation
-        let root = &mut inner.root;
-        root.push("examples");
-        root.push("bernoulli");
-        root.push("bernoulli");
-        root.set_extension(OS_EXE_EXT);
-        try_open(&root).map_err(|e| Self::Error::new(ErrorKind::Bernoulli, e.into()))?;
+        let mut exec = inner.root.clone();
+        exec.push("examples");
+        exec.push("bernoulli");
+        exec.push("bernoulli");
+        exec.set_extension(OS_EXE_EXT);
+        try_open(&exec).map_err(|e| Self::Error::new(ErrorKind::Bernoulli, e.into()))?;
 
-        let output = Command::new(&root)
-            .current_dir(path)
+        let output = Command::new(&exec)
+            .current_dir(&inner.root)
             .arg("sample")
             .arg("data")
             .arg("file=examples/bernoulli/bernoulli.data.json")
             .output()
             .map_err(|e| Self::Error::new(ErrorKind::Bernoulli, e.into()))?;
-
         Error::appears_ok(ErrorKind::Bernoulli, output)?;
 
-        // Then, we restore the root to its previous state
-        root.pop();
-        root.pop();
-        root.pop();
-
         let output = Command::new(&inner.stansummary)
-            .current_dir(path)
+            .current_dir(&inner.root)
             .arg("output.csv")
             .output()
             .map_err(|e| Self::Error::new(ErrorKind::StanSummary, e.into()))?;
@@ -222,7 +220,7 @@ impl TryFrom<&Path> for CmdStan {
         }
 
         let output = Command::new(&inner.diagnose)
-            .current_dir(path)
+            .current_dir(&inner.root)
             .arg("output.csv")
             .output()
             .map_err(|e| Self::Error::new(ErrorKind::Diagnose, e.into()))?;
@@ -246,15 +244,14 @@ impl CmdStan {
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        let mut exec = prog.path.clone();
-        exec.set_extension(OS_EXE_EXT);
+        let exec = prog.path.with_extension(OS_EXE_EXT);
 
         // Compilation has the potential to touch all of the files in
         // the CmdStan directory.
         let guard = self.inner.write().unwrap();
 
         // We need to detect whether the diagnose and stansummary utilities
-        // are deleted. If combined with invalid unicode, it will be difficult
+        // will be deleted. If combined with invalid unicode, it will be difficult
         // to detect whether `clean-all` is actually passed to make --
         // we would hope that make fails.
         let mut state = false;
@@ -266,8 +263,9 @@ impl CmdStan {
         });
 
         // This is lazy, but, not unreasonable given the myriad ways in which
-        // things can fail.
+        // compilation can fail.
         let output = Command::new(MAKE)
+            .current_dir(&guard.root)
             .args(args)
             .arg(&exec)
             .output()
@@ -277,7 +275,7 @@ impl CmdStan {
             return Err(Error::new(ErrorKind::Compilation, output.into()));
         }
 
-        // If everything was cleaned, then we need to re-build the utilities
+        // If `clean-all` occurred, then we need to re-build the utilities
         // in order to maintain the invariants.
         if state {
             guard.try_ensure_stanc()?;
@@ -298,12 +296,11 @@ pub struct CmdStanModel {
 impl TryFrom<&Path> for CmdStanModel {
     type Error = Error;
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
-        let output =
-            try_exec(path).map_err(|e| Self::Error::new(ErrorKind::Executable, e.into()))?;
+        let op = |e: io::Error| Self::Error::new(ErrorKind::Executable, e.into());
+        let exec = fs::canonicalize(path).map_err(op)?;
+        let output = try_exec(&exec).map_err(op)?;
         Error::appears_ok(ErrorKind::Executable, output)?;
 
-        Ok(Self {
-            exec: path.to_path_buf(),
-        })
+        Ok(Self { exec })
     }
 }
