@@ -2,10 +2,9 @@ use crate::constants::*;
 use crate::error::*;
 use std::{
     convert::TryFrom,
-    env,
     ffi::OsStr,
-    fmt,
     fs::{self, File},
+    hash::Hash,
     io::{self, Write},
     path::{Path, PathBuf},
     process::{self, Command},
@@ -26,12 +25,20 @@ fn try_exec<S: AsRef<OsStr>>(path: S) -> Result<process::Output, io::Error> {
     Command::new(path).output()
 }
 
+/// Holds an absolute path to a Stan program. Invariants established
+/// at the time of construction cannot be guaranteed to be true at all times,
+/// as it is always possible to modify or delete the underlying file.
+#[derive(Debug, Clone, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct StanProgram {
     path: PathBuf,
 }
 
 impl TryFrom<&Path> for StanProgram {
     type Error = Error;
+    /// Try to create an instance from the given `path`. At the time of construction,
+    /// the path must exist on disk and be pointing at file whose extension is `"stan"`.
+    /// The path will be canonicalized at the point of construction, if the
+    /// aforementioned conditions are met.
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
         match path.extension() {
             Some(ext) if ext == "stan" => (),
@@ -67,7 +74,7 @@ impl TryFrom<&Path> for StanProgram {
 /// repetition. Perhaps perhaps more importantly, it enables the methods and
 /// associated functions of the `CmdStan` type to be written with clarity,
 /// since any operation must acquire this resource.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Hash, Eq, Ord, PartialEq, PartialOrd)]
 struct CmdStanInner {
     root: PathBuf,
     stanc: PathBuf,
@@ -168,6 +175,40 @@ impl TryFrom<&Path> for CmdStanInner {
     }
 }
 
+/// Construct which represents a unique directory on disk at which
+/// CmdStan is installed. This type uses `Arc<RwLock<_>>` internally
+/// in order to synchronize concurrent method calls which have the potential
+/// cause data races on the filesystem.
+///
+/// Synchronization is necessary to prevent inconsistent (or simply failing)
+/// results which would otherwise arise due to concurrent compilation of Stan programs
+/// with different options. If this were not performed internally, the user
+/// would be forced to take on this burden; it is far easier (and more efficient)
+/// to implement this as part of the library design, thereby enabling the user
+/// to treat this construct as an opaque call handler across arbitrary threads.
+///
+/// Consequently, the appropriate way to use `CmdStan` is to construct
+/// it once per unique directory, using [`CmdStan::try_from`], which performs
+/// a number of invariant validation steps, and to `clone` when one needs
+/// to send a copy to other threads. `CmdStan` uses `Arc` internally,  hence,
+/// `clones`  are cheap.
+///
+/// That said, it is still possible to violate the invariants by constructing
+/// multiple instances by calling `CmdStan::try_from` on the same input path,
+/// then writing a program which causes concurrent compilation. Given the fundamental
+/// basis on the filesystem, there is nothing a library writer can do to stop
+/// users from such engaging in such nonsense. Naturally, informative error
+/// messages would be returned if the unsynchronized concurrent writes within
+/// the installation (or target) directory result in an error, but an error
+/// is not guaranteed.
+///
+/// Lastly, multiple `CmdStan`s constructed by calling `CmdStan::try_from` on
+/// distinct directories are entirely permissible. However, one must note
+/// that `CmdStan::compile`, called concurrently on the same `StanProgram`
+/// but with `CmdStan` instances respective to distinct directories
+/// would result in a race to compile the target binary. Again, this is
+/// is a case where the library writer cannot protect the user from the racy
+/// nature of the filesystem.
 #[derive(Debug, Clone)]
 pub struct CmdStan {
     inner: Arc<RwLock<CmdStanInner>>,
@@ -175,6 +216,15 @@ pub struct CmdStan {
 
 impl TryFrom<&Path> for CmdStan {
     type Error = Error;
+    /// Try to create an instance from the given `path`. At the time of construction,
+    /// the following invariants are established:
+    /// - the directory is a CmdStan installation
+    /// - `stanc`, `stansummary`, and `diagnose` binaries are built
+    /// - the Bernoulli example can be compiled
+    /// - the Bernoulli executable, when run, produces satisfactory results
+    ///
+    /// Taken together, these may be an expensive set of operations, depending
+    /// on the state of the directory.
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
         // This includes a few weaker checks
         let inner = CmdStanInner::try_from(path)?;
@@ -202,7 +252,7 @@ impl TryFrom<&Path> for CmdStan {
             .arg("file=examples/bernoulli/bernoulli.data.json")
             .output()
             .map_err(|e| Self::Error::new(ErrorKind::Bernoulli, e.into()))?;
-        Error::appears_ok(ErrorKind::Bernoulli, output)?;
+        Self::Error::appears_ok(ErrorKind::Bernoulli, output)?;
 
         let output = Command::new(&inner.stansummary)
             .current_dir(&inner.root)
@@ -247,13 +297,19 @@ impl TryFrom<&Path> for CmdStan {
     }
 }
 
+/** Operations which acquire write access
+
+- `compile` : has the potential to modify all files in the root directory of `self`.
+- `stanc` : may write to a `StanProgram`'s (generated) C++ program file; such a write
+would race with other such `stanc` calls.
+*/
 impl CmdStan {
-    pub fn compile<I, S>(&self, prog: &StanProgram, args: I) -> Result<CmdStanModel, Error>
+    pub fn compile<I, S>(&self, program: &StanProgram, args: I) -> Result<CmdStanModel, Error>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        let exec = prog.path.with_extension(OS_EXE_EXT);
+        let exec = program.path.with_extension(OS_EXE_EXT);
 
         // Compilation has the potential to touch all of the files in
         // the CmdStan directory.
@@ -296,22 +352,99 @@ impl CmdStan {
         // to construct directly from a path.
         CmdStanModel::try_from(exec.as_ref())
     }
+
+    pub fn stanc<I, S>(&self, program: &StanProgram, args: I) -> Result<process::Output, Error>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let guard = self.inner.write().unwrap();
+        Command::new(&guard.stanc)
+            .current_dir(&guard.root)
+            .args(args)
+            .arg(&program.path)
+            .output()
+            .map_err(|e| Error::new(ErrorKind::StanC, e.into()))
+    }
 }
 
+/** Operations which acquire read access
+
+- `diagnose` : does not modify any files in the root directory of `self`
+- `stansummary` : does not modify any files in the root directory of `self`
+*/
+impl CmdStan {
+    // pub fn diagnose(&self, output: &CmdStanOutput) -> Result<process::Output, Error> {}
+    // pub fn stansummary(&self, output: &CmdStanOutput, opts: Option<StanSummaryOptions>) -> Result<process::Output, Error> {}
+}
+
+/// Holds an absolute path to a compiled executable. Invariants established
+/// at the time of construction cannot be guaranteed to be true at all times,
+/// as it is always possible to modify or delete the underlying file.
+#[derive(Debug, Clone, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct CmdStanModel {
     exec: PathBuf,
 }
 
 impl TryFrom<&Path> for CmdStanModel {
     type Error = Error;
+    /// Try to create an instance from the given `path`. At the time of construction,
+    /// the path must exist on disk and be pointing at a compiled executable.
+    /// The path will be canonicalized at the point of construction, if the
+    /// aforementioned conditions are met.
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
         let op = |e: io::Error| Self::Error::new(ErrorKind::Executable, e.into());
         // The executable must exist at the time of construction, not be
         // a hypothetical path at which an executable might later appear.
         let exec = fs::canonicalize(path).map_err(op)?;
         let output = try_exec(&exec).map_err(op)?;
-        Error::appears_ok(ErrorKind::Executable, output)?;
+        Self::Error::appears_ok(ErrorKind::Executable, output)?;
 
         Ok(Self { exec })
     }
+}
+// Worthwhile? not certain.
+// impl TryFrom<StanProgram> for CmdStanModel {
+//     type Error = Error;
+//     fn try_from(program: StanProgram) -> Result<Self, Self::Error> {
+//         let mut exec = program.path;
+//         exec.set_extension(OS_EXE_EXT);
+//         let output =
+//             try_exec(&exec).map_err(|e| Self::Error::new(ErrorKind::Executable, e.into()))?;
+//         Error::appears_ok(ErrorKind::Executable, output)?;
+//         Ok(Self { exec })
+//     }
+// }
+
+use std::collections::HashMap;
+impl CmdStanModel {
+    fn info(&self) -> Result<HashMap<String, String>, Error> {
+        let output = Command::new(&self.exec)
+            .arg("info")
+            .output()
+            .map_err(|e| Error::new(ErrorKind::Executable, e.into()))?;
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout[..]);
+            let map: HashMap<String, String> = stdout
+                .lines()
+                .filter_map(|line| line.split_once('='))
+                .map(|(lhs, rhs)| (String::from(lhs.trim()), String::from(rhs.trim())))
+                .collect();
+            Ok(map)
+        } else {
+            Err(Error::new(ErrorKind::Executable, output.into()))
+        }
+    }
+}
+
+#[allow(non_snake_case)]
+pub struct ModelInfo {
+    pub stan_version_major: u32,
+    pub stan_version_minor: u32,
+    pub stan_version_patch: u32,
+    pub STAN_THREADS: bool,
+    pub STAN_MPI: bool,
+    pub STAN_OPENCL: bool,
+    pub STAN_NO_RANGE_CHECKS: bool,
+    pub STAN_CPP_OPTIMS: bool,
 }
