@@ -73,12 +73,10 @@ impl ArgumentTree {
         ArgumentTreeBuilder::new()
     }
 
-    fn files<F>(&self, f: F) -> Vec<OsString>
-    where
-        F: Fn(&ArgumentTree) -> &OsStr,
-    {
-        let mut files: Vec<OsString> = Vec::new();
-        let file = f(self);
+    /// Match the behavior of CmdStan path handling, which
+    /// includes substitution of a `"csv"` suffix if no `'.'`
+    /// is present in the input.
+    fn rsplit_file_at_dot<'a>(file: &'a OsStr) -> (&'a OsStr, &'a OsStr) {
         let bytes = file.as_encoded_bytes();
         let mut iter = bytes.rsplitn(2, |b| *b == b'.');
 
@@ -88,7 +86,8 @@ impl ArgumentTree {
                 // - each fragment only contains content that originated
                 //   from `OsStr::as_encoded_bytes`.
                 // - split with ASCII period, which is a non-empty UTF-8
-                //   substring
+                //   substring.
+                // Thus, the invariants are maintained.
                 unsafe {
                     (
                         OsStr::from_encoded_bytes_unchecked(prefix),
@@ -98,6 +97,16 @@ impl ArgumentTree {
             }
             _ => (file, "csv".as_ref()),
         };
+        (prefix, suffix)
+    }
+
+    fn files<F>(&self, f: F) -> Vec<OsString>
+    where
+        F: Fn(&ArgumentTree) -> &OsStr,
+    {
+        let mut files: Vec<OsString> = Vec::new();
+        let file = f(self);
+        let (prefix, suffix) = Self::rsplit_file_at_dot(file);
         match &self.method {
             Method::Sample { num_chains, .. } if *num_chains != 1 => {
                 let id = self.id;
@@ -140,40 +149,6 @@ impl ArgumentTree {
     /// Return the single-path pathfinder file path(s), if
     /// appropriate, as implied by the configuration of `self`.
     /// Typically, these will not be literal files on the filesystem.
-    // pub fn single_path_pathfinder_files(&self) -> Option<Vec<String>> {
-    //     match &self.method {
-    //         Method::Pathfinder {
-    //             save_single_paths,
-    //             num_paths,
-    //             ..
-    //         } => {
-    //             let mut files: Vec<String> = Vec::new();
-    //             if *save_single_paths {
-    //                 let file = &self.output.file;
-    //                 // Note that at present, it is easy to confuse `CmdStan` with
-    //                 // too many '.' interspersed in self.output.file.
-    //                 // Thus, this may not necessarily reproduce the files
-    //                 // particularly well.
-    //                 let prefix = match file.rsplit_once(".") {
-    //                     Some((prefix, _)) => prefix,
-    //                     None => file,
-    //                 };
-    //                 if *num_paths != 1 {
-    //                     let id = self.id.clone();
-    //                     (id..id + num_paths).for_each(|id| {
-    //                         files.push(format!("{prefix}_path_{id}.csv"));
-    //                         files.push(format!("{prefix}_path_{id}.json"));
-    //                     });
-    //                 } else {
-    //                     files.push(format!("{prefix}.csv"));
-    //                     files.push(format!("{prefix}.json"));
-    //                 }
-    //             }
-    //             Some(files)
-    //         }
-    //         _ => None,
-    //     }
-    // }
     pub fn single_path_pathfinder_files(&self) -> Option<Vec<OsString>> {
         match &self.method {
             Method::Pathfinder {
@@ -188,19 +163,7 @@ impl ArgumentTree {
                     // too many '.' interspersed in self.output.file.
                     // Thus, this may not necessarily reproduce the files
                     // particularly well.
-                    let bytes = file.as_encoded_bytes();
-                    let mut iter = bytes.rsplitn(2, |b| *b == b'.');
-                    let prefix = match (iter.next(), iter.next()) {
-                        (Some(_), Some(prefix)) => {
-                            // SAFETY:
-                            // - each fragment only contains content that originated
-                            //   from `OsStr::as_encoded_bytes`.
-                            // - split with ASCII period, which is a non-empty UTF-8
-                            //   substring
-                            unsafe { OsStr::from_encoded_bytes_unchecked(prefix) }
-                        }
-                        _ => file,
-                    };
+                    let (prefix, _) = Self::rsplit_file_at_dot(file);
                     if *num_paths != 1 {
                         let id = self.id;
                         (id..id + num_paths).for_each(|id| {
@@ -660,6 +623,8 @@ mod tests {
                 vec!["abc.._2.", "abc.._3.", "abc.._4."]
             );
 
+            let x = b.clone().output(Output::builder().file("foo.")).build();
+            assert_eq!(x.output_files(), vec!["foo_2.", "foo_3.", "foo_4."]);
             let x = b.clone().output(Output::builder().file("foo..")).build();
             assert_eq!(x.output_files(), vec!["foo._2.", "foo._3.", "foo._4."]);
 
@@ -683,6 +648,59 @@ mod tests {
             assert_eq!(x.output_files(), vec!["._2.", "._3.", "._4."]);
             let x = b.clone().output(Output::builder().file("...")).build();
             assert_eq!(x.output_files(), vec![".._2.", ".._3.", ".._4."]);
+
+            let x = b.clone().output(Output::builder().file("foo/.bar")).build();
+            assert_eq!(
+                x.output_files(),
+                vec!["foo/_2.bar", "foo/_3.bar", "foo/_4.bar"]
+            );
+            let x = b.clone().output(Output::builder().file("foo/bar/")).build();
+            assert_eq!(
+                x.output_files(),
+                vec!["foo/bar/_2.csv", "foo/bar/_3.csv", "foo/bar/_4.csv"]
+            );
+            let x = b
+                .clone()
+                .output(Output::builder().file("foo/bar/."))
+                .build();
+            assert_eq!(
+                x.output_files(),
+                vec!["foo/bar/_2.", "foo/bar/_3.", "foo/bar/_4."]
+            );
+            let x = b
+                .clone()
+                .output(Output::builder().file("foo/bar/.."))
+                .build();
+            assert_eq!(
+                x.output_files(),
+                vec!["foo/bar/._2.", "foo/bar/._3.", "foo/bar/._4."]
+            );
+            let x = b
+                .clone()
+                .output(Output::builder().file("foo/bar/..."))
+                .build();
+            assert_eq!(
+                x.output_files(),
+                vec!["foo/bar/.._2.", "foo/bar/.._3.", "foo/bar/.._4."]
+            );
+
+            let x = b
+                .clone()
+                .output(Output::builder().file("foo/bar.baz."))
+                .build();
+            assert_eq!(
+                x.output_files(),
+                vec!["foo/bar.baz_2.", "foo/bar.baz_3.", "foo/bar.baz_4."]
+            );
+
+            let x = b
+                .clone()
+                .output(Output::builder().file("foo/bar/baz."))
+                .build();
+            assert_eq!(
+                x.output_files(),
+                vec!["foo/bar/baz_2.", "foo/bar/baz_3.", "foo/bar/baz_4."]
+            );
         }
     }
 
