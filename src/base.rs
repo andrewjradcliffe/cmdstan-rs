@@ -1,8 +1,9 @@
+use crate::argument_tree::ArgumentTree;
 use crate::constants::*;
 use crate::error::*;
 use std::{
     convert::TryFrom,
-    ffi::OsStr,
+    ffi::{OsStr, OsString},
     fs::{self, File},
     hash::Hash,
     io::{self, Write},
@@ -374,7 +375,13 @@ impl CmdStan {
 - `stansummary` : does not modify any files in the root directory of `self`
 */
 impl CmdStan {
-    // pub fn diagnose(&self, output: &CmdStanOutput) -> Result<process::Output, Error> {}
+    pub fn diagnose(&self, output: &CmdStanOutput) -> Result<process::Output, Error> {
+        let guard = self.inner.read().unwrap();
+        Command::new(&guard.diagnose)
+            .args(output.output_files())
+            .output()
+            .map_err(|e| Error::new(ErrorKind::Diagnose, e.into()))
+    }
     // pub fn stansummary(&self, output: &CmdStanOutput, opts: Option<StanSummaryOptions>) -> Result<process::Output, Error> {}
 }
 
@@ -437,14 +444,87 @@ impl CmdStanModel {
     }
 }
 
-#[allow(non_snake_case)]
-pub struct ModelInfo {
-    pub stan_version_major: u32,
-    pub stan_version_minor: u32,
-    pub stan_version_patch: u32,
-    pub STAN_THREADS: bool,
-    pub STAN_MPI: bool,
-    pub STAN_OPENCL: bool,
-    pub STAN_NO_RANGE_CHECKS: bool,
-    pub STAN_CPP_OPTIMS: bool,
+// #[allow(non_snake_case)]
+// pub struct ModelInfo {
+//     pub stan_version_major: u32,
+//     pub stan_version_minor: u32,
+//     pub stan_version_patch: u32,
+//     pub STAN_THREADS: bool,
+//     pub STAN_MPI: bool,
+//     pub STAN_OPENCL: bool,
+//     pub STAN_NO_RANGE_CHECKS: bool,
+//     pub STAN_CPP_OPTIMS: bool,
+// }
+
+/// A snapshot produced by performing `CmdStanModel::call`.
+/// This is a self-contained record, the contents of which include:
+///
+/// - the console output (exit status, stdout and stderr),
+/// - the argument tree with the call was made
+/// - the current working directory of the process at the time the call was made
+pub struct CmdStanOutput {
+    /// Enables methods such as `output_files`, `diagnostic_files`,
+    /// etc. to return absolute paths by introspection of the
+    /// `ArgumentTree` and `cwd_at_call`.  In essence, if the
+    /// output/diagnostic/profile file is relative, then it should be
+    /// pushed onto `cwd_at_call`.
+    cwd_at_call: PathBuf,
+    output: process::Output,
+    argument_tree: ArgumentTree,
+}
+impl CmdStanOutput {
+    /// Convert files to absolute paths. If the file is already
+    /// absolute, this is a no-op (simple move into `PathBuf`);
+    /// otherwise the current working directory at the time this
+    /// `CmdStanOutput` instance was created serves as the prefix onto
+    /// which the relative path will be joined.
+    fn files<F>(&self, f: F) -> Vec<PathBuf>
+    where
+        F: Fn(&ArgumentTree) -> Vec<OsString>,
+    {
+        f(&self.argument_tree)
+            .into_iter()
+            .map(|s| {
+                let file: &Path = s.as_ref();
+                if file.is_relative() {
+                    self.cwd_at_call.join(file)
+                } else {
+                    PathBuf::from(s)
+                }
+                // Equivalent, but wasteful if path is already absolute
+                // as a copy of `s` would occur.
+                // self.cwd_at_call.join(s)
+            })
+            .filter(|path| path.is_file())
+            .collect()
+    }
+    /// Return the output files associated with the call.
+    pub fn output_files(&self) -> Vec<PathBuf> {
+        self.files(|tree| tree.output_files())
+    }
+    /// Return the diagnostic files associated with the call.
+    pub fn diagnostic_files(&self) -> Vec<PathBuf> {
+        self.files(|tree| tree.diagnostic_files())
+    }
+    /// Return the profile files associated with the call.
+    pub fn profile_files(&self) -> Vec<PathBuf> {
+        self.files(|tree| tree.profile_files())
+    }
+
+    /// Return a reference to console output of the call.
+    pub fn output(&self) -> &process::Output {
+        &self.output
+    }
+
+    /// Return a reference to the current working directory at the
+    /// time of the call.
+    pub fn cwd_at_call(&self) -> &Path {
+        &self.cwd_at_call
+    }
+
+    /// Return a reference to the argument tree with which the call
+    /// was made.
+    pub fn argument_tree(&self) -> &ArgumentTree {
+        &self.argument_tree
+    }
 }
