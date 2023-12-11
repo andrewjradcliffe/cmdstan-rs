@@ -3,12 +3,13 @@ use crate::constants::*;
 use crate::error::*;
 use std::{
     convert::TryFrom,
+    env,
     ffi::{OsStr, OsString},
     fs::{self, File},
     hash::Hash,
-    io::{self, Write},
+    io::{self, Read},
     path::{Path, PathBuf},
-    process::{self, Command},
+    process::{self, Command, Stdio},
     sync::{Arc, RwLock},
 };
 
@@ -444,7 +445,66 @@ impl CmdStanModel {
                 .collect();
             Ok(map)
         } else {
-            Err(Error::new(ErrorKind::Executable, output.into()))
+            Err(Self::error_op(output))
+        }
+    }
+
+    /// Call the compiled model with the arguments contained in `tree`.
+    /// Log files, containing the `stdout` and `stderr` of the spawned process,
+    /// will be created in the same directory at which the `tree.output.file`
+    /// is created; the logs are populated dynamically to facilitate monitoring,
+    /// rather than through a single bulk update.
+    ///
+    /// Successful return requires that the output of the spawned process
+    /// have a zero exit status. If the exit status is non-zero,
+    /// an appropriate error term will be returned with the `process::Output`
+    /// `stdout` and `stderr` read from the respective log files.
+    pub fn call(&self, tree: &ArgumentTree) -> Result<CmdStanOutput, Error> {
+        let cwd = env::current_dir().map_err(Self::error_op)?;
+        let out: &Path = tree.output.file.as_ref();
+        // The log name likely needs to be unique, else we risk clobbering
+        // someone's precious file of the same name.
+        let mut stdout = if out.is_relative() {
+            cwd.join(out)
+        } else {
+            out.to_path_buf()
+        };
+        stdout.set_extension("");
+        let mut stderr = stdout.clone();
+        stdout.as_mut_os_string().push("_stdout_log.txt");
+        stderr.as_mut_os_string().push("_stderr_log.txt");
+
+        // Pipe both stdout and stderr to separate the log files
+        let out = File::create(&stdout).map_err(Self::error_op)?;
+        let err = File::create(&stderr).map_err(Self::error_op)?;
+        let mut output = Command::new(&self.exec)
+            .args(tree.command_vec())
+            .stdin(Stdio::null())
+            .stdout(out)
+            .stderr(err)
+            .output()
+            .map_err(Self::error_op)?;
+        if output.status.success() {
+            Ok(CmdStanOutput {
+                stdout_path: stdout,
+                stderr_path: stderr,
+                cwd_at_call: cwd,
+                output,
+                argument_tree: tree.clone(),
+            })
+        } else {
+            // However, we need cook up an equivalent `process::Output`
+            // by reading the bytes we dumped to file.
+            // Leaving the log files on disk is likely desirable,
+            // in the event that something catastrophic happens...
+            // or the user just ignores the error thrown by this call.
+            let mut out = File::open(&stdout).map_err(Self::error_op)?;
+            let mut err = File::open(&stderr).map_err(Self::error_op)?;
+            out.read_to_end(&mut output.stdout)
+                .map_err(Self::error_op)?;
+            err.read_to_end(&mut output.stdout)
+                .map_err(Self::error_op)?;
+            Err(Self::error_op(output))
         }
     }
 }
@@ -476,6 +536,8 @@ pub struct CmdStanOutput {
     cwd_at_call: PathBuf,
     output: process::Output,
     argument_tree: ArgumentTree,
+    stdout_path: PathBuf,
+    stderr_path: PathBuf,
 }
 impl CmdStanOutput {
     /// Convert files to absolute paths. If the file is already
@@ -514,6 +576,15 @@ impl CmdStanOutput {
     /// Return the profile files associated with the call.
     pub fn profile_files(&self) -> Vec<PathBuf> {
         self.files(|tree| tree.profile_files())
+    }
+
+    /// Return a reference to the log file which contains the console output.
+    pub fn stdout_file(&self) -> &Path {
+        &self.stdout_path
+    }
+    /// Return a reference to the log file which contains the console error.
+    pub fn stderr_file(&self) -> &Path {
+        &self.stderr_path
     }
 
     /// Return a reference to console output of the call.
