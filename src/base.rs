@@ -400,11 +400,10 @@ impl TryFrom<&Path> for CmdStanModel {
     /// The path will be canonicalized at the point of construction, if the
     /// aforementioned conditions are met.
     fn try_from(path: &Path) -> Result<Self, Self::Error> {
-        let op = |e: io::Error| Self::Error::new(ErrorKind::Executable, e.into());
         // The executable must exist at the time of construction, not be
         // a hypothetical path at which an executable might later appear.
-        let exec = fs::canonicalize(path).map_err(op)?;
-        let output = try_exec(&exec).map_err(op)?;
+        let exec = fs::canonicalize(path).map_err(Self::error_op)?;
+        let output = try_exec(&exec).map_err(Self::error_op)?;
         Self::Error::appears_ok(ErrorKind::Executable, output)?;
 
         Ok(Self { exec })
@@ -425,11 +424,17 @@ impl TryFrom<&Path> for CmdStanModel {
 
 use std::collections::HashMap;
 impl CmdStanModel {
+    /// Associated function which provides error of default kind for `CmdStanModel`
+    /// and converts the error representation (be it IO or failed process).
+    fn error_op<E: Into<Repr>>(e: E) -> Error {
+        Error::new(ErrorKind::Executable, e.into())
+    }
+
     fn info(&self) -> Result<HashMap<String, String>, Error> {
         let output = Command::new(&self.exec)
             .arg("info")
             .output()
-            .map_err(|e| Error::new(ErrorKind::Executable, e.into()))?;
+            .map_err(Self::error_op)?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout[..]);
             let map: HashMap<String, String> = stdout
