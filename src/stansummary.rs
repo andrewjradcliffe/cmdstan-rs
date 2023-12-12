@@ -13,7 +13,7 @@ pub struct StanSummaryOptions {
     pub csv_filename: Option<OsString>,
     /// Percentiles to report as ordered set of comma-separated
     /// integers from (1,99), inclusive. Default is 5,50,95.
-    pub percentiles: Vec<u8>,
+    pub percentiles: Vec<f64>,
     /// Significant figures reported. Default is 2. Must be an integer
     /// from (1, 18), inclusive.
     pub sig_figs: u8,
@@ -60,13 +60,13 @@ impl From<StanSummaryOptionsBuilder> for StanSummaryOptions {
 pub struct StanSummaryOptionsBuilder {
     autocorr: Option<i32>,
     csv_filename: Option<OsString>,
-    percentiles: Option<Vec<u8>>,
+    percentiles: Option<Vec<f64>>,
     sig_figs: Option<u8>,
 }
 impl StanSummaryOptionsBuilder {
     insert_field!(autocorr, i32);
     insert_into_field!(csv_filename, OsString);
-    insert_into_field!(percentiles, Vec<u8>);
+    insert_into_field!(percentiles, Vec<f64>);
     insert_field!(sig_figs, u8);
 
     pub fn new() -> Self {
@@ -78,7 +78,7 @@ impl StanSummaryOptionsBuilder {
         }
     }
     pub fn build(self) -> StanSummaryOptions {
-        let percentiles = self.percentiles.unwrap_or_else(|| vec![5, 50, 95]);
+        let percentiles = self.percentiles.unwrap_or_else(|| vec![5.0, 50.0, 95.0]);
         let sig_figs = self.sig_figs.unwrap_or(2);
         StanSummaryOptions {
             autocorr: self.autocorr,
@@ -106,7 +106,7 @@ mod tests {
             let x = StanSummaryOptions {
                 autocorr: None,
                 csv_filename: Some("stansummary.csv".into()),
-                percentiles: vec![5, 25, 50, 75, 95],
+                percentiles: vec![5.0, 25.0, 50.0, 75.0, 95.0],
                 sig_figs: 6,
             };
             assert_eq!(
@@ -121,7 +121,7 @@ mod tests {
             let x = StanSummaryOptions {
                 autocorr: Some(1),
                 csv_filename: None,
-                percentiles: vec![50, 75],
+                percentiles: vec![50.0, 75.0],
                 sig_figs: 2,
             };
             assert_eq!(
@@ -132,7 +132,7 @@ mod tests {
             let x = StanSummaryOptions {
                 autocorr: Some(1),
                 csv_filename: Some("hello.csv".into()),
-                percentiles: vec![50],
+                percentiles: vec![50.0],
                 sig_figs: 4,
             };
             assert_eq!(
@@ -148,7 +148,7 @@ mod tests {
             let x = StanSummaryOptions {
                 autocorr: None,
                 csv_filename: Some("hello.csv".into()),
-                percentiles: vec![50],
+                percentiles: vec![50.0],
                 sig_figs: 3,
             };
             assert_eq!(
@@ -173,7 +173,7 @@ mod tests {
                 StanSummaryOptions {
                     autocorr: None,
                     csv_filename: None,
-                    percentiles: vec![5, 50, 95],
+                    percentiles: vec![5.0, 50.0, 95.0],
                     sig_figs: 2
                 }
             );
