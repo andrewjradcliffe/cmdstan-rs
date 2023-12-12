@@ -50,3 +50,6 @@ pub(crate) static MAKE_STANSUMMARY: &str = "bin/stansummary.exe";
 pub(crate) static MAKE_DIAGNOSE: &str = "bin/diagnose";
 #[cfg(windows)]
 pub(crate) static MAKE_DIAGNOSE: &str = "bin/diagnose.exe";
+
+pub(crate) static HELP: &str = "help";
+pub(crate) static DHELP: &str = "--help";
