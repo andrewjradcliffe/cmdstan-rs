@@ -19,6 +19,8 @@ impl Error {
         Self { kind, repr }
     }
 
+    /// Check `output`: if the process exited successfully, then
+    /// an ok result should contain the needle for the respective `kind`.
     pub(crate) fn appears_ok(
         kind: ErrorKind,
         output: process::Output,
@@ -80,7 +82,7 @@ impl ErrorKind {
         }
     }
     /// Not every kind has a meaningful needle with which to probe
-    /// stdout or stderr. These only make sense to use in the context
+    /// stdout or stderr. These only make sense to use in the context of
     /// verifying invariants.
     fn needle(&self) -> &'static str {
         use ErrorKind::*;
