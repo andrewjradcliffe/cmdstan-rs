@@ -3,6 +3,7 @@ use std::env;
 use std::ffi::{OsStr, OsString};
 
 #[derive(Debug, PartialEq, Clone)]
+#[non_exhaustive]
 pub struct ArgumentTree {
     /// Analysis method. Defaults to [`Method::Sample`].
     pub method: Method,
@@ -219,9 +220,9 @@ impl ArgumentTreeBuilder {
     }
     insert_into_field!(method, Method);
     insert_field!(id, i32);
-    insert_field!(data, Data);
+    insert_into_field!(data, Data);
     insert_into_field!(init, OsString);
-    insert_field!(random, Random);
+    insert_into_field!(random, Random);
     insert_into_field!(output, Output);
     insert_field!(num_threads, i32);
     /// Build the `ArgumentTree` instance.
@@ -255,15 +256,23 @@ impl Default for ArgumentTreeBuilder {
 
 /// Input data options
 #[derive(Debug, PartialEq, Clone)]
+#[non_exhaustive]
 pub struct Data {
     /// Input data file.
     /// Valid values: Path to existing file.
     /// Defaults to `""`.
     pub file: OsString,
 }
+
 impl Default for Data {
     fn default() -> Self {
-        Self { file: "".into() }
+        Self::builder().build()
+    }
+}
+
+impl From<DataBuilder> for Data {
+    fn from(x: DataBuilder) -> Self {
+        x.build()
     }
 }
 
@@ -279,10 +288,33 @@ impl Data {
         }
         v
     }
+    pub fn builder() -> DataBuilder {
+        DataBuilder::new()
+    }
+}
+
+pub struct DataBuilder {
+    file: Option<OsString>,
+}
+impl DataBuilder {
+    insert_into_field!(file, OsString);
+    pub fn new() -> Self {
+        Self { file: None }
+    }
+    pub fn build(self) -> Data {
+        let file = self.file.unwrap_or_else(|| "".into());
+        Data { file }
+    }
+}
+impl Default for DataBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Random number configuration
 #[derive(Debug, PartialEq, Clone)]
+#[non_exhaustive]
 pub struct Random {
     /// Random number generator seed.
     /// Valid values: non-negative integer < `4294967296` or `-1` to
@@ -290,15 +322,44 @@ pub struct Random {
     /// Defaults to `-1`.
     pub seed: i64,
 }
+
 impl Default for Random {
     fn default() -> Self {
-        Self { seed: -1 }
+        Self::builder().build()
+    }
+}
+
+impl From<RandomBuilder> for Random {
+    fn from(x: RandomBuilder) -> Self {
+        x.build()
     }
 }
 
 impl Random {
     pub fn command_fragment(&self) -> Vec<OsString> {
         vec!["random".into(), format!("seed={}", self.seed).into()]
+    }
+    pub fn builder() -> RandomBuilder {
+        RandomBuilder::new()
+    }
+}
+
+pub struct RandomBuilder {
+    seed: Option<i64>,
+}
+impl RandomBuilder {
+    insert_field!(seed, i64);
+    pub fn new() -> Self {
+        Self { seed: None }
+    }
+    pub fn build(self) -> Random {
+        let seed = self.seed.unwrap_or(-1);
+        Random { seed }
+    }
+}
+impl Default for RandomBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
