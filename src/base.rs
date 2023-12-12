@@ -1,6 +1,7 @@
 use crate::argument_tree::ArgumentTree;
 use crate::constants::*;
 use crate::error::*;
+use crate::stansummary::StanSummaryOptions;
 use std::{
     convert::TryFrom,
     env,
@@ -25,6 +26,13 @@ fn try_open<P: AsRef<Path>>(path: P) -> Result<(), io::Error> {
 /// `try_open` only tests a necessary condition.
 fn try_exec<S: AsRef<OsStr>>(path: S) -> Result<process::Output, io::Error> {
     Command::new(path).output()
+}
+
+/// Try to determine if the binary file exists and is executable by attempting
+/// to call it with a single argument (which should be `"--help"` or `"help"`
+/// depending on the binary).
+fn try_help<S: AsRef<OsStr>>(path: S, help: &'static str) -> Result<process::Output, io::Error> {
+    Command::new(path).arg(help).output()
 }
 
 /// Holds an absolute path to a Stan program. Invariants established
@@ -93,13 +101,21 @@ macro_rules! impl_try_ensure {
             Error::appears_ok($kind, output)
         }
     };
+    ($F:ident, $target:ident, $kind:expr, $field:ident, $help:ident) => {
+        fn $F(&self) -> Result<(), Error> {
+            let output = self
+                .try_ensure_help(&self.$field, $target, $help)
+                .map_err(|e| Error::new($kind, e.into()))?;
+            Error::appears_ok($kind, output)
+        }
+    };
 }
 
 /// Operations to be called only from within a `CmdStan` instance where
 /// one has write access to the `inner` field.
 /// Alternatively, during `CmdStanInner::try_from` or `CmdStan::try_from`
 impl CmdStanInner {
-    fn try_ensure(&self, bin: &Path, target: &'static str) -> Result<process::Output, io::Error> {
+    fn try_ensure(&self, bin: &Path, target: &'static str) -> io::Result<process::Output> {
         match try_exec(bin) {
             Ok(x) => Ok(x),
             Err(_) => {
@@ -108,12 +124,27 @@ impl CmdStanInner {
             }
         }
     }
-    impl_try_ensure!(try_ensure_stanc, MAKE_STANC, ErrorKind::StanC, stanc);
+    fn try_ensure_help(
+        &self,
+        bin: &Path,
+        target: &'static str,
+        help: &'static str,
+    ) -> io::Result<process::Output> {
+        match try_help(bin, help) {
+            Ok(x) => Ok(x),
+            Err(_) => {
+                self.make(target)?;
+                try_help(bin, help)
+            }
+        }
+    }
+    impl_try_ensure!(try_ensure_stanc, MAKE_STANC, ErrorKind::StanC, stanc, DHELP);
     impl_try_ensure!(
         try_ensure_stansummary,
         MAKE_STANSUMMARY,
         ErrorKind::StanSummary,
-        stansummary
+        stansummary,
+        DHELP
     );
     impl_try_ensure!(
         try_ensure_diagnose,
@@ -383,7 +414,34 @@ impl CmdStan {
             .output()
             .map_err(|e| Error::new(ErrorKind::Diagnose, e.into()))
     }
-    // pub fn stansummary(&self, output: &CmdStanOutput, opts: Option<StanSummaryOptions>) -> Result<process::Output, Error> {}
+    // pub fn stansummary(
+    //     &self,
+    //     output: &CmdStanOutput,
+    //     opts: Option<StanSummaryOptions>,
+    // ) -> Result<process::Output, Error> {
+    //     let guard = self.inner.read().unwrap();
+    //     let mut cmd = Command::new(&guard.stansummary);
+    //     cmd.args(output.output_files());
+    //     if let Some(opts) = opts {
+    //         cmd.args(opts.command_fragment());
+    //     }
+    //     cmd.output()
+    //         .map_err(|e| Error::new(ErrorKind::StanSummary, e.into()))
+    // }
+
+    pub fn stansummary<T>(&self, output: &CmdStanOutput, opts: T) -> Result<process::Output, Error>
+    where
+        T: Into<Option<StanSummaryOptions>>,
+    {
+        let guard = self.inner.read().unwrap();
+        let mut cmd = Command::new(&guard.stansummary);
+        cmd.args(output.output_files());
+        if let Some(opts) = opts.into() {
+            cmd.args(opts.command_fragment());
+        }
+        cmd.output()
+            .map_err(|e| Error::new(ErrorKind::StanSummary, e.into()))
+    }
 }
 
 /// Holds an absolute path to a compiled executable. Invariants established
@@ -404,7 +462,7 @@ impl TryFrom<&Path> for CmdStanModel {
         // The executable must exist at the time of construction, not be
         // a hypothetical path at which an executable might later appear.
         let exec = fs::canonicalize(path).map_err(Self::error_op)?;
-        let output = try_exec(&exec).map_err(Self::error_op)?;
+        let output = try_help(&exec, HELP).map_err(Self::error_op)?;
         Self::Error::appears_ok(ErrorKind::Executable, output)?;
 
         Ok(Self { exec })
