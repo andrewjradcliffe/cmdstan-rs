@@ -69,7 +69,7 @@ impl TryFrom<&Path> for StanProgram {
         // is called may be different (changed by user, not this library)
         // from the current directory when this instance is created.
         // It is far easier to reason about when the path is frozen (canonicalized)
-        // at the point of creation. If a user understand this, then they can plan
+        // at the point of creation. If a user understands this, then they can plan
         // their relative path shenanigans accordingly.
         let path = fs::canonicalize(path).map_err(op)?;
         try_open(&path).map_err(op)?;
@@ -414,21 +414,6 @@ impl CmdStan {
             .output()
             .map_err(|e| Error::new(ErrorKind::Diagnose, e.into()))
     }
-    // pub fn stansummary(
-    //     &self,
-    //     output: &CmdStanOutput,
-    //     opts: Option<StanSummaryOptions>,
-    // ) -> Result<process::Output, Error> {
-    //     let guard = self.inner.read().unwrap();
-    //     let mut cmd = Command::new(&guard.stansummary);
-    //     cmd.args(output.output_files());
-    //     if let Some(opts) = opts {
-    //         cmd.args(opts.command_fragment());
-    //     }
-    //     cmd.output()
-    //         .map_err(|e| Error::new(ErrorKind::StanSummary, e.into()))
-    // }
-
     pub fn stansummary<T>(&self, output: &CmdStanOutput, opts: T) -> Result<process::Output, Error>
     where
         T: Into<Option<StanSummaryOptions>>,
@@ -474,9 +459,8 @@ impl TryFrom<&Path> for CmdStanModel {
 //     fn try_from(program: StanProgram) -> Result<Self, Self::Error> {
 //         let mut exec = program.path;
 //         exec.set_extension(OS_EXE_EXT);
-//         let output =
-//             try_exec(&exec).map_err(|e| Self::Error::new(ErrorKind::Executable, e.into()))?;
-//         Error::appears_ok(ErrorKind::Executable, output)?;
+//         let output = try_help(&exec, HELP).map_err(Self::error_op)?;
+//         Self::Error::appears_ok(ErrorKind::Executable, output)?;
 //         Ok(Self { exec })
 //     }
 // }
@@ -532,7 +516,7 @@ impl CmdStanModel {
         stdout.as_mut_os_string().push("_stdout_log.txt");
         stderr.as_mut_os_string().push("_stderr_log.txt");
 
-        // Pipe both stdout and stderr to separate the log files
+        // Pipe both stdout and stderr to separate log files
         let out = File::create(&stdout).map_err(Self::error_op)?;
         let err = File::create(&stderr).map_err(Self::error_op)?;
         let mut output = Command::new(&self.exec)
