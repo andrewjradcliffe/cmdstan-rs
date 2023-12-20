@@ -10,4 +10,3 @@ license = "BSD 3-Clause"
 [dependencies]
 pest = "2.7.5"
 pest_derive = "2.7.5"
-thiserror = "1.0.50"
