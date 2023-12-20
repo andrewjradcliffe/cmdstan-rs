@@ -1,14 +1,24 @@
-pub trait Translate<T> {
-    type Output;
-    fn translate(&self) -> Self::Output;
-}
-
-pub struct Args;
-pub struct Stmt;
-pub struct Tree;
-
 use crate::sample::*;
 use std::ffi::{OsStr, OsString};
+
+pub trait Translate {
+    fn to_args(&self) -> Vec<OsString>;
+    fn to_tree(&self) -> OsString;
+
+    fn to_stmt(&self) -> OsString {
+        let v = self.to_args();
+        let mut s = OsString::new();
+        let mut iter = v.into_iter();
+        if let Some(x) = iter.next() {
+            s.push(&x);
+        }
+        for x in iter {
+            s.push(" ");
+            s.push(&x);
+        }
+        s
+    }
+}
 
 fn split_at_newline_and_append(acc: &mut OsString, s: &OsStr, space: &'static str) {
     let bytes = s.as_encoded_bytes();
@@ -25,26 +35,8 @@ fn split_at_newline_and_append(acc: &mut OsString, s: &OsStr, space: &'static st
         }
     }
 }
-impl<T> Translate<Stmt> for T where T: Translate<Args, Output=Vec<OsString>> {
-    type Output = OsString;
-    fn translate(&self) -> Self::Output {
-        let v = Translate::<Args>::translate(self);
-        let mut s = OsString::new();
-        let mut iter = v.into_iter();
-        if let Some(x) = iter.next() {
-            s.push(&x);
-        }
-        for x in iter {
-            s.push(" ");
-            s.push(&x);
-        }
-        s
-    }
-}
-
-impl Translate<Args> for SampleAdapt {
-    type Output = Vec<OsString>;
-    fn translate(&self) -> Self::Output {
+impl Translate for SampleAdapt {
+    fn to_args(&self) -> Vec<OsString> {
         vec![
             "adapt".into(),
             format!("engaged={}", self.engaged as u8).into(),
@@ -57,18 +49,13 @@ impl Translate<Args> for SampleAdapt {
             format!("window={}", self.window).into(),
         ]
     }
-}
-
-impl Translate<Tree> for SampleAdapt {
-    type Output = OsString;
-    fn translate(&self) -> Self::Output {
+    fn to_tree(&self) -> OsString {
         format!("adapt\n  engaged = {}\n  gamma = {}\n  delta = {}\n  kappa = {}\n  t0 = {}\n  init_buffer = {}\n  term_buffer = {}\n  window = {}", self.engaged as u8, self.gamma, self.delta, self.kappa, self.t0, self.init_buffer, self.term_buffer, self.window).into()
     }
 }
 
-impl Translate<Args> for SampleAlgorithm {
-    type Output = Vec<OsString>;
-    fn translate(&self) -> Self::Output {
+impl Translate for SampleAlgorithm {
+    fn to_args(&self) -> Vec<OsString> {
         match &self {
             Self::Hmc {
                 engine,
@@ -77,8 +64,8 @@ impl Translate<Args> for SampleAlgorithm {
                 stepsize,
                 stepsize_jitter,
             } => {
-                let mut engine = <Engine as Translate<Args>>::translate(engine);
-                let mut metric = <Metric as Translate<Args>>::translate(metric);
+                let mut engine = engine.to_args();
+                let mut metric = metric.to_args();
                 let mut v = Vec::with_capacity(4 + engine.len() + metric.len());
                 v.push("algorithm=hmc".into());
                 v.append(&mut engine);
@@ -96,11 +83,7 @@ impl Translate<Args> for SampleAlgorithm {
             Self::FixedParam => vec!["algorithm=fixed_param".into()],
         }
     }
-}
-
-impl Translate<Tree> for SampleAlgorithm {
-    type Output = OsString;
-    fn translate(&self) -> Self::Output {
+    fn to_tree(&self) -> OsString {
         match &self {
             Self::Hmc {
                 engine,
@@ -110,8 +93,8 @@ impl Translate<Tree> for SampleAlgorithm {
                 stepsize_jitter,
             } => {
                 let mut s = OsString::from("algorithm = hmc\n  hmc\n");
-                let engine = <Engine as Translate<Tree>>::translate(engine);
-                let metric = <Metric as Translate<Tree>>::translate(metric);
+                let engine = engine.to_tree();
+                let metric = metric.to_tree();
                 split_at_newline_and_append(&mut s, &engine, "  ");
                 split_at_newline_and_append(&mut s, &metric, "  ");
                 s.push("  metric_file = ");
@@ -127,10 +110,8 @@ impl Translate<Tree> for SampleAlgorithm {
 }
 
 
-
-impl Translate<Args> for Engine {
-    type Output = Vec<OsString>;
-    fn translate(&self) -> Self::Output {
+impl Translate for Engine {
+    fn to_args(&self) -> Vec<OsString> {
         match &self {
             Engine::Nuts { max_depth } => {
                 vec![
@@ -146,11 +127,7 @@ impl Translate<Args> for Engine {
             }
         }
     }
-}
-
-impl Translate<Tree> for Engine {
-    type Output = OsString;
-    fn translate(&self) -> Self::Output {
+    fn to_tree(&self) -> OsString {
         match &self {
             Engine::Nuts { max_depth } => {
                 let mut s = OsString::from("engine = nuts\n");
@@ -170,6 +147,7 @@ impl Translate<Tree> for Engine {
     }
 }
 
+
 impl Metric {
     fn as_str(&self) -> &'static str {
         match self {
@@ -180,17 +158,15 @@ impl Metric {
     }
 }
 
-impl Translate<Args> for Metric {
-    type Output = Vec<OsString>;
-    fn translate(&self) -> Self::Output {
+impl Translate for Metric {
+    fn to_args(&self) -> Vec<OsString> {
         let s = format!("metric={}", self.as_str()).into();
         vec![s]
     }
-}
-
-impl Translate<Tree> for Metric {
-    type Output = OsString;
-    fn translate(&self) -> Self::Output {
+    fn to_tree(&self) -> OsString {
         format!("metric = {}", self.as_str()).into()
+    }
+    fn to_stmt(&self) -> OsString {
+        format!("metric={}", self.as_str()).into()
     }
 }

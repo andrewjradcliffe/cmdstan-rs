@@ -7,17 +7,18 @@ fn main() {
     translations(SampleAdapt::default());
 }
 
+
 fn translations<T>(x: T)
-where T: Translate<Args, Output = Vec<OsString>> + Translate<Stmt, Output = OsString> + Translate<Tree, Output = OsString> + std::fmt::Debug
+where T: Translate + std::fmt::Debug
 {
     println!("{:-<80}", "");
     println!("{:#?}", x);
-    let a = Translate::<Args>::translate(&x);
+    let a = x.to_args();
     println!("{:#?}", a);
-    let s = Translate::<Tree>::translate(&x);
+    let s = x.to_tree();
     println!("{:#?}", s);
     println!("{}", s.to_string_lossy());
-    let s = Translate::<Stmt>::translate(&x);
+    let s = x.to_stmt();
     println!("{:#?}", s);
     println!("{}", s.to_string_lossy());
 }
