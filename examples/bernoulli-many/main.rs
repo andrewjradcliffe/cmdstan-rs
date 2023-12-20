@@ -1,12 +1,17 @@
 use cmdstan::argument_tree::{ArgumentTree, Data, Output};
-use cmdstan::CmdStanModel;
 use cmdstan::{
     optimize::OptimizeBuilder, pathfinder::PathfinderBuilder, sample::SampleBuilder,
     variational::VariationalBuilder,
 };
+use cmdstan::*;
 use std::{env, path::PathBuf};
 
 fn main() {
+    // Of course, one need not rely on an environment variable, but
+    // this makes the example as portable as can be.
+    let path = env::var("CMDSTAN").expect("CMDSTAN environment variable not set!");
+    let cmdstan = CmdStan::try_from(path.as_ref()).expect("Something went wrong with CmdStan");
+
     // Typically, one would not use the current working directory;
     // this example utilizes the current working directory so that it
     // may be run from within the repository using `cargo run
@@ -19,10 +24,13 @@ fn main() {
     let data_file = path.join("bernoulli.data.json");
     path.set_file_name("bernoulli-many");
 
+    let program = StanProgram::try_from(model_file.as_ref()).expect("Stan program does not exist");
+    let model = cmdstan
+        .compile::<[_; 0], &str>(&program, [])
+        .expect("Something went wrong with compilation");
+
     let tree = ArgumentTree::builder()
-        .data(Data {
-            file: data_file.into(),
-        })
+        .data(Data::builder().file(data_file))
         .build();
 
     // This supplies the defaults for each method
@@ -48,18 +56,8 @@ fn main() {
             tree
         });
 
-    // Of course, one need not rely on an environment variable, but
-    // this makes the example as portable as can be.
-    let cmdstan = env::var("CMDSTAN_HOME").expect("CMDSTAN_HOME environment variable not set!");
-    let model = CmdStanModel::new(&cmdstan, &model_file);
-    // If a binary already exists, calling compile is somewhat strange, thus,
-    // we check if there is a working rather than re-compiling by default.
-    if !model.executable_works().unwrap_or(false) {
-        println!("{:#?}", model.compile());
-    }
-
     for tree in trees {
-        match model.call_executable(&tree) {
+        match model.call(&tree) {
             Ok(output) => {
                 println!("{:#?}", output.output());
             }
