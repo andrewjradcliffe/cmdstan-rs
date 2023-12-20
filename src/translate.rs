@@ -1,26 +1,34 @@
 use crate::sample::*;
 use std::ffi::{OsStr, OsString};
 
+static SPACE1: &str = " ";
+static SPACE2: &str = "  ";
+
 pub trait Translate {
     fn to_args(&self) -> Vec<OsString>;
     fn to_tree(&self) -> OsString;
 
+    /// Provided
     fn to_stmt(&self) -> OsString {
         let v = self.to_args();
-        let mut s = OsString::new();
-        let mut iter = v.into_iter();
-        if let Some(x) = iter.next() {
-            s.push(&x);
+        let n = v.len();
+        if n != 0 {
+            let cap: usize = v.iter().map(|s| s.len()).sum();
+            let mut s = OsString::with_capacity(cap + n - 1);
+            let mut iter = v.iter();
+            s.push(iter.next().unwrap());
+            for x in iter {
+                s.push(SPACE1);
+                s.push(x);
+            }
+            s
+        } else {
+            OsString::new()
         }
-        for x in iter {
-            s.push(" ");
-            s.push(&x);
-        }
-        s
     }
 }
 
-fn split_at_newline_and_append(acc: &mut OsString, s: &OsStr, space: &'static str) {
+fn split_at_newline_and_append(acc: &mut OsString, s: &OsStr) {
     let bytes = s.as_encoded_bytes();
     let lines = bytes.split(|b| *b == b'\n');
     for line in lines {
