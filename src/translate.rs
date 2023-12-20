@@ -3,6 +3,7 @@ use std::ffi::{OsStr, OsString};
 
 static SPACE1: &str = " ";
 static SPACE2: &str = "  ";
+static NEWLINE: &str = "\n";
 
 pub trait Translate {
     fn to_args(&self) -> Vec<OsString>;
@@ -37,9 +38,9 @@ fn split_at_newline_and_append(acc: &mut OsString, s: &OsStr) {
         // - Only split with ASCII newline which is a non-empty UTF-8 substring
         let line = unsafe { OsStr::from_encoded_bytes_unchecked(line)};
         if !line.is_empty() {
-            acc.push(space);
+            acc.push(SPACE2);
             acc.push(line);
-            acc.push("\n");
+            acc.push(NEWLINE);
         }
     }
 }
@@ -78,12 +79,10 @@ impl Translate for SampleAlgorithm {
                 v.push("algorithm=hmc".into());
                 v.append(&mut engine);
                 v.append(&mut metric);
-                if !metric_file.is_empty() {
-                    let mut s = OsString::with_capacity(12 + metric_file.len());
-                    s.push("metric_file=");
-                    s.push(metric_file);
-                    v.push(s);
-                }
+                let mut s = OsString::with_capacity(12 + metric_file.len());
+                s.push("metric_file=");
+                s.push(metric_file);
+                v.push(s);
                 v.push(format!("stepsize={}", stepsize).into());
                 v.push(format!("stepsize_jitter={}", stepsize_jitter).into());
                 v
@@ -103,11 +102,11 @@ impl Translate for SampleAlgorithm {
                 let mut s = OsString::from("algorithm = hmc\n  hmc\n");
                 let engine = engine.to_tree();
                 let metric = metric.to_tree();
-                split_at_newline_and_append(&mut s, &engine, "  ");
-                split_at_newline_and_append(&mut s, &metric, "  ");
+                split_at_newline_and_append(&mut s, &engine);
+                split_at_newline_and_append(&mut s, &metric);
                 s.push("  metric_file = ");
                 s.push(metric_file);
-                s.push("\n");
+                s.push(NEWLINE);
                 s.push(&format!("  stepsize = {}\n", stepsize));
                 s.push(&format!("  stepsize_jitter = {}", stepsize_jitter));
                 s
@@ -138,16 +137,12 @@ impl Translate for Engine {
     fn to_tree(&self) -> OsString {
         match &self {
             Engine::Nuts { max_depth } => {
-                let mut s = OsString::from("engine = nuts\n");
-                s.push("  nuts\n");
-                s.push("    ");
+                let mut s = OsString::from("engine = nuts\n  nuts\n    ");
                 s.push(&format!("max_depth = {}", max_depth));
                 s
             }
             Engine::Static { int_time } => {
-                let mut s = OsString::from("engine = static\n");
-                s.push("  static\n");
-                s.push("    ");
+                let mut s = OsString::from("engine = static\n  static\n    ");
                 s.push(&format!("int_time = {}", int_time));
                 s
             }
@@ -168,8 +163,8 @@ impl Metric {
 
 impl Translate for Metric {
     fn to_args(&self) -> Vec<OsString> {
-        let s = format!("metric={}", self.as_str()).into();
-        vec![s]
+        // A special case.
+        vec![self.to_stmt()]
     }
     fn to_tree(&self) -> OsString {
         format!("metric = {}", self.as_str()).into()
