@@ -365,6 +365,7 @@ impl Default for RandomBuilder {
 
 /// File output options
 #[derive(Debug, PartialEq, Clone)]
+#[non_exhaustive]
 pub struct Output {
     /// Output file.
     /// Valid values: Path to existing file.

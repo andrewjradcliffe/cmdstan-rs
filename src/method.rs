@@ -11,9 +11,11 @@ use std::ffi::OsString;
 
 /// Analysis method. Defaults to [`Self::Sample`].
 #[derive(Debug, PartialEq, Clone)]
+#[non_exhaustive]
 pub enum Method {
     /// Bayesian inference with Markov Chain Monte Carlo. Use
     /// [`SampleBuilder`] for parameterized construction with optional defaults.
+    #[non_exhaustive]
     Sample {
         /// Number of warmup iterations.
         /// Valid values: `0 <= num_samples`.
@@ -44,6 +46,7 @@ pub enum Method {
     },
     /// Point estimation.
     /// Use [`OptimizeBuilder`] for parameterized construction with optional defaults.
+    #[non_exhaustive]
     Optimize {
         /// Optimization algorithm. Defaults to [`OptimizeAlgorithm::Lbfgs`].
         algorithm: OptimizeAlgorithm,
@@ -67,6 +70,7 @@ pub enum Method {
     },
     /// Variational inference. Use [`VariationalBuilder`] for
     /// parameterized construction with optional defaults.
+    #[non_exhaustive]
     Variational {
         /// Variational inference algorithm.
         /// Defaults to [`VariationalAlgorithm::MeanField`].
@@ -102,12 +106,14 @@ pub enum Method {
         /// Defaults to `1000`.
         output_samples: i32,
     },
+    #[non_exhaustive]
     /// Model diagnostics. Use [`DiagnoseBuilder`] for construction
     /// with defaults.
     Diagnose {
         /// Diagnostic test. Defaults to [`DiagnoseTest::Gradient`].
         test: DiagnoseTest,
     },
+    #[non_exhaustive]
     /// Generate quantities of interest
     GenerateQuantities {
         /// Input file of sample of fitted parameter values for model conditioned on data.
@@ -117,6 +123,7 @@ pub enum Method {
     },
     /// Pathfinder algorithm. Use [`PathfinderBuilder`] for
     /// construction with defaults.
+    #[non_exhaustive]
     Pathfinder {
         /// Line search step size for first iteration.
         /// Valid values: `0 < init_alpha`.
@@ -175,6 +182,7 @@ pub enum Method {
     },
     /// Return the log density up to a constant and its gradients, given supplied parameters.
     /// Use [`LogProbBuilder`] for parameterized construction with optional defaults.
+    #[non_exhaustive]
     LogProb {
         /// Input file (JSON or R dump) of parameter values on unconstrained scale.
         /// Valid values: Path to existing file.
@@ -194,6 +202,7 @@ pub enum Method {
     },
     /// Sample from a Laplace approximation.
     /// Use [`LaplaceBuilder`] for parameterized construction with optional defaults.
+    #[non_exhaustive]
     Laplace {
         /// A specification of a mode on the constrained scale for all
         /// model parameters, either in JSON or CSV format.

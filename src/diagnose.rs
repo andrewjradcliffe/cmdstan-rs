@@ -28,8 +28,10 @@ impl Default for DiagnoseBuilder {
 
 /// Diagnostic test. Defaults to `Gradient`.
 #[derive(Debug, PartialEq, Clone)]
+#[non_exhaustive]
 pub enum DiagnoseTest {
     /// Check model gradient against finite differences
+    #[non_exhaustive]
     Gradient {
         /// Finite difference step size.
         /// Valid values: `0 < epsilon`.

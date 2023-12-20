@@ -65,6 +65,7 @@ impl Default for SampleBuilder {
 
 /// Warmup Adaptation
 #[derive(Debug, PartialEq, Clone)]
+#[non_exhaustive]
 pub struct SampleAdapt {
     /// Adaptation engaged?
     /// Defaults to `true`.
@@ -252,8 +253,10 @@ impl Default for HmcBuilder {
 
 /// Sampling algorithm. Defaults to `Hmc`.
 #[derive(Debug, PartialEq, Clone)]
+#[non_exhaustive]
 pub enum SampleAlgorithm {
     /// Hamiltonian Monte Carlo
+    #[non_exhaustive]
     Hmc {
         /// Engine for Hamiltonian Monte Carlo.
         /// Valid values: any variant of `Engine`.
@@ -324,8 +327,10 @@ impl From<HmcBuilder> for SampleAlgorithm {
 
 /// Engine for Hamiltonian Monte Carlo. Defaults to `Nuts`.
 #[derive(Debug, PartialEq, Clone)]
+#[non_exhaustive]
 pub enum Engine {
     /// Static integration time
+    #[non_exhaustive]
     Static {
         /// Total integration time for Hamiltonian evolution.
         /// Valid values: `0 < int_time`.
@@ -333,6 +338,7 @@ pub enum Engine {
         int_time: f64,
     },
     /// The No-U-Turn Sampler
+    #[non_exhaustive]
     Nuts {
         /// Maximum tree depth.
         /// Valid values: `0 < max_depth`.

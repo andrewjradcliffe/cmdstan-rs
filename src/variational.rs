@@ -73,6 +73,7 @@ impl Default for VariationalBuilder {
 
 /// Variational inference algorithm. Defaults to `MeanField`.
 #[derive(Debug, Default, PartialEq, Clone)]
+#[non_exhaustive]
 pub enum VariationalAlgorithm {
     /// mean-field approximation
     #[default]
@@ -92,6 +93,7 @@ impl VariationalAlgorithm {
 
 /// Eta Adaptation for Variational Inference
 #[derive(Debug, PartialEq, Clone)]
+#[non_exhaustive]
 pub struct VariationalAdapt {
     /// Boolean flag for eta adaptation.
     /// Defaults to `true`.

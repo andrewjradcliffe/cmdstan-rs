@@ -58,8 +58,10 @@ pub(crate) const HISTORY_SIZE: i32 = 5;
 
 /// Optimization algorithm. Defaults to `Lbfgs`.
 #[derive(Debug, PartialEq, Clone)]
+#[non_exhaustive]
 pub enum OptimizeAlgorithm {
     /// BFGS with linesearch
+    #[non_exhaustive]
     Bfgs {
         /// Line search step size for first iteration.
         /// Valid values: `0 < init_alpha`.
@@ -87,6 +89,7 @@ pub enum OptimizeAlgorithm {
         tol_param: f64,
     },
     /// LBFGS with linesearch
+    #[non_exhaustive]
     Lbfgs {
         /// Line search step size for first iteration.
         /// Valid values: `0 < init_alpha`.
