@@ -18,6 +18,8 @@ pub mod variational;
 
 pub mod parser;
 
+pub mod translate;
+
 pub use crate::method::*;
 
 pub use base::*;
