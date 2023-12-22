@@ -255,7 +255,8 @@ impl Default for HmcBuilder {
 #[derive(Debug, PartialEq, Clone)]
 #[non_exhaustive]
 pub enum SampleAlgorithm {
-    /// Hamiltonian Monte Carlo
+    /// Hamiltonian Monte Carlo.
+    /// To construct, use [`HmcBuilder`].
     #[non_exhaustive]
     Hmc {
         /// Engine for Hamiltonian Monte Carlo.
@@ -319,6 +320,7 @@ impl SampleAlgorithm {
         }
     }
 }
+
 impl From<HmcBuilder> for SampleAlgorithm {
     fn from(hmc: HmcBuilder) -> SampleAlgorithm {
         hmc.build()
@@ -329,7 +331,8 @@ impl From<HmcBuilder> for SampleAlgorithm {
 #[derive(Debug, PartialEq, Clone)]
 #[non_exhaustive]
 pub enum Engine {
-    /// Static integration time
+    /// Static integration time.
+    /// To construct, use [`StaticBuilder`].
     #[non_exhaustive]
     Static {
         /// Total integration time for Hamiltonian evolution.
@@ -337,7 +340,8 @@ pub enum Engine {
         /// Defaults to `2 * pi`.
         int_time: f64,
     },
-    /// The No-U-Turn Sampler
+    /// The No-U-Turn Sampler.
+    /// To construct, use [`NutsBuilder`].
     #[non_exhaustive]
     Nuts {
         /// Maximum tree depth.
