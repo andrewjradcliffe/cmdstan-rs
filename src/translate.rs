@@ -1,8 +1,10 @@
 use crate::sample::*;
+use crate::method::*;
 use std::ffi::{OsStr, OsString};
 
 static SPACE1: &str = " ";
 static SPACE2: &str = "  ";
+static SPACE4: &str = "    ";
 static NEWLINE: &str = "\n";
 
 pub trait Translate {
@@ -29,7 +31,9 @@ pub trait Translate {
     }
 }
 
-fn split_at_newline_and_append(acc: &mut OsString, s: &OsStr) {
+/// One function to split and append pieces in order to create the
+/// whitespace-and-newline delineated tree structure.
+fn split_at_newline_and_append(acc: &mut OsString, s: &OsStr, space: &'static str) {
     let bytes = s.as_encoded_bytes();
     let lines = bytes.split(|b| *b == b'\n');
     for line in lines {
@@ -38,12 +42,54 @@ fn split_at_newline_and_append(acc: &mut OsString, s: &OsStr) {
         // - Only split with ASCII newline which is a non-empty UTF-8 substring
         let line = unsafe { OsStr::from_encoded_bytes_unchecked(line)};
         if !line.is_empty() {
-            acc.push(SPACE2);
+            acc.push(space);
             acc.push(line);
             acc.push(NEWLINE);
         }
     }
 }
+
+impl Translate for Method {
+    fn to_args(&self) -> Vec<OsString> {
+        match &self {
+            Self::Sample { num_samples, num_warmup, save_warmup, thin, adapt, algorithm, num_chains } => {
+                let mut adapt = adapt.to_args();
+                let mut alg = algorithm.to_args();
+                let mut v = Vec::with_capacity(6 + adapt.len() + alg.len());
+                v.push("method=sample".into());
+                v.push(format!("num_samples={}", num_samples).into());
+                v.push(format!("num_warmup={}", num_warmup).into());
+                v.push(format!("save_warmup={}", *save_warmup as u8).into());
+                v.push(format!("thin={}", thin).into());
+                v.append(&mut adapt);
+                v.append(&mut alg);
+                v.push(format!("num_chains={}", num_chains).into());
+                v
+            }
+            _ => todo!(),
+        }
+    }
+    fn to_tree(&self) -> OsString {
+        match &self {
+            Self::Sample { num_samples, num_warmup, save_warmup, thin, adapt, algorithm, num_chains } => {
+                let adapt = adapt.to_tree();
+                let alg = algorithm.to_tree();
+                let mut s = OsString::from("method = sample\n  sample\n");
+                s.push(&format!("    num_samples = {}\n", num_samples));
+                s.push(&format!("    num_warmup = {}\n", num_warmup));
+                s.push(&format!("    save_warmup = {}\n", *save_warmup as u8));
+                s.push(&format!("    thin = {}\n", thin));
+                split_at_newline_and_append(&mut s, &adapt, SPACE4);
+                split_at_newline_and_append(&mut s, &alg, SPACE4);
+                s.push(&format!("    num_chains = {}", num_chains));
+                s
+            }
+            _ => todo!(),
+        }
+    }
+}
+
+
 impl Translate for SampleAdapt {
     fn to_args(&self) -> Vec<OsString> {
         vec![
@@ -102,8 +148,8 @@ impl Translate for SampleAlgorithm {
                 let mut s = OsString::from("algorithm = hmc\n  hmc\n");
                 let engine = engine.to_tree();
                 let metric = metric.to_tree();
-                split_at_newline_and_append(&mut s, &engine);
-                split_at_newline_and_append(&mut s, &metric);
+                split_at_newline_and_append(&mut s, &engine, SPACE2);
+                split_at_newline_and_append(&mut s, &metric, SPACE2);
                 s.push("  metric_file = ");
                 s.push(metric_file);
                 s.push(NEWLINE);
