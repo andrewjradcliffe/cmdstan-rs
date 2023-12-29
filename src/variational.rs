@@ -2,7 +2,8 @@ use crate::builder::Builder;
 use crate::translate::Translate;
 use std::ffi::OsString;
 
-/// Variational inference algorithm. Defaults to `MeanField`.
+/// Variational inference algorithm. Defaults to
+/// [`VariationalAlgorithm::MeanField`].
 #[derive(Debug, Default, PartialEq, Clone, Translate)]
 #[non_exhaustive]
 #[declare = "algorithm"]
@@ -15,6 +16,7 @@ pub enum VariationalAlgorithm {
 }
 
 /// Eta Adaptation for Variational Inference
+/// (i.e. [`Method::Variational`][crate::method::Method::Variational]).
 #[derive(Debug, PartialEq, Clone, Translate, Builder)]
 #[non_exhaustive]
 #[declare = "adapt"]

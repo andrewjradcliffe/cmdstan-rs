@@ -5,18 +5,19 @@ pub mod argtree;
 mod base;
 pub(crate) mod builder;
 mod consts;
-pub mod diagnose;
+mod diagnose;
 pub mod error;
 pub mod method;
-pub mod optimize;
-pub mod sample;
+mod optimize;
+mod sample;
 pub mod stansummary;
-pub mod variational;
+mod variational;
 
 pub mod parser;
 
 pub mod translate;
 
-pub use crate::method::*;
+pub use argtree::*;
+pub use method::*;
 
 pub use base::*;

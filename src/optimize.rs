@@ -2,7 +2,7 @@ use crate::builder::Builder;
 use crate::translate::Translate;
 use std::ffi::OsString;
 
-/// Optimization algorithm. Defaults to `Lbfgs`.
+/// Optimization algorithm. Defaults to [`OptimizeAlgorithm::Lbfgs`].
 #[derive(Debug, PartialEq, Clone, Translate, Builder)]
 #[non_exhaustive]
 #[declare = "algorithm"]

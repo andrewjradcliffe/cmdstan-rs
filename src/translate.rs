@@ -134,8 +134,8 @@ b = 2";
         use super::*;
         use crate::argtree::*;
         use crate::method::*;
-        use crate::sample::*;
-        use crate::variational::*;
+        // use crate::sample::*;
+        // use crate::variational::*;
 
         fn join_with_ws(v: &[OsString]) -> OsString {
             let n = v.len();

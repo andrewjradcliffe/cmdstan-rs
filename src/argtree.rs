@@ -1,5 +1,5 @@
-use crate::method::*;
 use crate::builder::Builder;
+use crate::method::*;
 use crate::translate::Translate;
 use std::ffi::{OsStr, OsString};
 
@@ -60,7 +60,6 @@ fn rsplit_file_at_dot<'a>(file: &'a OsStr) -> (&'a OsStr, &'a OsStr) {
     };
     (prefix, suffix)
 }
-
 
 /** File-handling utilities. */
 impl ArgTree {

@@ -63,7 +63,6 @@ pub(crate) const TOL_REL_GRAD: f64 = 10_000_000.0;
 pub(crate) const TOL_PARAM: f64 = 1e-8;
 pub(crate) const HISTORY_SIZE: i32 = 5;
 
-
 // Used in multiple places
 pub(crate) const NEG1_I32: i32 = -1;
 pub(crate) const NEG1_I64: i64 = -1;

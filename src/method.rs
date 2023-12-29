@@ -1,12 +1,25 @@
+/*! Module for specifying inference algorithm and respective options.
+
+Stan provides several inference algorithms, parameterized pseudo-random variable generation,
+and diagnostic tools. Each of these methods supports a variety of configuration options.
+
+The methods and their configuration are abstracted into the `Method` enum, which provides
+a uniform interface for use with `ArgTree`, which contains the rest of a user's configuration.
+
+As a user, you will typically construct a given variant of `Method` using the respective
+builder. When using a builder, note that one need only specify the variables which one
+desires to be something other than the default value; default values are listed
+in the documentation respective to each `struct` or `enum`.
+*/
 use crate::builder::Builder;
-use crate::diagnose::*;
-use crate::optimize::*;
-use crate::sample::*;
+pub use crate::diagnose::*;
+pub use crate::optimize::*;
+pub use crate::sample::*;
 use crate::translate::Translate;
-use crate::variational::*;
+pub use crate::variational::*;
 use std::ffi::OsString;
 
-/// Analysis method. Defaults to [`Self::Sample`].
+/// Analysis method. Defaults to [`Method::Sample`].
 #[derive(Debug, PartialEq, Clone, Translate, Builder)]
 #[non_exhaustive]
 #[declare = "method"]

@@ -2,7 +2,7 @@ use crate::builder::Builder;
 use crate::translate::Translate;
 use std::ffi::OsString;
 
-/// Diagnostic test. Defaults to `Gradient`.
+/// Diagnostic test. Defaults to [`DiagnoseTest::Gradient`].
 #[derive(Debug, PartialEq, Clone, Translate, Builder)]
 #[non_exhaustive]
 #[declare = "test"]

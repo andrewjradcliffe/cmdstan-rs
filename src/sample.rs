@@ -2,7 +2,7 @@ use crate::builder::Builder;
 use crate::translate::Translate;
 use std::ffi::OsString;
 
-/// Warmup Adaptation
+/// Warmup Adaptation for [`Method::Sample`][crate::method::Method::Sample]
 #[derive(Debug, PartialEq, Clone, Translate, Builder)]
 #[non_exhaustive]
 #[declare = "adapt"]
@@ -95,7 +95,7 @@ impl Default for SampleAlgorithm {
     }
 }
 
-/// Engine for Hamiltonian Monte Carlo. Defaults to `Nuts`.
+/// Engine for Hamiltonian Monte Carlo. Defaults to [`Engine::Nuts`].
 #[derive(Debug, PartialEq, Clone, Translate, Builder)]
 #[non_exhaustive]
 #[declare = "engine"]
@@ -127,7 +127,7 @@ impl Default for Engine {
     }
 }
 
-/// Geometry of base manifold. Defaults to `DiagE`.
+/// Geometry of base manifold. Defaults to [`Metric::DiagE`]
 #[derive(Debug, PartialEq, Default, Clone, Translate)]
 #[declare = "metric"]
 pub enum Metric {
