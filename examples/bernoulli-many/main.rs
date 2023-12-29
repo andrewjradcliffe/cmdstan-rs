@@ -1,9 +1,4 @@
-use cmdstan::argtree::{ArgTree, Data, Output};
 use cmdstan::*;
-use cmdstan::{
-    optimize::OptimizeBuilder, pathfinder::PathfinderBuilder, sample::SampleBuilder,
-    variational::VariationalBuilder,
-};
 use std::{env, path::PathBuf};
 
 fn main() {

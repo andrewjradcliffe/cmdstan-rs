@@ -15,9 +15,7 @@ fn main() {
 
     assert_eq!(t1, t3);
 
-    let t4 = ArgTree::from_reader(STDOUT.as_bytes())
-        .unwrap()
-        .unwrap();
+    let t4 = ArgTree::from_reader(STDOUT.as_bytes()).unwrap().unwrap();
     assert_eq!(t1, t4);
 }
 
