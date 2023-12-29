@@ -1,9 +1,14 @@
 use crate::method::*;
+use crate::builder::Builder;
 use crate::translate::Translate;
-use std::env;
 use std::ffi::{OsStr, OsString};
 
-#[derive(Debug, PartialEq, Clone, Translate)]
+const NEG1_I32: i32 = -1;
+const NEG1_I64: i64 = -1;
+const OUTPUT_FILE: &str = "output.csv";
+const PROFILE_FILE: &str = "profile.csv";
+
+#[derive(Debug, PartialEq, Clone, Translate, Builder)]
 #[non_exhaustive]
 // Lack of `declare` is intentional.
 pub struct ArgumentTree {
@@ -12,6 +17,7 @@ pub struct ArgumentTree {
     /// Unique process identifier.
     /// Valid values: `id >= 0`.
     /// Defaults to `1`.
+    #[defaults_to = 1]
     pub id: i32,
     /// Input data options
     pub data: Data,
@@ -20,6 +26,7 @@ pub struct ArgumentTree {
     /// values.
     /// Valid values: All.
     /// Defaults to `"2"`.
+    #[defaults_to = "2"]
     pub init: OsString,
     /// Random number configuration
     pub random: Random,
@@ -27,54 +34,48 @@ pub struct ArgumentTree {
     pub output: Output,
     /// Number of threads available to the program.
     /// Valid values: `num_threads > 0 || num_threads == -1`.
-    /// Defaults to `1` or the value of the STAN_NUM_THREADS environment variable if set.
+    /// Defaults to `1` or the value of the `STAN_NUM_THREADS` environment variable if set.
+    #[defaults_to = 1]
     pub num_threads: i32,
 }
-impl Default for ArgumentTree {
-    fn default() -> Self {
-        ArgumentTreeBuilder::new().build()
-    }
-}
-impl ArgumentTree {
-    /// Return a builder with all options unspecified.
-    pub fn builder() -> ArgumentTreeBuilder {
-        ArgumentTreeBuilder::new()
-    }
 
-    /// Match the behavior of CmdStan path handling, which
-    /// includes substitution of a `"csv"` suffix if no `'.'`
-    /// is present in the input.
-    fn rsplit_file_at_dot<'a>(file: &'a OsStr) -> (&'a OsStr, &'a OsStr) {
-        let bytes = file.as_encoded_bytes();
-        let mut iter = bytes.rsplitn(2, |b| *b == b'.');
+/// Match the behavior of CmdStan path handling, which
+/// includes substitution of a `"csv"` suffix if no `'.'`
+/// is present in the input.
+fn rsplit_file_at_dot<'a>(file: &'a OsStr) -> (&'a OsStr, &'a OsStr) {
+    let bytes = file.as_encoded_bytes();
+    let mut iter = bytes.rsplitn(2, |b| *b == b'.');
 
-        let (prefix, suffix) = match (iter.next(), iter.next()) {
-            (Some(suffix), Some(prefix)) => {
-                // SAFETY:
-                // - each fragment only contains content that originated
-                //   from `OsStr::as_encoded_bytes`.
-                // - split with ASCII period, which is a non-empty UTF-8
-                //   substring.
-                // Thus, the invariants are maintained.
-                unsafe {
-                    (
-                        OsStr::from_encoded_bytes_unchecked(prefix),
-                        OsStr::from_encoded_bytes_unchecked(suffix),
-                    )
-                }
+    let (prefix, suffix) = match (iter.next(), iter.next()) {
+        (Some(suffix), Some(prefix)) => {
+            // SAFETY:
+            // - each fragment only contains content that originated
+            //   from `OsStr::as_encoded_bytes`.
+            // - split with ASCII period, which is a non-empty UTF-8
+            //   substring.
+            // Thus, the invariants are maintained.
+            unsafe {
+                (
+                    OsStr::from_encoded_bytes_unchecked(prefix),
+                    OsStr::from_encoded_bytes_unchecked(suffix),
+                )
             }
-            _ => (file, "csv".as_ref()),
-        };
-        (prefix, suffix)
-    }
+        }
+        _ => (file, "csv".as_ref()),
+    };
+    (prefix, suffix)
+}
 
+
+/** File-handling utilities. */
+impl ArgumentTree {
     fn files<F>(&self, f: F) -> Vec<OsString>
     where
         F: Fn(&ArgumentTree) -> &OsStr,
     {
         let mut files: Vec<OsString> = Vec::new();
         let file = f(self);
-        let (prefix, suffix) = Self::rsplit_file_at_dot(file);
+        let (prefix, suffix) = rsplit_file_at_dot(file);
         match &self.method {
             Method::Sample { num_chains, .. } if *num_chains != 1 => {
                 let id = self.id;
@@ -131,7 +132,7 @@ impl ArgumentTree {
                     // too many '.' interspersed in self.output.file.
                     // Thus, this may not necessarily reproduce the files
                     // particularly well.
-                    let (prefix, _) = Self::rsplit_file_at_dot(file);
+                    let (prefix, _) = rsplit_file_at_dot(file);
                     if *num_paths != 1 {
                         let id = self.id;
                         (id..id + num_paths).for_each(|id| {
@@ -159,118 +160,20 @@ impl ArgumentTree {
     }
 }
 
-/// Options builder for [`ArgumentTree`].
-/// For any option left unspecified, the default value indicated
-/// on `ArgumentTree` will be supplied.
-#[derive(Debug, PartialEq, Clone)]
-pub struct ArgumentTreeBuilder {
-    method: Option<Method>,
-    id: Option<i32>,
-    data: Option<Data>,
-    init: Option<OsString>,
-    random: Option<Random>,
-    output: Option<Output>,
-    num_threads: Option<i32>,
-}
-impl ArgumentTreeBuilder {
-    /// Return a builder with all options unspecified.
-    pub fn new() -> Self {
-        Self {
-            method: None,
-            id: None,
-            data: None,
-            init: None,
-            random: None,
-            output: None,
-            num_threads: None,
-        }
-    }
-    insert_into_field!(method, Method);
-    insert_field!(id, i32);
-    insert_into_field!(data, Data);
-    insert_into_field!(init, OsString);
-    insert_into_field!(random, Random);
-    insert_into_field!(output, Output);
-    insert_field!(num_threads, i32);
-    /// Build the `ArgumentTree` instance.
-    pub fn build(self) -> ArgumentTree {
-        let method = self.method.unwrap_or_default();
-        let id = self.id.unwrap_or(1);
-        let data = self.data.unwrap_or_default();
-        let init = self.init.unwrap_or_else(|| "2".into());
-        let random = self.random.unwrap_or_default();
-        let output = self.output.unwrap_or_default();
-        let num_threads = self.num_threads.unwrap_or_else(|| {
-            env::var("STAN_NUM_THREADS").map_or(1, |s| s.parse::<i32>().unwrap_or(1))
-        });
-        ArgumentTree {
-            method,
-            id,
-            data,
-            init,
-            random,
-            output,
-            num_threads,
-        }
-    }
-}
-
-impl Default for ArgumentTreeBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// Input data options
-#[derive(Debug, PartialEq, Clone, Translate)]
+#[derive(Debug, PartialEq, Clone, Translate, Builder)]
 #[non_exhaustive]
 #[declare = "data"]
 pub struct Data {
     /// Input data file.
     /// Valid values: Path to existing file.
     /// Defaults to `""`.
+    #[defaults_to = ""]
     pub file: OsString,
 }
 
-impl Default for Data {
-    fn default() -> Self {
-        Self::builder().build()
-    }
-}
-
-impl From<DataBuilder> for Data {
-    fn from(x: DataBuilder) -> Self {
-        x.build()
-    }
-}
-
-impl Data {
-    pub fn builder() -> DataBuilder {
-        DataBuilder::new()
-    }
-}
-
-pub struct DataBuilder {
-    file: Option<OsString>,
-}
-impl DataBuilder {
-    insert_into_field!(file, OsString);
-    pub fn new() -> Self {
-        Self { file: None }
-    }
-    pub fn build(self) -> Data {
-        let file = self.file.unwrap_or_else(|| "".into());
-        Data { file }
-    }
-}
-impl Default for DataBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// Random number configuration
-#[derive(Debug, PartialEq, Clone, Translate)]
+#[derive(Debug, PartialEq, Clone, Translate, Builder)]
 #[non_exhaustive]
 #[declare = "random"]
 pub struct Random {
@@ -278,142 +181,42 @@ pub struct Random {
     /// Valid values: non-negative integer < `4294967296` or `-1` to
     /// generate seed from system time.
     /// Defaults to `-1`.
+    #[defaults_to = "NEG1_I64"]
     pub seed: i64,
 }
 
-impl Default for Random {
-    fn default() -> Self {
-        Self::builder().build()
-    }
-}
-
-impl From<RandomBuilder> for Random {
-    fn from(x: RandomBuilder) -> Self {
-        x.build()
-    }
-}
-
-impl Random {
-    pub fn builder() -> RandomBuilder {
-        RandomBuilder::new()
-    }
-}
-
-pub struct RandomBuilder {
-    seed: Option<i64>,
-}
-impl RandomBuilder {
-    insert_field!(seed, i64);
-    pub fn new() -> Self {
-        Self { seed: None }
-    }
-    pub fn build(self) -> Random {
-        let seed = self.seed.unwrap_or(-1);
-        Random { seed }
-    }
-}
-impl Default for RandomBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// File output options
-#[derive(Debug, PartialEq, Clone, Translate)]
+#[derive(Debug, PartialEq, Clone, Translate, Builder)]
 #[non_exhaustive]
 #[declare = "output"]
 pub struct Output {
     /// Output file.
     /// Valid values: Path to existing file.
     /// Defaults to `"output.csv"`.
+    #[defaults_to = "OUTPUT_FILE"]
     pub file: OsString,
     /// Auxiliary output file for diagnostic information.
     /// Valid values: Path to existing file.
     /// Defaults to `""`.
+    #[defaults_to = ""]
     pub diagnostic_file: OsString,
     /// Number of interations between screen updates.
     /// Valid values: `0 <= refresh`.
     /// Defaults to `100`.
+    #[defaults_to = 100]
     pub refresh: i32,
     /// The number of significant figures used for the output CSV
     /// files.
     /// Valid values: `0 <= sig_figs <= 18` or `-1` to use the
     /// default number of significant figures.
     /// Defaults to` -1`.
+    #[defaults_to = "NEG1_I32"]
     pub sig_figs: i32,
     /// File to store profiling information.
     /// Valid values: Valid path and write access to the folder.
     /// Defaults to `"profile.csv"`.
+    #[defaults_to = "PROFILE_FILE"]
     pub profile_file: OsString,
-}
-
-impl Default for Output {
-    fn default() -> Self {
-        Self::builder().build()
-    }
-}
-
-impl Output {
-    /// Return a builder with all options unspecified.
-    pub fn builder() -> OutputBuilder {
-        OutputBuilder::new()
-    }
-}
-
-impl From<OutputBuilder> for Output {
-    fn from(x: OutputBuilder) -> Self {
-        x.build()
-    }
-}
-
-/// Options builder for [`Output`].
-/// For any option left unspecified, the default value indicated
-/// on `Output` will be supplied.
-#[derive(Debug, PartialEq, Clone)]
-pub struct OutputBuilder {
-    file: Option<OsString>,
-    diagnostic_file: Option<OsString>,
-    refresh: Option<i32>,
-    sig_figs: Option<i32>,
-    profile_file: Option<OsString>,
-}
-
-impl OutputBuilder {
-    /// Return a builder with all options unspecified.
-    pub fn new() -> Self {
-        Self {
-            file: None,
-            diagnostic_file: None,
-            refresh: None,
-            sig_figs: None,
-            profile_file: None,
-        }
-    }
-    insert_into_field!(file, OsString);
-    insert_into_field!(diagnostic_file, OsString);
-    insert_field!(refresh, i32);
-    insert_field!(sig_figs, i32);
-    insert_into_field!(profile_file, OsString);
-    /// Build the `Output` instance.
-    pub fn build(self) -> Output {
-        let file = self.file.unwrap_or_else(|| "output.csv".into());
-        let diagnostic_file = self.diagnostic_file.unwrap_or_else(|| "".into());
-        let refresh = self.refresh.unwrap_or(100);
-        let sig_figs = self.sig_figs.unwrap_or(-1);
-        let profile_file = self.profile_file.unwrap_or_else(|| "profile.csv".into());
-        Output {
-            file,
-            diagnostic_file,
-            refresh,
-            sig_figs,
-            profile_file,
-        }
-    }
-}
-impl Default for OutputBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 #[cfg(test)]
