@@ -1,4 +1,5 @@
 use crate::method::Method;
+use crate::translate::Translate;
 use std::ffi::OsString;
 
 /// Options builder for [`Method::Variational`].
@@ -72,8 +73,9 @@ impl Default for VariationalBuilder {
 }
 
 /// Variational inference algorithm. Defaults to `MeanField`.
-#[derive(Debug, Default, PartialEq, Clone)]
+#[derive(Debug, Default, PartialEq, Clone, Translate)]
 #[non_exhaustive]
+#[declare = "algorithm"]
 pub enum VariationalAlgorithm {
     /// mean-field approximation
     #[default]
@@ -81,19 +83,11 @@ pub enum VariationalAlgorithm {
     /// full-rank covariance
     FullRank,
 }
-impl VariationalAlgorithm {
-    pub fn command_fragment(&self) -> Vec<OsString> {
-        let s = match &self {
-            Self::MeanField => "algorithm=meanfield",
-            Self::FullRank => "algorithm=fullrank",
-        };
-        vec![s.into()]
-    }
-}
 
 /// Eta Adaptation for Variational Inference
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Translate)]
 #[non_exhaustive]
+#[declare = "adapt"]
 pub struct VariationalAdapt {
     /// Boolean flag for eta adaptation.
     /// Defaults to `true`.
@@ -113,13 +107,6 @@ impl Default for VariationalAdapt {
 }
 
 impl VariationalAdapt {
-    pub fn command_fragment(&self) -> Vec<OsString> {
-        vec![
-            "adapt".into(),
-            format!("engaged={}", self.engaged as u8).into(),
-            format!("iter={}", self.iter).into(),
-        ]
-    }
     /// Return a builder with all options unspecified.
     pub fn builder() -> VariationalAdaptBuilder {
         VariationalAdaptBuilder::new()
@@ -228,11 +215,11 @@ mod tests {
         }
 
         #[test]
-        fn command_fragment() {
+        fn to_args() {
             let x = VariationalAlgorithm::default();
-            assert_eq!(x.command_fragment(), vec!["algorithm=meanfield"]);
+            assert_eq!(x.to_args(), vec!["algorithm=meanfield"]);
             let x = VariationalAlgorithm::FullRank;
-            assert_eq!(x.command_fragment(), vec!["algorithm=fullrank"]);
+            assert_eq!(x.to_args(), vec!["algorithm=fullrank"]);
         }
     }
 
@@ -263,14 +250,14 @@ mod tests {
         }
 
         #[test]
-        fn command_fragment() {
+        fn to_args() {
             let x = VariationalAdapt::default();
-            assert_eq!(x.command_fragment(), vec!["adapt", "engaged=1", "iter=50"]);
+            assert_eq!(x.to_args(), vec!["adapt", "engaged=1", "iter=50"]);
             let x = VariationalAdaptBuilder::new()
                 .engaged(false)
                 .iter(200)
                 .build();
-            assert_eq!(x.command_fragment(), vec!["adapt", "engaged=0", "iter=200"]);
+            assert_eq!(x.to_args(), vec!["adapt", "engaged=0", "iter=200"]);
         }
     }
 }

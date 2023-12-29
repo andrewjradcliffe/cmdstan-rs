@@ -1,4 +1,5 @@
 use crate::method::Method;
+use crate::translate::Translate;
 use std::ffi::OsString;
 
 /// Options builder for [`Method::Optimize`].
@@ -57,8 +58,9 @@ pub(crate) const TOL_PARAM: f64 = 1e-8;
 pub(crate) const HISTORY_SIZE: i32 = 5;
 
 /// Optimization algorithm. Defaults to `Lbfgs`.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Translate)]
 #[non_exhaustive]
+#[declare = "algorithm"]
 pub enum OptimizeAlgorithm {
     /// BFGS with linesearch
     #[non_exhaustive]
@@ -129,7 +131,6 @@ impl Default for OptimizeAlgorithm {
         LbfgsBuilder::new().build()
     }
 }
-use OptimizeAlgorithm::*;
 
 /// Options builder for [`OptimizeAlgorithm::Bfgs`].
 /// For any option left unspecified, the default value indicated
@@ -258,52 +259,6 @@ impl Default for LbfgsBuilder {
     }
 }
 
-impl OptimizeAlgorithm {
-    pub fn command_fragment(&self) -> Vec<OsString> {
-        match &self {
-            Bfgs {
-                init_alpha,
-                tol_obj,
-                tol_rel_obj,
-                tol_grad,
-                tol_rel_grad,
-                tol_param,
-            } => {
-                vec![
-                    "algorithm=bfgs".into(),
-                    format!("init_alpha={}", init_alpha).into(),
-                    format!("tol_obj={}", tol_obj).into(),
-                    format!("tol_rel_obj={}", tol_rel_obj).into(),
-                    format!("tol_grad={}", tol_grad).into(),
-                    format!("tol_rel_grad={}", tol_rel_grad).into(),
-                    format!("tol_param={}", tol_param).into(),
-                ]
-            }
-            Lbfgs {
-                init_alpha,
-                tol_obj,
-                tol_rel_obj,
-                tol_grad,
-                tol_rel_grad,
-                tol_param,
-                history_size,
-            } => {
-                vec![
-                    "algorithm=lbfgs".into(),
-                    format!("init_alpha={}", init_alpha).into(),
-                    format!("tol_obj={}", tol_obj).into(),
-                    format!("tol_rel_obj={}", tol_rel_obj).into(),
-                    format!("tol_grad={}", tol_grad).into(),
-                    format!("tol_rel_grad={}", tol_rel_grad).into(),
-                    format!("tol_param={}", tol_param).into(),
-                    format!("history_size={}", history_size).into(),
-                ]
-            }
-            Newton => vec!["algorithm=newton".into()],
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -416,10 +371,10 @@ mod tests {
     }
 
     #[test]
-    fn command_fragment() {
+    fn to_args() {
         let x = LbfgsBuilder::new().build();
         assert_eq!(
-            x.command_fragment(),
+            x.to_args(),
             vec![
                 "algorithm=lbfgs",
                 "init_alpha=0.001",
@@ -434,7 +389,7 @@ mod tests {
 
         let x = BfgsBuilder::new().build();
         assert_eq!(
-            x.command_fragment(),
+            x.to_args(),
             vec![
                 "algorithm=bfgs",
                 "init_alpha=0.001",
@@ -447,6 +402,6 @@ mod tests {
         );
 
         let x = OptimizeAlgorithm::Newton;
-        assert_eq!(x.command_fragment(), vec!["algorithm=newton"]);
+        assert_eq!(x.to_args(), vec!["algorithm=newton"]);
     }
 }

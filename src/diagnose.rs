@@ -1,4 +1,5 @@
 use crate::method::Method;
+use crate::translate::Translate;
 use std::ffi::OsString;
 
 /// Options builder for [`Method::Diagnose`].
@@ -27,8 +28,9 @@ impl Default for DiagnoseBuilder {
 }
 
 /// Diagnostic test. Defaults to `Gradient`.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Translate)]
 #[non_exhaustive]
+#[declare = "test"]
 pub enum DiagnoseTest {
     /// Check model gradient against finite differences
     #[non_exhaustive]
@@ -46,20 +48,6 @@ pub enum DiagnoseTest {
 impl Default for DiagnoseTest {
     fn default() -> Self {
         GradientBuilder::new().build()
-    }
-}
-
-impl DiagnoseTest {
-    pub fn command_fragment(&self) -> Vec<OsString> {
-        match &self {
-            Self::Gradient { epsilon, error } => {
-                vec![
-                    "test=gradient".into(),
-                    format!("epsilon={}", epsilon).into(),
-                    format!("error={}", error).into(),
-                ]
-            }
-        }
     }
 }
 
@@ -134,10 +122,10 @@ mod tests {
     }
 
     #[test]
-    fn command_fragment() {
+    fn to_args() {
         let x = DiagnoseTest::default();
         assert_eq!(
-            x.command_fragment(),
+            x.to_args(),
             vec!["test=gradient", "epsilon=0.000001", "error=0.000001"]
         );
     }

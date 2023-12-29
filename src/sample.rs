@@ -1,4 +1,5 @@
 use crate::method::Method;
+use crate::translate::Translate;
 use std::ffi::OsString;
 
 /// Options builder for [`Method::Sample`].
@@ -64,8 +65,9 @@ impl Default for SampleBuilder {
 }
 
 /// Warmup Adaptation
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Translate)]
 #[non_exhaustive]
+#[declare = "adapt"]
 pub struct SampleAdapt {
     /// Adaptation engaged?
     /// Defaults to `true`.
@@ -109,19 +111,6 @@ impl Default for SampleAdapt {
 }
 
 impl SampleAdapt {
-    pub fn command_fragment(&self) -> Vec<OsString> {
-        vec![
-            "adapt".into(),
-            format!("engaged={}", self.engaged as u8).into(),
-            format!("gamma={}", self.gamma).into(),
-            format!("delta={}", self.delta).into(),
-            format!("kappa={}", self.kappa).into(),
-            format!("t0={}", self.t0).into(),
-            format!("init_buffer={}", self.init_buffer).into(),
-            format!("term_buffer={}", self.term_buffer).into(),
-            format!("window={}", self.window).into(),
-        ]
-    }
     /// Return a builder with all options unspecified.
     pub fn builder() -> SampleAdaptBuilder {
         SampleAdaptBuilder::new()
@@ -252,8 +241,9 @@ impl Default for HmcBuilder {
 }
 
 /// Sampling algorithm. Defaults to `Hmc`.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Translate)]
 #[non_exhaustive]
+#[declare = "algorithm"]
 pub enum SampleAlgorithm {
     /// Hamiltonian Monte Carlo.
     /// To construct, use [`HmcBuilder`].
@@ -281,43 +271,13 @@ pub enum SampleAlgorithm {
         stepsize_jitter: f64,
     },
     /// Fixed Parameter Sampler
+    #[declare = "fixed_param"]
     FixedParam,
 }
 
 impl Default for SampleAlgorithm {
     fn default() -> Self {
         Self::from(HmcBuilder::new())
-    }
-}
-
-impl SampleAlgorithm {
-    pub fn command_fragment(&self) -> Vec<OsString> {
-        match &self {
-            Self::Hmc {
-                engine,
-                metric,
-                metric_file,
-                stepsize,
-                stepsize_jitter,
-            } => {
-                let mut engine = engine.command_fragment();
-                let mut metric = metric.command_fragment();
-                let mut v = Vec::with_capacity(4 + engine.len() + metric.len());
-                v.push("algorithm=hmc".into());
-                v.append(&mut engine);
-                v.append(&mut metric);
-                if !metric_file.is_empty() {
-                    let mut s = OsString::with_capacity(12 + metric_file.len());
-                    s.push("metric_file=");
-                    s.push(metric_file);
-                    v.push(s);
-                }
-                v.push(format!("stepsize={}", stepsize).into());
-                v.push(format!("stepsize_jitter={}", stepsize_jitter).into());
-                v
-            }
-            Self::FixedParam => vec!["algorithm=fixed_param".into()],
-        }
     }
 }
 
@@ -328,8 +288,9 @@ impl From<HmcBuilder> for SampleAlgorithm {
 }
 
 /// Engine for Hamiltonian Monte Carlo. Defaults to `Nuts`.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Translate)]
 #[non_exhaustive]
+#[declare = "engine"]
 pub enum Engine {
     /// Static integration time.
     /// To construct, use [`StaticBuilder`].
@@ -356,24 +317,6 @@ impl Default for Engine {
     }
 }
 
-impl Engine {
-    pub fn command_fragment(&self) -> Vec<OsString> {
-        match &self {
-            Engine::Nuts { max_depth } => {
-                vec![
-                    "engine=nuts".into(),
-                    format!("max_depth={}", max_depth).into(),
-                ]
-            }
-            Engine::Static { int_time } => {
-                vec![
-                    "engine=static".into(),
-                    format!("int_time={}", int_time).into(),
-                ]
-            }
-        }
-    }
-}
 impl From<StaticBuilder> for Engine {
     fn from(x: StaticBuilder) -> Self {
         x.build()
@@ -438,26 +381,19 @@ impl Default for NutsBuilder {
 }
 
 /// Geometry of base manifold. Defaults to `DiagE`.
-#[derive(Debug, PartialEq, Default, Clone)]
+#[derive(Debug, PartialEq, Default, Clone, Translate)]
+#[declare = "metric"]
 pub enum Metric {
     /// Euclidean manifold with unit metric
+    #[declare = "unit_e"]
     UnitE,
     /// Euclidean manifold with diagonal metric
     #[default]
+    #[declare = "diag_e"]
     DiagE,
     /// Euclidean manifold with dense metric
+    #[declare = "dense_e"]
     DenseE,
-}
-
-impl Metric {
-    pub fn command_fragment(&self) -> Vec<OsString> {
-        let s = match &self {
-            Metric::UnitE => "metric=unit_e",
-            Metric::DiagE => "metric=diag_e",
-            Metric::DenseE => "metric=dense_e",
-        };
-        vec![s.into()]
-    }
 }
 
 #[cfg(test)]
@@ -567,10 +503,10 @@ mod tests {
         }
 
         #[test]
-        fn command_fragment() {
+        fn to_args() {
             let x = SampleAdapt::default();
             assert_eq!(
-                x.command_fragment(),
+                x.to_args(),
                 vec![
                     "adapt",
                     "engaged=1",
@@ -595,7 +531,7 @@ mod tests {
                 .window(3)
                 .build();
             assert_eq!(
-                x.command_fragment(),
+                x.to_args(),
                 vec![
                     "adapt",
                     "engaged=0",
@@ -656,15 +592,16 @@ mod tests {
         }
 
         #[test]
-        fn command_fragment() {
+        fn to_args() {
             let mut x = HmcBuilder::new().build();
             assert_eq!(
-                x.command_fragment(),
+                x.to_args(),
                 vec![
                     "algorithm=hmc",
                     "engine=nuts",
                     "max_depth=10",
                     "metric=diag_e",
+                    "metric_file=",
                     "stepsize=1",
                     "stepsize_jitter=0",
                 ]
@@ -678,7 +615,7 @@ mod tests {
             };
             metric_file.push("my_metric.json");
             assert_eq!(
-                x.command_fragment(),
+                x.to_args(),
                 vec![
                     "algorithm=hmc",
                     "engine=nuts",
@@ -699,7 +636,7 @@ mod tests {
                 .build();
 
             assert_eq!(
-                x.command_fragment(),
+                x.to_args(),
                 vec![
                     "algorithm=hmc",
                     "engine=static",
@@ -711,7 +648,7 @@ mod tests {
                 ]
             );
             let x = SampleAlgorithm::FixedParam;
-            assert_eq!(x.command_fragment(), vec!["algorithm=fixed_param"]);
+            assert_eq!(x.to_args(), vec!["algorithm=fixed_param"]);
         }
     }
 
@@ -751,15 +688,15 @@ mod tests {
         }
 
         #[test]
-        fn command_fragment() {
+        fn to_args() {
             let x = Engine::default();
-            assert_eq!(x.command_fragment(), vec!["engine=nuts", "max_depth=10"]);
+            assert_eq!(x.to_args(), vec!["engine=nuts", "max_depth=10"]);
 
             let x = Engine::Static {
                 int_time: std::f64::consts::TAU,
             };
             assert_eq!(
-                x.command_fragment(),
+                x.to_args(),
                 vec![
                     "engine=static",
                     format!("int_time={}", std::f64::consts::TAU).as_str()
@@ -779,13 +716,13 @@ mod tests {
         }
 
         #[test]
-        fn command_fragment() {
+        fn to_args() {
             let x = Metric::UnitE;
-            assert_eq!(x.command_fragment(), vec!["metric=unit_e"]);
+            assert_eq!(x.to_args(), vec!["metric=unit_e"]);
             let x = Metric::DiagE;
-            assert_eq!(x.command_fragment(), vec!["metric=diag_e"]);
+            assert_eq!(x.to_args(), vec!["metric=diag_e"]);
             let x = Metric::DenseE;
-            assert_eq!(x.command_fragment(), vec!["metric=dense_e"]);
+            assert_eq!(x.to_args(), vec!["metric=dense_e"]);
         }
     }
 }

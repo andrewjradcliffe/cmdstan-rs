@@ -5,13 +5,14 @@ use crate::log_prob::*;
 use crate::optimize::*;
 use crate::pathfinder::*;
 use crate::sample::*;
+use crate::translate::Translate;
 use crate::variational::*;
 use std::ffi::OsString;
-// use std::fmt::Write;
 
 /// Analysis method. Defaults to [`Self::Sample`].
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Translate)]
 #[non_exhaustive]
+#[declare = "method"]
 pub enum Method {
     /// Bayesian inference with Markov Chain Monte Carlo. Use
     /// [`SampleBuilder`] for parameterized construction with optional defaults.
@@ -106,15 +107,16 @@ pub enum Method {
         /// Defaults to `1000`.
         output_samples: i32,
     },
-    #[non_exhaustive]
     /// Model diagnostics. Use [`DiagnoseBuilder`] for construction
     /// with defaults.
+    #[non_exhaustive]
     Diagnose {
         /// Diagnostic test. Defaults to [`DiagnoseTest::Gradient`].
         test: DiagnoseTest,
     },
-    #[non_exhaustive]
     /// Generate quantities of interest
+    #[non_exhaustive]
+    #[declare = "generate_quantities"]
     GenerateQuantities {
         /// Input file of sample of fitted parameter values for model conditioned on data.
         /// Valid values: Path to existing file.
@@ -183,6 +185,7 @@ pub enum Method {
     /// Return the log density up to a constant and its gradients, given supplied parameters.
     /// Use [`LogProbBuilder`] for parameterized construction with optional defaults.
     #[non_exhaustive]
+    #[declare = "log_prob"]
     LogProb {
         /// Input file (JSON or R dump) of parameter values on unconstrained scale.
         /// Valid values: Path to existing file.
@@ -228,7 +231,6 @@ impl Default for Method {
         SampleBuilder::new().build()
     }
 }
-use Method::*;
 macro_rules! from_impl {
     ($T:ident) => {
         impl From<$T> for Method {
@@ -247,172 +249,15 @@ from_impl!(PathfinderBuilder);
 from_impl!(LogProbBuilder);
 from_impl!(LaplaceBuilder);
 
-impl Method {
-    pub fn command_fragment(&self) -> Vec<OsString> {
-        match &self {
-            Sample {
-                num_samples,
-                num_warmup,
-                save_warmup,
-                thin,
-                adapt,
-                algorithm,
-                num_chains,
-            } => {
-                let mut adapt = adapt.command_fragment();
-                let mut algorithm = algorithm.command_fragment();
-                let mut v = Vec::with_capacity(6 + adapt.len() + algorithm.len());
-                v.push("method=sample".into());
-                v.push(format!("num_samples={}", num_samples).into());
-                v.push(format!("num_warmup={}", num_warmup).into());
-                v.push(format!("save_warmup={}", *save_warmup as u8).into());
-                v.push(format!("thin={}", thin).into());
-                v.append(&mut adapt);
-                v.append(&mut algorithm);
-                v.push(format!("num_chains={}", num_chains).into());
-                v
-            }
-            Optimize {
-                algorithm,
-                jacobian,
-                iter,
-                save_iterations,
-            } => {
-                let mut algorithm = algorithm.command_fragment();
-                let mut v = Vec::with_capacity(4 + algorithm.len());
-                v.push("method=optimize".into());
-                v.append(&mut algorithm);
-                v.push(format!("jacobian={}", *jacobian as u8).into());
-                v.push(format!("iter={}", iter).into());
-                v.push(format!("save_iterations={}", *save_iterations as u8).into());
-                v
-            }
-            Variational {
-                algorithm,
-                iter,
-                grad_samples,
-                elbo_samples,
-                eta,
-                adapt,
-                tol_rel_obj,
-                eval_elbo,
-                output_samples,
-            } => {
-                let mut algorithm = algorithm.command_fragment();
-                let mut adapt = adapt.command_fragment();
-                let mut v = Vec::with_capacity(8 + algorithm.len() + adapt.len());
-                v.push("method=variational".into());
-                v.append(&mut algorithm);
-                v.push(format!("iter={}", iter).into());
-                v.push(format!("grad_samples={}", grad_samples).into());
-                v.push(format!("elbo_samples={}", elbo_samples).into());
-                v.push(format!("eta={}", eta).into());
-                v.append(&mut adapt);
-                v.push(format!("tol_rel_obj={}", tol_rel_obj).into());
-                v.push(format!("eval_elbo={}", eval_elbo).into());
-                v.push(format!("output_samples={}", output_samples).into());
-                v
-            }
-            Diagnose { test } => {
-                let mut test = test.command_fragment();
-                let mut v = Vec::with_capacity(1 + test.len());
-                v.push("method=diagnose".into());
-                v.append(&mut test);
-                v
-            }
-            GenerateQuantities { fitted_params } => {
-                let mut v = Vec::with_capacity(2);
-                v.push("method=generate_quantities".into());
-                let mut s = OsString::with_capacity(14 + fitted_params.len());
-                s.push("fitted_params=");
-                s.push(fitted_params);
-                v.push(s);
-                v
-            }
-            Pathfinder {
-                init_alpha,
-                tol_obj,
-                tol_rel_obj,
-                tol_grad,
-                tol_rel_grad,
-                tol_param,
-                history_size,
-                num_psis_draws,
-                num_paths,
-                save_single_paths,
-                max_lbfgs_iters,
-                num_draws,
-                num_elbo_draws,
-            } => {
-                let mut v = Vec::with_capacity(14);
-                v.push("method=pathfinder".into());
-                v.push(format!("init_alpha={}", init_alpha).into());
-                v.push(format!("tol_obj={}", tol_obj).into());
-                v.push(format!("tol_rel_obj={}", tol_rel_obj).into());
-                v.push(format!("tol_grad={}", tol_grad).into());
-                v.push(format!("tol_rel_grad={}", tol_rel_grad).into());
-                v.push(format!("tol_param={}", tol_param).into());
-                v.push(format!("history_size={}", history_size).into());
-                v.push(format!("num_psis_draws={}", num_psis_draws).into());
-                v.push(format!("num_paths={}", num_paths).into());
-                v.push(format!("save_single_paths={}", *save_single_paths as u8).into());
-                v.push(format!("max_lbfgs_iters={}", max_lbfgs_iters).into());
-                v.push(format!("num_draws={}", num_draws).into());
-                v.push(format!("num_elbo_draws={}", num_elbo_draws).into());
-                v
-            }
-            LogProb {
-                unconstrained_params,
-                constrained_params,
-                jacobian,
-            } => {
-                let mut v = Vec::with_capacity(4);
-                v.push("method=log_prob".into());
-                if !unconstrained_params.is_empty() {
-                    let mut s = OsString::with_capacity(21 + unconstrained_params.len());
-                    s.push("unconstrained_params=");
-                    s.push(unconstrained_params);
-                    v.push(s);
-                }
-                if !constrained_params.is_empty() {
-                    let mut s = OsString::with_capacity(19 + constrained_params.len());
-                    s.push("constrained_params=");
-                    s.push(constrained_params);
-                    v.push(s);
-                }
-                v.push(format!("jacobian={}", *jacobian as u8).into());
-                v
-            }
-            Laplace {
-                mode,
-                jacobian,
-                draws,
-            } => {
-                let mut v = Vec::with_capacity(4);
-                v.push("method=laplace".into());
-                if !mode.is_empty() {
-                    let mut s = OsString::with_capacity(5 + mode.len());
-                    s.push("mode=");
-                    s.push(mode);
-                    v.push(s);
-                }
-                v.push(format!("jacobian={}", *jacobian as u8).into());
-                v.push(format!("draws={}", draws).into());
-                v
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn sample_command_fragment() {
+    fn sample_to_args() {
         let x = SampleBuilder::new().build();
         assert_eq!(
-            x.command_fragment(),
+            x.to_args(),
             vec![
                 "method=sample",
                 "num_samples=1000",
@@ -432,6 +277,7 @@ mod tests {
                 "engine=nuts",
                 "max_depth=10",
                 "metric=diag_e",
+                "metric_file=",
                 "stepsize=1",
                 "stepsize_jitter=0",
                 "num_chains=1"
@@ -440,10 +286,10 @@ mod tests {
     }
 
     #[test]
-    fn optimize_command_fragment() {
+    fn optimize_to_args() {
         let x = OptimizeBuilder::new().build();
         assert_eq!(
-            x.command_fragment(),
+            x.to_args(),
             vec![
                 "method=optimize",
                 "algorithm=lbfgs",
@@ -462,10 +308,10 @@ mod tests {
     }
 
     #[test]
-    fn variational_command_fragment() {
+    fn variational_to_args() {
         let x = VariationalBuilder::new().build();
         assert_eq!(
-            x.command_fragment(),
+            x.to_args(),
             vec![
                 "method=variational",
                 "algorithm=meanfield",
@@ -484,10 +330,10 @@ mod tests {
     }
 
     #[test]
-    fn diagnose_command_fragment() {
+    fn diagnose_to_args() {
         let x = DiagnoseBuilder::new().build();
         assert_eq!(
-            x.command_fragment(),
+            x.to_args(),
             vec![
                 "method=diagnose",
                 "test=gradient",
@@ -498,19 +344,19 @@ mod tests {
     }
 
     #[test]
-    fn generate_quantities_command_fragment() {
+    fn generate_quantities_to_args() {
         let x = GenerateQuantitiesBuilder::new().build();
         assert_eq!(
-            x.command_fragment(),
+            x.to_args(),
             vec!["method=generate_quantities", "fitted_params="]
         );
     }
 
     #[test]
-    fn pathfinder_command_fragment() {
+    fn pathfinder_to_args() {
         let x = PathfinderBuilder::new().build();
         assert_eq!(
-            x.command_fragment(),
+            x.to_args(),
             vec![
                 "method=pathfinder",
                 "init_alpha=0.001",
@@ -531,17 +377,25 @@ mod tests {
     }
 
     #[test]
-    fn log_prob_command_fragment() {
+    fn log_prob_to_args() {
         let x = LogProbBuilder::new().build();
-        assert_eq!(x.command_fragment(), vec!["method=log_prob", "jacobian=1"]);
+        assert_eq!(
+            x.to_args(),
+            vec![
+                "method=log_prob",
+                "unconstrained_params=",
+                "constrained_params=",
+                "jacobian=1"
+            ]
+        );
     }
 
     #[test]
-    fn laplace_command_fragment() {
+    fn laplace_to_args() {
         let x = LaplaceBuilder::new().build();
         assert_eq!(
-            x.command_fragment(),
-            vec!["method=laplace", "jacobian=1", "draws=1000"]
+            x.to_args(),
+            vec!["method=laplace", "mode=", "jacobian=1", "draws=1000"]
         );
     }
 }

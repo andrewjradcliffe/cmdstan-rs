@@ -1,9 +1,11 @@
 use crate::method::*;
+use crate::translate::Translate;
 use std::env;
 use std::ffi::{OsStr, OsString};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Translate)]
 #[non_exhaustive]
+// Lack of `declare` is intentional.
 pub struct ArgumentTree {
     /// Analysis method. Defaults to [`Method::Sample`].
     pub method: Method,
@@ -34,41 +36,6 @@ impl Default for ArgumentTree {
     }
 }
 impl ArgumentTree {
-    pub fn command_vec(&self) -> Vec<OsString> {
-        let mut method = self.method.command_fragment();
-        let mut data = self.data.command_fragment();
-        let mut random = self.random.command_fragment();
-        let mut output = self.output.command_fragment();
-        let mut v = Vec::with_capacity(3 + method.len() + data.len() + random.len() + output.len());
-        v.append(&mut method);
-        v.push(OsString::from(format!("id={}", self.id)));
-        v.append(&mut data);
-        let mut s = OsString::with_capacity(5 + self.init.len());
-        s.push("init=");
-        s.push(&self.init);
-        v.push(s);
-        v.append(&mut random);
-        v.append(&mut output);
-        v.push(OsString::from(format!("num_threads={}", self.num_threads)));
-        v
-    }
-    pub fn command_os_string(&self) -> OsString {
-        let v: Vec<_> = self.command_vec();
-        let n: usize = v.iter().map(|x| x.len()).sum();
-        let mut s = OsString::with_capacity(n + v.len() - 1);
-        let mut iter = v.into_iter();
-        if let Some(x) = iter.next() {
-            s.push(x);
-        }
-        for x in iter {
-            s.push(" ");
-            s.push(x);
-        }
-        s
-    }
-    pub fn command_string_lossy(&self) -> String {
-        self.command_os_string().to_string_lossy().to_string()
-    }
     /// Return a builder with all options unspecified.
     pub fn builder() -> ArgumentTreeBuilder {
         ArgumentTreeBuilder::new()
@@ -255,8 +222,9 @@ impl Default for ArgumentTreeBuilder {
 }
 
 /// Input data options
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Translate)]
 #[non_exhaustive]
+#[declare = "data"]
 pub struct Data {
     /// Input data file.
     /// Valid values: Path to existing file.
@@ -277,17 +245,6 @@ impl From<DataBuilder> for Data {
 }
 
 impl Data {
-    pub fn command_fragment(&self) -> Vec<OsString> {
-        let mut v = Vec::with_capacity(2);
-        if !self.file.is_empty() {
-            v.push("data".into());
-            let mut s = OsString::with_capacity(5 + self.file.len());
-            s.push("file=");
-            s.push(&self.file);
-            v.push(s);
-        }
-        v
-    }
     pub fn builder() -> DataBuilder {
         DataBuilder::new()
     }
@@ -313,8 +270,9 @@ impl Default for DataBuilder {
 }
 
 /// Random number configuration
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Translate)]
 #[non_exhaustive]
+#[declare = "random"]
 pub struct Random {
     /// Random number generator seed.
     /// Valid values: non-negative integer < `4294967296` or `-1` to
@@ -336,9 +294,6 @@ impl From<RandomBuilder> for Random {
 }
 
 impl Random {
-    pub fn command_fragment(&self) -> Vec<OsString> {
-        vec!["random".into(), format!("seed={}", self.seed).into()]
-    }
     pub fn builder() -> RandomBuilder {
         RandomBuilder::new()
     }
@@ -364,8 +319,9 @@ impl Default for RandomBuilder {
 }
 
 /// File output options
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Translate)]
 #[non_exhaustive]
+#[declare = "output"]
 pub struct Output {
     /// Output file.
     /// Valid values: Path to existing file.
@@ -398,27 +354,6 @@ impl Default for Output {
 }
 
 impl Output {
-    pub fn command_fragment(&self) -> Vec<OsString> {
-        let mut v = Vec::with_capacity(6);
-        v.push("output".into());
-        let mut s = OsString::with_capacity(5 + self.file.len());
-        s.push("file=");
-        s.push(&self.file);
-        v.push(s);
-        if !self.diagnostic_file.is_empty() {
-            let mut s = OsString::with_capacity(16 + self.diagnostic_file.len());
-            s.push("diagnostic_file=");
-            s.push(&self.diagnostic_file);
-            v.push(s);
-        }
-        v.push(format!("refresh={}", self.refresh).into());
-        v.push(format!("sig_figs={}", self.sig_figs).into());
-        let mut s = OsString::with_capacity(13 + self.profile_file.len());
-        s.push("profile_file=");
-        s.push(&self.profile_file);
-        v.push(s);
-        v
-    }
     /// Return a builder with all options unspecified.
     pub fn builder() -> OutputBuilder {
         OutputBuilder::new()
@@ -560,9 +495,9 @@ mod tests {
         }
 
         #[test]
-        fn command_os_string() {
+        fn to_stmt() {
             let x = ArgumentTree::default();
-            assert_eq!(x.command_os_string(), "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=1 id=1 init=2 random seed=-1 output file=output.csv refresh=100 sig_figs=-1 profile_file=profile.csv num_threads=1");
+            assert_eq!(x.to_stmt(), "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e metric_file= stepsize=1 stepsize_jitter=0 num_chains=1 id=1 data file= init=2 random seed=-1 output file=output.csv diagnostic_file= refresh=100 sig_figs=-1 profile_file=profile.csv num_threads=1");
 
             let method = SampleBuilder::new()
                 .num_chains(10)
@@ -596,7 +531,7 @@ mod tests {
                 output,
                 num_threads,
             };
-            assert_eq!(x.command_os_string(), "method=sample num_samples=10000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=100 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=10 id=2 data file=bernoulli.json init=5 random seed=12345 output file=hello.csv diagnostic_file=world.txt refresh=1 sig_figs=18 profile_file=foo.txt num_threads=48");
+            assert_eq!(x.to_stmt(), "method=sample num_samples=10000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=100 metric=diag_e metric_file= stepsize=1 stepsize_jitter=0 num_chains=10 id=2 data file=bernoulli.json init=5 random seed=12345 output file=hello.csv diagnostic_file=world.txt refresh=1 sig_figs=18 profile_file=foo.txt num_threads=48");
 
             let method = SampleBuilder::new()
                 .num_chains(10)
@@ -630,7 +565,7 @@ mod tests {
                 output,
                 num_threads,
             };
-            assert_eq!(x.command_os_string(), "method=sample num_samples=10000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=static int_time=2.5 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=10 id=2 data file=bernoulli.json init=5 random seed=12345 output file=hello.csv diagnostic_file=world.txt refresh=1 sig_figs=18 profile_file=foo.txt num_threads=48");
+            assert_eq!(x.to_stmt(), "method=sample num_samples=10000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=static int_time=2.5 metric=diag_e metric_file= stepsize=1 stepsize_jitter=0 num_chains=10 id=2 data file=bernoulli.json init=5 random seed=12345 output file=hello.csv diagnostic_file=world.txt refresh=1 sig_figs=18 profile_file=foo.txt num_threads=48");
         }
 
         #[test]
@@ -777,15 +712,12 @@ mod tests {
         }
 
         #[test]
-        fn command_fragment() {
+        fn to_args() {
             let mut x = Data::default();
-            assert_eq!(x.command_fragment(), Vec::<OsString>::new());
+            assert_eq!(x.to_args(), vec!["data", "file="]);
 
             x.file.push("bernoulli.data.json");
-            assert_eq!(
-                x.command_fragment(),
-                vec!["data", "file=bernoulli.data.json"]
-            );
+            assert_eq!(x.to_args(), vec!["data", "file=bernoulli.data.json"]);
         }
     }
 
@@ -800,9 +732,9 @@ mod tests {
         }
 
         #[test]
-        fn command_fragment() {
+        fn to_args() {
             let x = Random::default();
-            assert_eq!(x.command_fragment(), vec!["random", "seed=-1"]);
+            assert_eq!(x.to_args(), vec!["random", "seed=-1"]);
         }
     }
 
@@ -847,13 +779,14 @@ mod tests {
         }
 
         #[test]
-        fn command_fragment() {
+        fn to_args() {
             let mut x = Output::default();
             assert_eq!(
-                x.command_fragment(),
+                x.to_args(),
                 vec![
                     "output",
                     "file=output.csv",
+                    "diagnostic_file=",
                     "refresh=100",
                     "sig_figs=-1",
                     "profile_file=profile.csv"
@@ -862,7 +795,7 @@ mod tests {
 
             x.diagnostic_file.push("my_file.txt");
             assert_eq!(
-                x.command_fragment(),
+                x.to_args(),
                 vec![
                     "output",
                     "file=output.csv",
@@ -875,7 +808,7 @@ mod tests {
 
             x.profile_file = "my_other_file.txt".into();
             assert_eq!(
-                x.command_fragment(),
+                x.to_args(),
                 vec![
                     "output",
                     "file=output.csv",
@@ -888,10 +821,11 @@ mod tests {
 
             x.diagnostic_file.clear();
             assert_eq!(
-                x.command_fragment(),
+                x.to_args(),
                 vec![
                     "output",
                     "file=output.csv",
+                    "diagnostic_file=",
                     "refresh=100",
                     "sig_figs=-1",
                     "profile_file=my_other_file.txt"

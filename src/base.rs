@@ -2,6 +2,7 @@ use crate::argument_tree::ArgumentTree;
 use crate::constants::*;
 use crate::error::*;
 use crate::stansummary::StanSummaryOptions;
+use crate::translate::Translate;
 use std::{
     convert::TryFrom,
     env,
@@ -520,7 +521,7 @@ impl CmdStanModel {
         let out = File::create(&stdout).map_err(Self::error_op)?;
         let err = File::create(&stderr).map_err(Self::error_op)?;
         let mut output = Command::new(&self.exec)
-            .args(tree.command_vec())
+            .args(tree.to_args())
             .stdin(Stdio::null())
             .stdout(out)
             .stderr(err)
