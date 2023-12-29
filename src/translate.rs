@@ -43,8 +43,8 @@ pub(crate) mod private {
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::OsString;
     use super::*;
+    use std::ffi::OsString;
 
     mod level {
         use super::*;
@@ -82,7 +82,6 @@ mod tests {
                 },
             }
         }
-
 
         #[test]
         fn to_stmt() {
@@ -127,10 +126,10 @@ b = 2";
 
     mod actual {
         use super::*;
+        use crate::argument_tree::*;
+        use crate::method::*;
         use crate::sample::*;
         use crate::variational::*;
-        use crate::method::*;
-        use crate::argument_tree::*;
 
         fn join_with_ws(v: &[OsString]) -> OsString {
             let n = v.len();
@@ -291,7 +290,6 @@ method = sample
             assert_eq!(m.to_tree(), rhs);
             test_args_eq_stmt(&m);
 
-
             let m = Method::Variational {
                 algorithm: VariationalAlgorithm::MeanField,
                 iter: 10000,
@@ -416,7 +414,6 @@ output
 num_threads = 12";
             assert_eq!(t.to_tree(), rhs);
             test_args_eq_stmt(&t);
-
 
             let m = Method::Variational {
                 algorithm: VariationalAlgorithm::MeanField,
