@@ -1,6 +1,5 @@
-use crate::method::Method;
+use crate::method::{Method, PathfinderBuilder};
 use crate::parser::*;
-use crate::pathfinder::*;
 
 pub(crate) fn try_pathfinder_from_pair(pair: Pair<'_, Rule>) -> Result<Method, ParseGrammarError> {
     match pair.as_rule() {

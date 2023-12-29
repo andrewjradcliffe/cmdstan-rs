@@ -305,6 +305,7 @@ mod tests {
 
     mod argument_tree {
         use super::*;
+        use crate::method::{OptimizeBuilder, VariationalBuilder};
         use crate::optimize::*;
         use crate::variational::*;
 

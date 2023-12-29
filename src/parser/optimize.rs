@@ -1,4 +1,4 @@
-use crate::method::Method;
+use crate::method::{Method, OptimizeBuilder};
 use crate::optimize::*;
 use crate::parser::*;
 

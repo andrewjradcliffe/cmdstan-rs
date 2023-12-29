@@ -1,5 +1,4 @@
-use crate::log_prob::*;
-use crate::method::Method;
+use crate::method::{LogProbBuilder, Method};
 use crate::parser::*;
 
 pub(crate) fn try_log_prob_from_pair(pair: Pair<'_, Rule>) -> Result<Method, ParseGrammarError> {

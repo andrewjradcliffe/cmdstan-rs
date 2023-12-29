@@ -1,4 +1,4 @@
-use crate::method::Method;
+use crate::method::{Method, VariationalBuilder};
 use crate::parser::*;
 use crate::variational::*;
 

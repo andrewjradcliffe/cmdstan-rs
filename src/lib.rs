@@ -3,15 +3,12 @@ mod internal_macros;
 
 pub mod argument_tree;
 mod base;
+pub(crate) mod builder;
 mod consts;
 pub mod diagnose;
 pub mod error;
-pub mod generate_quantities;
-pub mod laplace;
-pub mod log_prob;
 pub mod method;
 pub mod optimize;
-pub mod pathfinder;
 pub mod sample;
 pub mod stansummary;
 pub mod variational;

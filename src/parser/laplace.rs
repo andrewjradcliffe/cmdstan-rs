@@ -1,5 +1,4 @@
-use crate::laplace::*;
-use crate::method::Method;
+use crate::method::{LaplaceBuilder, Method};
 use crate::parser::*;
 
 pub(crate) fn try_laplace_from_pair(pair: Pair<'_, Rule>) -> Result<Method, ParseGrammarError> {

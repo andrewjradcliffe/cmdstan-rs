@@ -1,5 +1,5 @@
 use crate::diagnose::*;
-use crate::method::Method;
+use crate::method::{DiagnoseBuilder, Method};
 use crate::parser::*;
 
 impl_from_str! { DiagnoseTest, DiagnoseTestError, diagnose_test_as_type }

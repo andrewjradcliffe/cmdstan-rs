@@ -1,5 +1,4 @@
-use crate::generate_quantities::*;
-use crate::method::Method;
+use crate::method::{GenerateQuantitiesBuilder, Method};
 use crate::parser::*;
 
 pub(crate) fn try_generate_quantities_from_pair(

@@ -1,4 +1,4 @@
-use crate::method::Method;
+use crate::method::{Method, SampleBuilder};
 use crate::parser::*;
 use crate::sample::*;
 
@@ -351,9 +351,9 @@ mod tests {
                     .delta(0.2)
                     .kappa(0.3)
                     .t0(99.0)
-                    .init_buffer(5)
-                    .term_buffer(6)
-                    .window(7)
+                    .init_buffer(5u32)
+                    .term_buffer(6u32)
+                    .window(7u32)
                     .build()
             );
         }
