@@ -1,3 +1,6 @@
+use crate::consts::{
+    HISTORY_SIZE, INIT_ALPHA, TOL_GRAD, TOL_OBJ, TOL_PARAM, TOL_REL_GRAD, TOL_REL_OBJ,
+};
 use crate::method::Method;
 use crate::translate::Translate;
 use std::ffi::OsString;
@@ -47,15 +50,6 @@ impl Default for OptimizeBuilder {
         Self::new()
     }
 }
-
-// Common defaults.
-pub(crate) const INIT_ALPHA: f64 = 0.001;
-pub(crate) const TOL_OBJ: f64 = 1e-12;
-pub(crate) const TOL_REL_OBJ: f64 = 10_000.0;
-pub(crate) const TOL_GRAD: f64 = 1e-8;
-pub(crate) const TOL_REL_GRAD: f64 = 10_000_000.0;
-pub(crate) const TOL_PARAM: f64 = 1e-8;
-pub(crate) const HISTORY_SIZE: i32 = 5;
 
 /// Optimization algorithm. Defaults to `Lbfgs`.
 #[derive(Debug, PartialEq, Clone, Translate)]

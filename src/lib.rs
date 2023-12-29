@@ -3,7 +3,7 @@ mod internal_macros;
 
 pub mod argument_tree;
 mod base;
-mod constants;
+mod consts;
 pub mod diagnose;
 pub mod error;
 pub mod generate_quantities;

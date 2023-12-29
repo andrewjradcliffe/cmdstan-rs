@@ -1,5 +1,5 @@
 use crate::argument_tree::ArgumentTree;
-use crate::constants::*;
+use crate::consts::*;
 use crate::error::*;
 use crate::stansummary::StanSummaryOptions;
 use crate::translate::Translate;
