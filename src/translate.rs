@@ -5,12 +5,22 @@ pub use translate_derive::*;
 /// This trait is sealed and cannot be implemented for types outside this crate.
 pub trait Translate: private::Sealed {
     /// Write `self` to `s` as a statement in command line language.
+    /// If `s` has sufficient capacity to hold the result, this will
+    /// not allocate.
     fn write_stmt(&self, s: &mut OsString);
     /// Write `self` to `s` as a tree, with offset (from left) of `n`.
+    /// If `s` has sufficient capacity to hold the result, this will
+    /// not allocate.
     fn write_tree_offset(&self, n: usize, s: &mut OsString);
     /// Translate `self` to command line arguments and append to `v`.
     fn append_args(&self, v: &mut Vec<OsString>);
 
+    /// Write `self` to `s` as a tree.
+    /// If `s` has sufficient capacity to hold the result, this will
+    /// not allocate.
+    fn write_tree(&self, s: &mut OsString) {
+        self.write_tree_offset(0, s);
+    }
     /// Translate `self` to a statement in command line language.
     fn to_stmt(&self) -> OsString {
         let mut s = OsString::new();
@@ -22,10 +32,6 @@ pub trait Translate: private::Sealed {
         let mut s = OsString::new();
         self.write_tree(&mut s);
         s
-    }
-    /// Write `self` to `s` as a tree.
-    fn write_tree(&self, s: &mut OsString) {
-        self.write_tree_offset(0, s);
     }
     /// Translate `self` to command line arguments.
     fn to_args(&self) -> Vec<OsString> {
