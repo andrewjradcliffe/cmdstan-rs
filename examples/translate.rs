@@ -1,24 +1,10 @@
-use cmdstan::translate::*;
-use cmdstan::sample::*;
-use std::ffi::OsString;
+use cmdstan::argument_tree::ArgumentTree;
+use cmdstan::translate::Translate;
+
 fn main() {
-    translations(NutsBuilder::new().build());
-    translations(HmcBuilder::new().build());
-    translations(SampleAdapt::default());
-}
-
-
-fn translations<T>(x: T)
-where T: Translate + std::fmt::Debug
-{
-    println!("{:-<80}", "");
-    println!("{:#?}", x);
-    let a = x.to_args();
-    println!("{:#?}", a);
-    let s = x.to_tree();
-    println!("{:#?}", s);
-    println!("{}", s.to_string_lossy());
-    let s = x.to_stmt();
-    println!("{:#?}", s);
-    println!("{}", s.to_string_lossy());
+    let x = ArgumentTree::default();
+    println!("{:-^80}", "tree");
+    println!("{}", x.to_tree().to_string_lossy());
+    println!("{:-^80}", "statement");
+    println!("{}", x.to_stmt().to_string_lossy());
 }
