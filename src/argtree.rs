@@ -11,7 +11,7 @@ const PROFILE_FILE: &str = "profile.csv";
 #[derive(Debug, PartialEq, Clone, Translate, Builder)]
 #[non_exhaustive]
 // Lack of `declare` is intentional.
-pub struct ArgumentTree {
+pub struct ArgTree {
     /// Analysis method. Defaults to [`Method::Sample`].
     pub method: Method,
     /// Unique process identifier.
@@ -68,10 +68,10 @@ fn rsplit_file_at_dot<'a>(file: &'a OsStr) -> (&'a OsStr, &'a OsStr) {
 
 
 /** File-handling utilities. */
-impl ArgumentTree {
+impl ArgTree {
     fn files<F>(&self, f: F) -> Vec<OsString>
     where
-        F: Fn(&ArgumentTree) -> &OsStr,
+        F: Fn(&ArgTree) -> &OsStr,
     {
         let mut files: Vec<OsString> = Vec::new();
         let file = f(self);
@@ -224,7 +224,7 @@ mod tests {
     use super::*;
 
     #[cfg(test)]
-    mod argument_tree {
+    mod argtree {
         use super::*;
         use crate::sample::*;
 
@@ -245,7 +245,7 @@ mod tests {
                 profile_file: "foo.txt".into(),
             };
             let num_threads = 48;
-            let x = ArgumentTree::builder()
+            let x = ArgTree::builder()
                 .method(method.clone())
                 .id(id)
                 .data(data.clone())
@@ -256,7 +256,7 @@ mod tests {
                 .build();
             assert_eq!(
                 x,
-                ArgumentTree {
+                ArgTree {
                     method,
                     id,
                     data,
@@ -284,8 +284,8 @@ mod tests {
             };
             let num_threads = 1;
             assert_eq!(
-                ArgumentTree::default(),
-                ArgumentTree {
+                ArgTree::default(),
+                ArgTree {
                     method,
                     id,
                     data,
@@ -299,7 +299,7 @@ mod tests {
 
         #[test]
         fn to_stmt() {
-            let x = ArgumentTree::default();
+            let x = ArgTree::default();
             assert_eq!(x.to_stmt(), "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e metric_file= stepsize=1 stepsize_jitter=0 num_chains=1 id=1 data file= init=2 random seed=-1 output file=output.csv diagnostic_file= refresh=100 sig_figs=-1 profile_file=profile.csv num_threads=1");
 
             let method = SampleBuilder::new()
@@ -325,7 +325,7 @@ mod tests {
                 profile_file: "foo.txt".into(),
             };
             let num_threads = 48;
-            let x = ArgumentTree {
+            let x = ArgTree {
                 method,
                 id,
                 data,
@@ -359,7 +359,7 @@ mod tests {
                 profile_file: "foo.txt".into(),
             };
             let num_threads = 48;
-            let x = ArgumentTree {
+            let x = ArgTree {
                 method,
                 id,
                 data,
@@ -373,7 +373,7 @@ mod tests {
 
         #[test]
         fn files() {
-            let b = ArgumentTree::builder()
+            let b = ArgTree::builder()
                 .method(SampleBuilder::new().num_chains(3))
                 .id(2);
             let x = b
