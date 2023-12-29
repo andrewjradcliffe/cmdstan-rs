@@ -54,7 +54,7 @@ pub(crate) const MAKE_DIAGNOSE: &str = "bin/diagnose.exe";
 pub(crate) const HELP: &str = "help";
 pub(crate) const DHELP: &str = "--help";
 
-// Common defaults.
+// Common defaults for BFGS/l-BFGS
 pub(crate) const INIT_ALPHA: f64 = 0.001;
 pub(crate) const TOL_OBJ: f64 = 1e-12;
 pub(crate) const TOL_REL_OBJ: f64 = 10_000.0;
@@ -62,3 +62,10 @@ pub(crate) const TOL_GRAD: f64 = 1e-8;
 pub(crate) const TOL_REL_GRAD: f64 = 10_000_000.0;
 pub(crate) const TOL_PARAM: f64 = 1e-8;
 pub(crate) const HISTORY_SIZE: i32 = 5;
+
+
+// Used in multiple places
+pub(crate) const NEG1_I32: i32 = -1;
+pub(crate) const NEG1_I64: i64 = -1;
+pub(crate) const OUTPUT_FILE: &str = "output.csv";
+pub(crate) const PROFILE_FILE: &str = "profile.csv";

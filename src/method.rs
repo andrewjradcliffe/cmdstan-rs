@@ -1,7 +1,4 @@
 use crate::builder::Builder;
-use crate::consts::{
-    HISTORY_SIZE, INIT_ALPHA, TOL_GRAD, TOL_OBJ, TOL_PARAM, TOL_REL_GRAD, TOL_REL_OBJ,
-};
 use crate::diagnose::*;
 use crate::optimize::*;
 use crate::sample::*;
@@ -146,37 +143,37 @@ pub enum Method {
         /// Line search step size for first iteration.
         /// Valid values: `0 < init_alpha`.
         /// Defaults to `0.001`.
-        #[defaults_to = "INIT_ALPHA"]
+        #[defaults_to = "crate::consts::INIT_ALPHA"]
         init_alpha: f64,
         /// Convergence tolerance on absolute changes in objective function value.
         /// Valid values: `0 <= tol_obj`.
         /// Defaults to `1e-12`.
-        #[defaults_to = "TOL_OBJ"]
+        #[defaults_to = "crate::consts::TOL_OBJ"]
         tol_obj: f64,
         /// Convergence tolerance on relative changes in objective function value.
         /// Valid values: `0 <= tol_rel_obj`.
         /// Defaults to `10000.0`.
-        #[defaults_to = "TOL_REL_OBJ"]
+        #[defaults_to = "crate::consts::TOL_REL_OBJ"]
         tol_rel_obj: f64,
         /// Convergence tolerance on the norm of the gradient.
         /// Valid values: `0 <= tol_grad`.
         /// Defaults to `1e-08`.
-        #[defaults_to = "TOL_GRAD"]
+        #[defaults_to = "crate::consts::TOL_GRAD"]
         tol_grad: f64,
         /// Convergence tolerance on the relative norm of the gradient.
         /// Valid values: `0 <= tol_rel_grad`.
         /// Defaults to `10000000.0`.
-        #[defaults_to = "TOL_REL_GRAD"]
+        #[defaults_to = "crate::consts::TOL_REL_GRAD"]
         tol_rel_grad: f64,
         /// Convergence tolerance on changes in parameter value.
         /// Valid values: `0 <= tol_param`.
         /// Defaults to `1e-08`
-        #[defaults_to = "TOL_PARAM"]
+        #[defaults_to = "crate::consts::TOL_PARAM"]
         tol_param: f64,
         /// Amount of history to keep for L-BFGS.
         /// Valid values: `0 < history_size`.
         /// Defaults to `5`.
-        #[defaults_to = "HISTORY_SIZE"]
+        #[defaults_to = "crate::consts::HISTORY_SIZE"]
         history_size: i32,
         /// Number of draws from PSIS sample.
         /// Valid values: `0 < num_psis_draws`.

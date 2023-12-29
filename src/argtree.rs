@@ -3,11 +3,6 @@ use crate::builder::Builder;
 use crate::translate::Translate;
 use std::ffi::{OsStr, OsString};
 
-const NEG1_I32: i32 = -1;
-const NEG1_I64: i64 = -1;
-const OUTPUT_FILE: &str = "output.csv";
-const PROFILE_FILE: &str = "profile.csv";
-
 #[derive(Debug, PartialEq, Clone, Translate, Builder)]
 #[non_exhaustive]
 // Lack of `declare` is intentional.
@@ -181,7 +176,7 @@ pub struct Random {
     /// Valid values: non-negative integer < `4294967296` or `-1` to
     /// generate seed from system time.
     /// Defaults to `-1`.
-    #[defaults_to = "NEG1_I64"]
+    #[defaults_to = "crate::consts::NEG1_I64"]
     pub seed: i64,
 }
 
@@ -193,7 +188,7 @@ pub struct Output {
     /// Output file.
     /// Valid values: Path to existing file.
     /// Defaults to `"output.csv"`.
-    #[defaults_to = "OUTPUT_FILE"]
+    #[defaults_to = "crate::consts::OUTPUT_FILE"]
     pub file: OsString,
     /// Auxiliary output file for diagnostic information.
     /// Valid values: Path to existing file.
@@ -210,12 +205,12 @@ pub struct Output {
     /// Valid values: `0 <= sig_figs <= 18` or `-1` to use the
     /// default number of significant figures.
     /// Defaults to` -1`.
-    #[defaults_to = "NEG1_I32"]
+    #[defaults_to = "crate::consts::NEG1_I32"]
     pub sig_figs: i32,
     /// File to store profiling information.
     /// Valid values: Valid path and write access to the folder.
     /// Defaults to `"profile.csv"`.
-    #[defaults_to = "PROFILE_FILE"]
+    #[defaults_to = "crate::consts::PROFILE_FILE"]
     pub profile_file: OsString,
 }
 
