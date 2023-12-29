@@ -1,21 +1,21 @@
-use cmdstan::argument_tree::ArgumentTree;
+use cmdstan::argtree::ArgTree;
 
 fn main() {
     let limited_cli = "sample data file=bernoulli.data.json random seed=589886520";
-    let t1 = limited_cli.parse::<ArgumentTree>().unwrap();
+    let t1 = limited_cli.parse::<ArgTree>().unwrap();
     println!("{:#?}", t1);
 
     let full_cli = "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.05 delta=0.8 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e stepsize=1 stepsize_jitter=0 num_chains=1 id=1 data file=bernoulli.data.json init=2 random seed=589886520 output file=output.csv refresh=100 sig_figs=-1 profile_file=profile.csv num_threads=1";
-    let t2 = full_cli.parse::<ArgumentTree>().unwrap();
+    let t2 = full_cli.parse::<ArgTree>().unwrap();
 
     assert_eq!(t1, t2);
-    let t3 = ArgumentTree::from_reader(SAMPLE_CSV.as_bytes())
+    let t3 = ArgTree::from_reader(SAMPLE_CSV.as_bytes())
         .unwrap()
         .unwrap();
 
     assert_eq!(t1, t3);
 
-    let t4 = ArgumentTree::from_reader(STDOUT.as_bytes())
+    let t4 = ArgTree::from_reader(STDOUT.as_bytes())
         .unwrap()
         .unwrap();
     assert_eq!(t1, t4);

@@ -1,4 +1,4 @@
-use crate::argument_tree::*;
+use crate::argtree::*;
 use crate::method::Method;
 use crate::parser::*;
 use std::ffi::OsString;
@@ -96,10 +96,10 @@ macro_rules! once_branch_parse_i32 {
     };
 }
 
-impl ArgumentTree {
+impl ArgTree {
     fn try_from_pair(pair: Pair<'_, Rule>) -> Result<Self, ParseGrammarError> {
         match pair.as_rule() {
-            Rule::argument_tree => {
+            Rule::argtree => {
                 let pairs = pair.into_inner();
                 // To implement the unification, and enforcerules, we must keep count
                 // of the declarations. Since only a single declaration is permitted,
@@ -112,7 +112,7 @@ impl ArgumentTree {
                 let mut st_id = false;
                 let mut st_num_threads = false;
 
-                let mut builder = ArgumentTree::builder();
+                let mut builder = ArgTree::builder();
                 for pair in pairs {
                     match pair.as_rule() {
                         Rule::method_special_case => {
@@ -225,15 +225,15 @@ impl ArgumentTree {
     }
 }
 
-impl FromStr for ArgumentTree {
+impl FromStr for ArgTree {
     type Err = ParseGrammarError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match GrammarParser::parse(Rule::argument_tree, s) {
+        match GrammarParser::parse(Rule::argtree, s) {
             Ok(mut pairs) => {
                 let pair = pairs.next().unwrap();
                 Self::try_from_pair(pair)
             }
-            Err(e) => error_position!(e, ArgumentTreeError),
+            Err(e) => error_position!(e, ArgTreeError),
         }
     }
 }
@@ -303,7 +303,7 @@ mod tests {
         }
     }
 
-    mod argument_tree {
+    mod argtree {
         use super::*;
         use crate::method::{OptimizeBuilder, VariationalBuilder};
         use crate::optimize::*;
@@ -311,20 +311,20 @@ mod tests {
 
         #[test]
         fn from_str() {
-            let rhs = ArgumentTree::default();
-            assert_eq!("sample".parse::<ArgumentTree>().unwrap(), rhs);
-            assert_eq!("method=sample".parse::<ArgumentTree>().unwrap(), rhs);
-            assert_eq!("method method=sample".parse::<ArgumentTree>().unwrap(), rhs);
-            assert_eq!("method".parse::<ArgumentTree>().unwrap(), rhs);
+            let rhs = ArgTree::default();
+            assert_eq!("sample".parse::<ArgTree>().unwrap(), rhs);
+            assert_eq!("method=sample".parse::<ArgTree>().unwrap(), rhs);
+            assert_eq!("method method=sample".parse::<ArgTree>().unwrap(), rhs);
+            assert_eq!("method".parse::<ArgTree>().unwrap(), rhs);
 
             // Simple error: method unspecified
-            assert!("".parse::<ArgumentTree>().is_err());
-            assert!("id".parse::<ArgumentTree>().is_err());
-            assert!("init".parse::<ArgumentTree>().is_err());
-            assert!("random".parse::<ArgumentTree>().is_err());
-            assert!("output".parse::<ArgumentTree>().is_err());
-            assert!("num_threads".parse::<ArgumentTree>().is_err());
-            assert!("data".parse::<ArgumentTree>().is_err());
+            assert!("".parse::<ArgTree>().is_err());
+            assert!("id".parse::<ArgTree>().is_err());
+            assert!("init".parse::<ArgTree>().is_err());
+            assert!("random".parse::<ArgTree>().is_err());
+            assert!("output".parse::<ArgTree>().is_err());
+            assert!("num_threads".parse::<ArgTree>().is_err());
+            assert!("data".parse::<ArgTree>().is_err());
 
             let methods = [
                 "optimize",
@@ -336,13 +336,13 @@ mod tests {
                 "laplace",
             ];
             for m in methods {
-                let t = m.parse::<ArgumentTree>().unwrap();
+                let t = m.parse::<ArgTree>().unwrap();
                 assert_ne!(t, rhs);
             }
 
             let s = "method=sample num_samples=1000 num_warmup=1000 save_warmup=0 thin=1 adapt engaged=1 gamma=0.050000000000000003 delta=0.80000000000000004 kappa=0.75 t0=10 init_buffer=75 term_buffer=50 window=25 algorithm=hmc engine=nuts max_depth=10 metric=diag_e metric_file= stepsize=1 stepsize_jitter=0 num_chains=1 id=1 data file=bernoulli.data.json init=2 random seed=589886520 output file=output.csv diagnostic_file= refresh=100 sig_figs=-1 profile_file=profile.csv num_threads=1";
-            let lhs = s.parse::<ArgumentTree>().unwrap();
-            let rhs = ArgumentTree::builder()
+            let lhs = s.parse::<ArgTree>().unwrap();
+            let rhs = ArgTree::builder()
                 .data(Data {
                     file: "bernoulli.data.json".into(),
                 })
@@ -352,11 +352,11 @@ mod tests {
             assert_eq!(lhs, rhs);
 
             let s = "method=variational iter=1000 adapt engaged=0 iter=42";
-            assert!(s.parse::<ArgumentTree>().is_ok());
+            assert!(s.parse::<ArgTree>().is_ok());
 
             let s = "id=2 data file=bernoulli.data.json output file=foo.csv diagnostic_file=bar.csv profile_file=baz.csv num_threads=123 method=variational iter=1000 algorithm=fullrank algorithm=meanfield algorithm=fullrank adapt engaged eta=2 grad_samples=10 elbo_samples=20 iter=123 output_samples=50";
-            let lhs = s.parse::<ArgumentTree>().unwrap();
-            let rhs = ArgumentTree::builder()
+            let lhs = s.parse::<ArgTree>().unwrap();
+            let rhs = ArgTree::builder()
                 .id(2)
                 .data(Data {
                     file: "bernoulli.data.json".into(),
@@ -381,8 +381,8 @@ mod tests {
             assert_eq!(lhs, rhs);
 
             let s = "id=10 data file=bernoulli.data.json output file= optimize algorithm=lbfgs init_alpha=10 iter=1234 save_iterations=+1 jacobian=-0 num_threads=42";
-            let lhs = s.parse::<ArgumentTree>().unwrap();
-            let rhs = ArgumentTree::builder()
+            let lhs = s.parse::<ArgTree>().unwrap();
+            let rhs = ArgTree::builder()
                 .id(10)
                 .data(Data {
                     file: "bernoulli.data.json".into(),

@@ -1,4 +1,4 @@
-use crate::argument_tree::ArgumentTree;
+use crate::argtree::ArgTree;
 use crate::consts::*;
 use crate::error::*;
 use crate::stansummary::StanSummaryOptions;
@@ -502,7 +502,7 @@ impl CmdStanModel {
     /// have a zero exit status. If the exit status is non-zero,
     /// an appropriate error term will be returned with the `process::Output`
     /// `stdout` and `stderr` read from the respective log files.
-    pub fn call(&self, tree: &ArgumentTree) -> Result<CmdStanOutput, Error> {
+    pub fn call(&self, tree: &ArgTree) -> Result<CmdStanOutput, Error> {
         let cwd = env::current_dir().map_err(Self::error_op)?;
         let out: &Path = tree.output.file.as_ref();
         // The log name likely needs to be unique, else we risk clobbering
@@ -533,7 +533,7 @@ impl CmdStanModel {
                 stderr_path: stderr,
                 cwd_at_call: cwd,
                 output,
-                argument_tree: tree.clone(),
+                argtree: tree.clone(),
             })
         } else {
             // However, we need cook up an equivalent `process::Output`
@@ -578,7 +578,7 @@ pub struct CmdStanOutput {
     /// pushed onto `cwd_at_call`.
     cwd_at_call: PathBuf,
     output: process::Output,
-    argument_tree: ArgumentTree,
+    argtree: ArgTree,
     stdout_path: PathBuf,
     stderr_path: PathBuf,
 }
@@ -590,9 +590,9 @@ impl CmdStanOutput {
     /// which the relative path will be joined.
     fn files<F>(&self, f: F) -> Vec<PathBuf>
     where
-        F: Fn(&ArgumentTree) -> Vec<OsString>,
+        F: Fn(&ArgTree) -> Vec<OsString>,
     {
-        f(&self.argument_tree)
+        f(&self.argtree)
             .into_iter()
             .map(|s| {
                 let file: &Path = s.as_ref();
@@ -643,7 +643,7 @@ impl CmdStanOutput {
 
     /// Return a reference to the argument tree with which the call
     /// was made.
-    pub fn argument_tree(&self) -> &ArgumentTree {
-        &self.argument_tree
+    pub fn argtree(&self) -> &ArgTree {
+        &self.argtree
     }
 }

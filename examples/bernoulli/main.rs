@@ -1,4 +1,4 @@
-use cmdstan::argument_tree::{ArgumentTree, Data, Output, Random};
+use cmdstan::argtree::{ArgTree, Data, Output, Random};
 use cmdstan::sample::{HmcBuilder, Metric, NutsBuilder, SampleBuilder};
 use cmdstan::stansummary::StanSummaryOptions;
 use cmdstan::*;
@@ -29,7 +29,7 @@ fn main() {
 
     // These options are intentionally verbose; the point is that
     // one can conveniently specify them.
-    let tree = ArgumentTree::builder()
+    let tree = ArgTree::builder()
         .method(
             SampleBuilder::new()
                 .num_samples(1234)

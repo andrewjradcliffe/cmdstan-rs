@@ -132,7 +132,7 @@ b = 2";
 
     mod actual {
         use super::*;
-        use crate::argument_tree::*;
+        use crate::argtree::*;
         use crate::method::*;
         use crate::sample::*;
         use crate::variational::*;
@@ -359,7 +359,7 @@ method = variational
                 num_chains: 4,
             };
 
-            let t = ArgumentTree {
+            let t = ArgTree {
                 method: m,
                 id: 1,
                 init: "2".into(),

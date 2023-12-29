@@ -16,11 +16,11 @@ num_threads = {
     ~ (_num_threads ~ ((sep+ ~ _num_threads ~ "=" ~ signed_integer) | ("=" ~ signed_integer)?))
 }
 
-argument_tree = {
-    SOI ~ argument_tree_term ~ (sep+ ~ argument_tree_term)* ~ &EOI
+argtree = {
+    SOI ~ argtree_term ~ (sep+ ~ argtree_term)* ~ &EOI
 }
 
-argument_tree_term = _{
+argtree_term = _{
     method_special_case
   | init
   | data

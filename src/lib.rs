@@ -1,7 +1,7 @@
 #[macro_use]
 mod internal_macros;
 
-pub mod argument_tree;
+pub mod argtree;
 mod base;
 pub(crate) mod builder;
 mod consts;

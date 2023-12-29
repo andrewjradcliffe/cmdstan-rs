@@ -1,9 +1,9 @@
-use cmdstan::argument_tree::{ArgumentTree, Data, Output};
+use cmdstan::argtree::{ArgTree, Data, Output};
+use cmdstan::*;
 use cmdstan::{
     optimize::OptimizeBuilder, pathfinder::PathfinderBuilder, sample::SampleBuilder,
     variational::VariationalBuilder,
 };
-use cmdstan::*;
 use std::{env, path::PathBuf};
 
 fn main() {
@@ -29,7 +29,7 @@ fn main() {
         .compile::<[_; 0], &str>(&program, [])
         .expect("Something went wrong with compilation");
 
-    let tree = ArgumentTree::builder()
+    let tree = ArgTree::builder()
         .data(Data::builder().file(data_file))
         .build();
 

@@ -17,7 +17,7 @@ use std::str::FromStr;
 #[grammar = "parser/data.pest"]
 #[grammar = "parser/random.pest"]
 #[grammar = "parser/output.pest"]
-#[grammar = "parser/argument_tree.pest"]
+#[grammar = "parser/argtree.pest"]
 pub struct GrammarParser;
 
 #[derive(Debug, PartialEq)]
@@ -36,7 +36,7 @@ pub enum ParseGrammarError {
     OutputError(usize),
     RandomError(usize),
     DataError(usize),
-    ArgumentTreeError(usize),
+    ArgTreeError(usize),
     TopLevelDuplicate(&'static str),
     MethodNotSpecified,
     RuleError(Rule),
@@ -69,7 +69,7 @@ impl fmt::Display for ParseGrammarError {
             OutputError(n) => ("output", n),
             RandomError(n) => ("random", n),
             DataError(n) => ("data", n),
-            ArgumentTreeError(n) => ("top-level", n),
+            ArgTreeError(n) => ("top-level", n),
             RuleError(r) => {
                 return write!(f, "internal parsing error: {:?}", r);
             }
@@ -150,7 +150,7 @@ macro_rules! impl_from_str {
     }
 }
 
-mod argument_tree;
+mod argtree;
 mod diagnose;
 mod generate_quantities;
 mod laplace;
