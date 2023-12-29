@@ -3,7 +3,8 @@ use quote::{format_ident, quote};
 use syn::{parse_macro_input, AttrStyle, Attribute, Data, DeriveInput, Fields, Meta};
 
 static UNIT_STRUCT: &str = "`Builder` not supported on unit struct";
-static UNNAMED_FIELDS: &str = "`Builder` not supported on struct or enum variant with unnamed fields";
+static UNNAMED_FIELDS: &str =
+    "`Builder` not supported on struct or enum variant with unnamed fields";
 static ENUM_ZERO_VARIANT: &str = "`Builder` not supported on enum with zero variants";
 static UNION: &str = "`Builder` not supported union";
 
@@ -153,12 +154,20 @@ fn build_defaults<'a>(fields: &'a [FieldInfo]) -> impl Iterator<Item = TokenStre
                         }
                     }
                     x => {
-                        quote! {
-                            let #ident = self.#ident.unwrap_or(#x);
+                        // Special case to handle environment capture
+                        if ident == "num_threads" {
+                            quote! {
+                                let num_threads = self.num_threads.unwrap_or_else(|| {
+                                    std::env::var("STAN_NUM_THREADS").map_or(#x, |s| s.parse::<i32>().unwrap_or(#x))
+                                });
+                            }
+                        } else {
+                            quote! {
+                                let #ident = self.#ident.unwrap_or(#x);
+                            }
                         }
                     }
                 }
-
             } else if ty_coarse.is_string() {
                 match default {
                     Some(default) => {
